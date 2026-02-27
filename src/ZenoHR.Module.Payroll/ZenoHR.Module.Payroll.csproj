@@ -15,4 +15,11 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!-- REQ-HR-003: Expose internal calculation helpers to the dedicated unit-test project. -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>ZenoHR.Module.Payroll.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
 </Project>

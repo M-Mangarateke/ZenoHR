@@ -1,18 +1,18 @@
 {
   "project": "ZenoHR",
-  "current_phase": "Phase 0 — Foundation",
-  "last_updated": "2026-02-27T08:54:59.114164+00:00",
-  "last_session_summary": "Completed Analytics feature design (TASK-042). Created 12-analytics.html (company analytics: 5 sections — KPI row, workforce headcount+dept doughnut, payroll trend+tax+ETI, leave intelligence tabbed, compliance scorecard rings+trend; 8 Chart.js charts). Created 13-my-analytics.html (personal analytics: 5 sections — KPI row, earnings bar+line chart+payslip table, deductions stacked+doughnut, 5 SVG leave rings, IRP5 dark card with code annotations; 3 charts). Added analytics_snapshots Firestore collection (Section 17): pre-aggregated company/dept-scope snapshots with payroll/workforce/leave/compliance sub-maps. PRD-15 updated: /analytics + /my-analytics routes in access matrix, nav items per role (Insights group), Blazor route authorization. CLAUDE.md mockup table updated (01-13). DEC-023 (pre-aggregated snapshots) and DEC-024 (personal reads directly) logged. All 24 decisions logged.",
+  "current_phase": "Phase 1 — Domain Core + Payroll Engine",
+  "last_updated": "2026-02-27T10:00:00.000000+00:00",
+  "last_session_summary": "Phase 1 payroll calculation engines complete. TASK-053: PayeCalculationEngine — monthly, weekly, mid-period joiner PAYE via SARS annual equivalent method (PRD-16 Sections 1–3). TASK-054: UifSdlCalculationEngine — monthly and weekly UIF ceiling, SDL exemption. TASK-055: EtiCalculationEngine — GetTier, CalendarMonthsBetween, IsEligible, CalculateMonthlyEti with hours proration; all three band formula types (percentage, fixed, taper). StatutoryDataConverter handles Firestore long/double → decimal safely. SarsPayeRuleSet/SarsUifSdlRuleSet/SarsEtiRuleSet typed adaptors with From() and CreateForTesting() factories. TASK-059+060: 117 unit tests passing — deterministic 2025/2026 bracket values + FsCheck property-based tests (non-negative, monotonic, ceiling invariants, tier2≤tier1). InternalsVisibleTo added to expose internal helpers to test project.",
   "phases": [
     {
       "id": "phase-0",
       "name": "Foundation",
-      "status": "in_progress"
+      "status": "completed"
     },
     {
       "id": "phase-1",
       "name": "Domain Core (Shared Kernel + Payroll Engine)",
-      "status": "pending"
+      "status": "in_progress"
     },
     {
       "id": "phase-2",
@@ -575,8 +575,9 @@
       "id": "TASK-043",
       "title": "Shared kernel: MoneyZAR value object + arithmetic operators",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
+      "completed_at": "2026-02-27",
       "depends_on": [
         "TASK-004"
       ],
@@ -588,8 +589,9 @@
       "id": "TASK-044",
       "title": "Shared kernel: TaxYear, EffectivePeriod, RuleVersion value objects",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
+      "completed_at": "2026-02-27",
       "depends_on": [
         "TASK-043"
       ],
@@ -601,8 +603,9 @@
       "id": "TASK-045",
       "title": "Shared kernel: DataClassification enum + field-level masking infrastructure",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
+      "completed_at": "2026-02-27",
       "depends_on": [
         "TASK-004"
       ],
@@ -614,8 +617,9 @@
       "id": "TASK-046",
       "title": "Result<T> type + error taxonomy enum",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
+      "completed_at": "2026-02-27",
       "depends_on": [
         "TASK-004"
       ],
@@ -627,8 +631,9 @@
       "id": "TASK-047",
       "title": "Domain event base types (DomainEvent, IDomainEventHandler)",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
+      "completed_at": "2026-02-27",
       "depends_on": [
         "TASK-046"
       ],
@@ -640,8 +645,9 @@
       "id": "TASK-048",
       "title": "MediatR registration + pipeline behaviours (logging, validation, error)",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
+      "completed_at": "2026-02-27",
       "depends_on": [
         "TASK-047"
       ],
@@ -653,8 +659,9 @@
       "id": "TASK-049",
       "title": "AuditEvent entity + SHA-256 hash-chain logic",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
+      "completed_at": "2026-02-27",
       "depends_on": [
         "TASK-043"
       ],
@@ -705,8 +712,9 @@
       "id": "TASK-053",
       "title": "PAYE calculation engine: CalculatePAYE() — all 12 PRD-16 sections",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
+      "completed_at": "2026-02-27",
       "depends_on": [
         "TASK-043",
         "TASK-044"
@@ -720,8 +728,9 @@
       "id": "TASK-054",
       "title": "UIF/SDL calculation engine",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
+      "completed_at": "2026-02-27",
       "depends_on": [
         "TASK-043"
       ],
@@ -734,8 +743,9 @@
       "id": "TASK-055",
       "title": "ETI calculation engine + 12-month tier tracking (PRD-16 Section 5)",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
+      "completed_at": "2026-02-27",
       "depends_on": [
         "TASK-053"
       ],
@@ -788,8 +798,9 @@
       "id": "TASK-059",
       "title": "Unit tests: PAYE engine (FsCheck property-based, 90%+ coverage)",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
+      "completed_at": "2026-02-27",
       "depends_on": [
         "TASK-053"
       ],
@@ -801,8 +812,9 @@
       "id": "TASK-060",
       "title": "Unit tests: UIF/SDL/ETI engines",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
+      "completed_at": "2026-02-27",
       "depends_on": [
         "TASK-054",
         "TASK-055"
@@ -828,8 +840,9 @@
       "id": "TASK-062",
       "title": "Unit tests: AuditEvent hash-chain",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
+      "completed_at": "2026-02-27",
       "depends_on": [
         "TASK-049"
       ],
