@@ -1,0 +1,1336 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audit Trail - ZenoHR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    /* ── Audit event types ────────────────────────────────────────── */
+    .event-type-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: .72rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .evt-payroll {
+      background: #e8f0fb;
+      color: #1d4777;
+    }
+
+    .evt-employee {
+      background: #e8f7ef;
+      color: #1a7a44;
+    }
+
+    .evt-leave {
+      background: #fef3e2;
+      color: #b86b00;
+    }
+
+    .evt-auth {
+      background: #f3eafd;
+      color: #7b2fbe;
+    }
+
+    .evt-compliance {
+      background: #fdecea;
+      color: #c0392b;
+    }
+
+    .evt-config {
+      background: var(--surface-hover);
+      color: var(--text-secondary);
+    }
+
+    .evt-data {
+      background: #e0f7fa;
+      color: #006064;
+    }
+
+    [data-theme="dark"] .evt-payroll {
+      background: rgba(29, 71, 119, .3);
+      color: #7fafd6;
+    }
+
+    [data-theme="dark"] .evt-employee {
+      background: rgba(26, 122, 68, .25);
+      color: #3ddc82;
+    }
+
+    [data-theme="dark"] .evt-leave {
+      background: rgba(212, 137, 14, .2);
+      color: #f0a83a;
+    }
+
+    [data-theme="dark"] .evt-auth {
+      background: rgba(123, 47, 190, .25);
+      color: #c084fc;
+    }
+
+    [data-theme="dark"] .evt-compliance {
+      background: rgba(192, 57, 43, .25);
+      color: #ff6b6b;
+    }
+
+    [data-theme="dark"] .evt-config {
+      background: rgba(255, 255, 255, .08);
+      color: var(--text-muted);
+    }
+
+    [data-theme="dark"] .evt-data {
+      background: rgba(0, 96, 100, .3);
+      color: #4dd0e1;
+    }
+
+    /* ── Hash chain ───────────────────────────────────────────────── */
+    .hash-cell {
+      font-family: var(--font-mono);
+      font-size: .72rem;
+      color: var(--text-muted);
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hash-value {
+      letter-spacing: .02em;
+    }
+
+    .copy-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-disabled);
+      padding: 2px 4px;
+      border-radius: 4px;
+      line-height: 1;
+      transition: color .15s;
+      display: flex;
+      align-items: center;
+    }
+
+    .copy-btn:hover {
+      color: var(--brand-primary);
+    }
+
+    .copy-btn.copied {
+      color: #27ae60;
+    }
+
+    .chain-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: .7rem;
+      font-weight: 600;
+    }
+
+    .chain-ok {
+      color: #27ae60;
+    }
+
+    .chain-broken {
+      color: #e74c3c;
+    }
+
+    /* ── Timeline connector ───────────────────────────────────────── */
+    .audit-table tbody tr td.ts-col {
+      position: relative;
+    }
+
+    .audit-table tbody tr td.ts-col::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 0;
+      bottom: 0;
+      width: 1px;
+      background: var(--border-subtle);
+      z-index: 0;
+    }
+
+    .audit-table tbody tr:first-child td.ts-col::before {
+      top: 50%;
+    }
+
+    .audit-table tbody tr:last-child td.ts-col::before {
+      bottom: 50%;
+    }
+
+    .ts-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--brand-primary);
+      margin: auto;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Filter panel ─────────────────────────────────────────────── */
+    .filter-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .filter-select {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface);
+      color: var(--text-primary);
+      font-size: .82rem;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      outline: none;
+    }
+
+    .filter-select:focus {
+      border-color: var(--brand-primary);
+    }
+
+    [data-theme="dark"] .filter-select {
+      background: var(--surface-hover);
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 200px;
+      padding: 7px 12px 7px 36px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface);
+      color: var(--text-primary);
+      font-size: .82rem;
+      font-family: var(--font-sans);
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--brand-primary);
+    }
+
+    [data-theme="dark"] .search-input {
+      background: var(--surface-hover);
+    }
+
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .search-wrap .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+
+    /* ── Integrity banner ─────────────────────────────────────────── */
+    .integrity-banner {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: .82rem;
+      margin-bottom: 16px;
+    }
+
+    .integrity-banner.ok {
+      background: #e8f7ef;
+      color: #1a7a44;
+      border: 1px solid rgba(26, 122, 68, .2);
+    }
+
+    .integrity-banner.broken {
+      background: #fdecea;
+      color: #c0392b;
+      border: 1px solid rgba(192, 57, 43, .2);
+    }
+
+    [data-theme="dark"] .integrity-banner.ok {
+      background: rgba(26, 122, 68, .2);
+      color: #3ddc82;
+      border-color: rgba(26, 122, 68, .3);
+    }
+
+    [data-theme="dark"] .integrity-banner.broken {
+      background: rgba(192, 57, 43, .2);
+      color: #ff6b6b;
+      border-color: rgba(192, 57, 43, .3);
+    }
+
+    .integrity-banner-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .integrity-timestamp {
+      margin-left: auto;
+      font-size: .75rem;
+      opacity: .8;
+      white-space: nowrap;
+    }
+
+    .integrity-explain-btn {
+      background: none;
+      border: 1px solid currentColor;
+      border-radius: 6px;
+      color: inherit;
+      font-size: .75rem;
+      font-family: var(--font-sans);
+      cursor: pointer;
+      padding: 3px 9px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      opacity: .85;
+      transition: opacity .15s;
+    }
+
+    .integrity-explain-btn:hover {
+      opacity: 1;
+    }
+
+    .integrity-explain {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid currentColor;
+      border-top-opacity: .2;
+      font-size: .82rem;
+      line-height: 1.55;
+    }
+
+    .integrity-explain p {
+      margin: 0 0 8px;
+      opacity: .9;
+    }
+
+    .integrity-tech-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: inherit;
+      font-size: .75rem;
+      font-family: var(--font-sans);
+      opacity: .8;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      transition: opacity .15s;
+    }
+
+    .integrity-tech-btn:hover {
+      opacity: 1;
+    }
+
+    .integrity-tech {
+      margin-top: 10px;
+      background: rgba(0, 0, 0, .06);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: var(--font-mono);
+      font-size: .76rem;
+    }
+
+    [data-theme="dark"] .integrity-tech {
+      background: rgba(255, 255, 255, .08);
+    }
+
+    .integrity-tech-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 4px;
+    }
+
+    .integrity-tech-row span:first-child {
+      opacity: .7;
+      min-width: 150px;
+    }
+
+    /* ── Fingerprint tooltip ──────────────────────────────────────── */
+    .fp-info-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 0 2px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      position: relative;
+      vertical-align: middle;
+    }
+
+    .fp-info-btn:hover {
+      color: var(--brand-primary);
+    }
+
+    .fp-tooltip {
+      display: none;
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--text-primary);
+      color: var(--surface);
+      font-size: .73rem;
+      font-family: var(--font-sans);
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: none;
+      line-height: 1.45;
+      padding: 7px 10px;
+      border-radius: 8px;
+      width: 220px;
+      z-index: 99;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, .18);
+      pointer-events: none;
+    }
+
+    .fp-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: var(--text-primary);
+    }
+
+    .fp-info-btn:hover .fp-tooltip,
+    .fp-info-btn.active .fp-tooltip {
+      display: block;
+    }
+
+    /* ── Audit KPIs ───────────────────────────────────────────────── */
+    .audit-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .audit-kpis {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .audit-kpi {
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+
+    .audit-kpi-label {
+      font-size: .72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .audit-kpi-value {
+      font-size: 1.4rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--text-primary);
+    }
+
+    .audit-kpi-sub {
+      font-size: .75rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* ── Actor cell ───────────────────────────────────────────────── */
+    .actor-cell {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .actor-name {
+      font-size: .82rem;
+      font-weight: 500;
+    }
+
+    .actor-role {
+      font-size: .7rem;
+      color: var(--text-muted);
+    }
+
+    /* ── Entity cell ──────────────────────────────────────────────── */
+    .entity-label {
+      font-size: .78rem;
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+      background: var(--surface-hover);
+      padding: 2px 7px;
+      border-radius: 5px;
+      display: inline-block;
+    }
+
+    /* Description cell */
+    .desc-cell {
+      font-size: .82rem;
+      color: var(--text-primary);
+      max-width: 260px;
+    }
+
+    .desc-cell .desc-sub {
+      font-size: .72rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .ts-text {
+      font-family: var(--font-mono);
+      font-size: .78rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    /* ── Mobile responsive ───────────────────────────── */
+    @media (max-width: 768px) {
+      .audit-kpis {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .filter-row {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .search-wrap {
+        width: 100%;
+      }
+
+      .filter-select {
+        width: 100%;
+      }
+
+      /* Hide less-critical table columns on mobile */
+      .audit-table th:nth-child(1),
+      .audit-table td:nth-child(1),
+      /* # */
+      .audit-table th:nth-child(5),
+      .audit-table td:nth-child(5),
+      /* Entity */
+      .audit-table th:nth-child(7),
+      .audit-table td:nth-child(7)
+
+      /* Fingerprint */
+        {
+        display: none;
+      }
+
+      .integrity-banner-top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .integrity-timestamp {
+        margin-left: 0;
+      }
+
+      input,
+      select {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-layout">
+    <!-- ── Sidebar ─────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="../Zenologo2.png" alt="ZenoHR" class="sidebar-logo" />
+        <button class="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar">
+          <i data-lucide="panel-left-close" style="width:18px;height:18px;"></i>
+        </button>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Main</div>
+          <a href="02-dashboard.html" class="nav-item">
+            <i data-lucide="layout-dashboard" class="nav-icon"></i><span class="nav-label">Dashboard</span>
+          </a>
+          <a href="03-employees.html" class="nav-item">
+            <i data-lucide="users" class="nav-icon"></i><span class="nav-label">Employees</span>
+          </a>
+          <a href="07-timesheet.html" class="nav-item">
+            <i data-lucide="clock" class="nav-icon"></i><span class="nav-label">Timesheets</span>
+          </a>
+          <a href="05-leave.html" class="nav-item">
+            <i data-lucide="calendar-days" class="nav-icon"></i><span class="nav-label">Leave</span>
+            <span class="nav-badge">8</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Finance &amp; Compliance</div>
+          <a href="04-payroll.html" class="nav-item">
+            <i data-lucide="banknote" class="nav-icon"></i><span class="nav-label">Payroll</span>
+          </a>
+          <a href="06-compliance.html" class="nav-item">
+            <i data-lucide="shield-check" class="nav-icon"></i><span class="nav-label">Compliance</span>
+            <span class="nav-badge">3</span>
+          </a>
+          <a href="08-audit.html" class="nav-item active">
+            <i data-lucide="scroll-text" class="nav-icon"></i><span class="nav-label">Audit Trail</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Settings</div>
+          <a href="09-role-management.html" class="nav-item">
+            <i data-lucide="shield-check" class="nav-icon"></i><span class="nav-label">Role Management</span>
+          </a>
+          <a href="10-settings.html" class="nav-item">
+            <i data-lucide="building-2" class="nav-icon"></i><span class="nav-label">Departments</span>
+          </a>
+          <a href="10-settings.html" class="nav-item">
+            <i data-lucide="users" class="nav-icon"></i><span class="nav-label">Users</span>
+          </a>
+          <a href="10-settings.html" class="nav-item">
+            <i data-lucide="sliders-horizontal" class="nav-icon"></i><span class="nav-label">Company Settings</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Insights</div>
+          <a href="12-analytics.html" class="nav-item">
+            <i data-lucide="bar-chart-3" class="nav-icon"></i><span class="nav-label">Analytics</span>
+          </a>
+          <a href="13-my-analytics.html" class="nav-item">
+            <i data-lucide="activity" class="nav-icon"></i><span class="nav-label">My Analytics</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Account</div>
+          <a href="03-employees.html" class="nav-item">
+            <!-- /profile in Blazor — merged employee record + account prefs (REQ-SEC-002) -->
+            <i data-lucide="circle-user" class="nav-icon"></i><span class="nav-label">My Profile</span>
+          </a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-profile-card">
+          <img class="sidebar-profile-img" src="sarah.jpg" alt="Sarah Nkosi">
+          <div class="sidebar-profile-label">
+            <div class="sidebar-profile-name">Sarah Nkosi</div>
+            <div class="sidebar-profile-role">HR Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Main ───────────────────────────────────────────────────── -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+            <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+        </div>
+        <div class="header-search">
+          <span class="search-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </span>
+          <input type="text" placeholder="Search audit events, actors, hashes…">
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-outline" style="font-size:.85rem;" onclick="verifyChain()">
+            <i data-lucide="shield" style="width:15px;height:15px;"></i>
+            Verify Chain
+          </button>
+          <button class="btn btn-outline" style="font-size:.85rem;">
+            <i data-lucide="download" style="width:15px;height:15px;"></i>
+            Export Evidence
+          </button>
+          <button class="icon-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+            <span class="notif-dot"></span>
+          </button>
+          <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
+            <i data-lucide="sun" style="width:18px;height:18px;" id="themeIcon"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="content-body">
+
+        <!-- Page header -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;">
+          <div>
+            <h1 style="font-size:1.5rem;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;margin:0 0 4px;">
+              Audit Trail</h1>
+            <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">Tamper-evident hash-chained event log</p>
+          </div>
+        </div>
+
+        <!-- Chain integrity banner -->
+        <div class="integrity-banner ok" id="integrityBanner">
+          <div class="integrity-banner-top">
+            <i data-lucide="shield-check" style="width:17px;height:17px;flex-shrink:0;"></i>
+            <span><strong>Tamper-proof log verified</strong> — All 2,847 records are authentic and unmodified.</span>
+            <span class="integrity-timestamp">Last checked: 19 Feb 2026 08:00 SAST</span>
+            <button class="integrity-explain-btn" onclick="toggleExplain()" id="explainToggle">
+              What does this mean? <i data-lucide="chevron-down" id="explainChevron"
+                style="width:13px;height:13px;"></i>
+            </button>
+          </div>
+          <div class="integrity-explain" id="integrityExplain" style="display:none;">
+            <p>Every action recorded in ZenoHR is mathematically sealed and linked to the one before it, like links in a
+              chain. If anyone tried to secretly alter or delete a record, the chain would break and the system would
+              immediately detect it. This is your tamper-proof audit record.</p>
+            <button class="integrity-tech-btn" onclick="toggleTech()" id="techToggle">
+              Technical details for auditors <i data-lucide="chevron-right" id="techChevron"
+                style="width:13px;height:13px;"></i>
+            </button>
+            <div class="integrity-tech" id="integrityTech" style="display:none;">
+              <div class="integrity-tech-row"><span>Algorithm:</span><span>SHA-256</span></div>
+              <div class="integrity-tech-row"><span>Chain type:</span><span>Sequential hash-linked events (each event's
+                  hash includes the prior event's hash)</span></div>
+              <div class="integrity-tech-row"><span>Genesis block:</span><span>#0001 · a1b2c3d4e5f6…</span></div>
+              <div class="integrity-tech-row"><span>Last verified hash:</span><span>f8a3c2d1…9e4b7a02</span></div>
+              <div style="margin-top:8px;"><button class="btn btn-ghost btn-sm" onclick="verifyChain()"
+                  style="font-size:.76rem;padding:4px 12px;">Verify Now</button></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI row -->
+        <div class="audit-kpis">
+          <div class="audit-kpi">
+            <div class="audit-kpi-label">Total Events</div>
+            <div class="audit-kpi-value">2,847</div>
+            <div class="audit-kpi-sub">since 1 Jan 2026</div>
+          </div>
+          <div class="audit-kpi">
+            <div class="audit-kpi-label">Today</div>
+            <div class="audit-kpi-value">47</div>
+            <div class="audit-kpi-sub">events logged</div>
+          </div>
+          <div class="audit-kpi">
+            <div class="audit-kpi-label">Chain Status</div>
+            <div class="audit-kpi-value" style="color:#27ae60;">✓ Valid</div>
+            <div class="audit-kpi-sub">2,847 of 2,847</div>
+          </div>
+          <div class="audit-kpi">
+            <div class="audit-kpi-label">Unique Actors</div>
+            <div class="audit-kpi-value">12</div>
+            <div class="audit-kpi-sub">users + 3 system</div>
+          </div>
+        </div>
+
+        <!-- Event log table -->
+        <div class="card" style="padding:0;overflow:hidden;">
+          <!-- Filters -->
+          <div class="filter-row">
+            <div class="search-wrap">
+              <i data-lucide="search" class="search-icon" style="width:14px;height:14px;"></i>
+              <input class="search-input" type="text" placeholder="Search events, actors, entities…" />
+            </div>
+            <select class="filter-select">
+              <option>All Event Types</option>
+              <option>Payroll</option>
+              <option>Employee</option>
+              <option>Leave</option>
+              <option>Authentication</option>
+              <option>Compliance</option>
+              <option>Data</option>
+            </select>
+            <select class="filter-select">
+              <option>All Actors</option>
+              <option>Sarah Reyneke</option>
+              <option>Thabo Molefe</option>
+              <option>System</option>
+              <option>Lerato Dlamini</option>
+            </select>
+            <select class="filter-select">
+              <option>Last 24 hours</option>
+              <option>Last 7 days</option>
+              <option>Last 30 days</option>
+              <option>Custom range</option>
+            </select>
+            <span style="font-size:.78rem;color:var(--text-muted);white-space:nowrap;">47 events</span>
+          </div>
+
+          <!-- Table -->
+          <div style="overflow-x:auto;">
+            <table class="audit-table" style="width:100%;border-collapse:collapse;">
+              <thead>
+                <tr style="background:var(--surface-hover);border-bottom:1px solid var(--border-subtle);">
+                  <th
+                    style="padding:10px 14px;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;white-space:nowrap;">
+                    #</th>
+                  <th
+                    style="padding:10px 14px;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;white-space:nowrap;">
+                    Timestamp</th>
+                  <th
+                    style="padding:10px 14px;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;">
+                    Actor</th>
+                  <th
+                    style="padding:10px 14px;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;">
+                    Event Type</th>
+                  <th
+                    style="padding:10px 14px;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;">
+                    Entity</th>
+                  <th
+                    style="padding:10px 14px;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;">
+                    Description</th>
+                  <th
+                    style="padding:10px 14px;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;white-space:nowrap;">
+                    Record Fingerprint
+                    <button class="fp-info-btn" onclick="this.classList.toggle('active')"
+                      title="What is a record fingerprint?">
+                      <i data-lucide="info" style="width:12px;height:12px;"></i>
+                      <span class="fp-tooltip">A unique digital fingerprint of this record. If it ever changes, the
+                        record has been tampered with.</span>
+                    </button>
+                  </th>
+                  <th
+                    style="padding:10px 14px;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:center;">
+                    Integrity</th>
+                </tr>
+              </thead>
+              <tbody>
+
+                <!-- 2847 -->
+                <tr style="border-bottom:1px solid var(--border-subtle);">
+                  <td style="padding:12px 14px;"><span class="ts-text">2847</span></td>
+                  <td style="padding:12px 14px;">
+                    <div class="ts-text">2026-02-19</div>
+                    <div class="ts-text" style="opacity:.7;">14:32:07 SAST</div>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="actor-cell">
+                      <div class="avatar avatar-sm av-7">SR</div>
+                      <div>
+                        <div class="actor-name">Sarah Reyneke</div>
+                        <div class="actor-role">HR Admin</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;"><span class="event-type-badge evt-payroll"><i data-lucide="banknote"
+                        style="width:11px;height:11px;"></i>Payroll</span></td>
+                  <td style="padding:12px 14px;"><span class="entity-label">payroll_runs/PR-2026-03</span></td>
+                  <td style="padding:12px 14px;">
+                    <div class="desc-cell">Payroll run Mar 2026 saved as Draft
+                      <div class="desc-sub">Headcount: 247 · Gross: R 3,021,450.00</div>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="hash-cell">
+                      <span class="hash-value">f8a3c2d1…9e4b7a02</span>
+                      <button class="copy-btn" onclick="copyHash(this,'f8a3c2d19e4b7a02')" title="Copy full hash">
+                        <i data-lucide="copy" style="width:12px;height:12px;"></i>
+                      </button>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;text-align:center;">
+                    <div class="chain-indicator chain-ok"><i data-lucide="link" style="width:12px;height:12px;"></i>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- 2846 -->
+                <tr style="border-bottom:1px solid var(--border-subtle);">
+                  <td style="padding:12px 14px;"><span class="ts-text">2846</span></td>
+                  <td style="padding:12px 14px;">
+                    <div class="ts-text">2026-02-19</div>
+                    <div class="ts-text" style="opacity:.7;">13:55:41 SAST</div>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="actor-cell">
+                      <div class="avatar avatar-sm av-7">SR</div>
+                      <div>
+                        <div class="actor-name">Sarah Reyneke</div>
+                        <div class="actor-role">HR Admin</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;"><span class="event-type-badge evt-leave"><i data-lucide="calendar-days"
+                        style="width:11px;height:11px;"></i>Leave</span></td>
+                  <td style="padding:12px 14px;"><span class="entity-label">leave_requests/LR-20260219-001</span></td>
+                  <td style="padding:12px 14px;">
+                    <div class="desc-cell">Leave request approved for Lerato Dlamini
+                      <div class="desc-sub">Annual · 3–7 Mar 2026 · 5 days</div>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="hash-cell">
+                      <span class="hash-value">3d7e9f12…a1c4b890</span>
+                      <button class="copy-btn" onclick="copyHash(this,'3d7e9f12a1c4b890')" title="Copy full hash">
+                        <i data-lucide="copy" style="width:12px;height:12px;"></i>
+                      </button>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;text-align:center;">
+                    <div class="chain-indicator chain-ok"><i data-lucide="link" style="width:12px;height:12px;"></i>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- 2845 -->
+                <tr style="border-bottom:1px solid var(--border-subtle);">
+                  <td style="padding:12px 14px;"><span class="ts-text">2845</span></td>
+                  <td style="padding:12px 14px;">
+                    <div class="ts-text">2026-02-19</div>
+                    <div class="ts-text" style="opacity:.7;">12:10:33 SAST</div>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="actor-cell">
+                      <div class="avatar avatar-sm" style="background:#2c3e50;font-size:.65rem;">SYS</div>
+                      <div>
+                        <div class="actor-name">System</div>
+                        <div class="actor-role">Scheduler</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;"><span class="event-type-badge evt-compliance"><i
+                        data-lucide="shield-check" style="width:11px;height:11px;"></i>Compliance</span></td>
+                  <td style="padding:12px 14px;"><span class="entity-label">compliance_schedules/EMP201-2026-02</span>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="desc-cell">EMP201 Feb 2026 auto-reminder triggered
+                      <div class="desc-sub">Due: 7 Mar 2026 · Sent to: sarah@acme.co.za</div>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="hash-cell">
+                      <span class="hash-value">9b2f4e67…c5d81a3f</span>
+                      <button class="copy-btn" onclick="copyHash(this,'9b2f4e67c5d81a3f')" title="Copy full hash">
+                        <i data-lucide="copy" style="width:12px;height:12px;"></i>
+                      </button>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;text-align:center;">
+                    <div class="chain-indicator chain-ok"><i data-lucide="link" style="width:12px;height:12px;"></i>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- 2844 - authentication -->
+                <tr style="border-bottom:1px solid var(--border-subtle);">
+                  <td style="padding:12px 14px;"><span class="ts-text">2844</span></td>
+                  <td style="padding:12px 14px;">
+                    <div class="ts-text">2026-02-19</div>
+                    <div class="ts-text" style="opacity:.7;">08:01:12 SAST</div>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="actor-cell">
+                      <div class="avatar avatar-sm av-7">TM</div>
+                      <div>
+                        <div class="actor-name">Thabo Molefe</div>
+                        <div class="actor-role">Payroll Officer</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;"><span class="event-type-badge evt-auth"><i data-lucide="log-in"
+                        style="width:11px;height:11px;"></i>Auth</span></td>
+                  <td style="padding:12px 14px;"><span class="entity-label">users/thabo.molefe</span></td>
+                  <td style="padding:12px 14px;">
+                    <div class="desc-cell">User login: MFA verified
+                      <div class="desc-sub">IP: 196.25.x.x · Browser: Chrome 121</div>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="hash-cell">
+                      <span class="hash-value">4a8c1d56…f2e73b90</span>
+                      <button class="copy-btn" onclick="copyHash(this,'4a8c1d56f2e73b90')" title="Copy full hash">
+                        <i data-lucide="copy" style="width:12px;height:12px;"></i>
+                      </button>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;text-align:center;">
+                    <div class="chain-indicator chain-ok"><i data-lucide="link" style="width:12px;height:12px;"></i>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- 2843 - employee update -->
+                <tr style="border-bottom:1px solid var(--border-subtle);">
+                  <td style="padding:12px 14px;"><span class="ts-text">2843</span></td>
+                  <td style="padding:12px 14px;">
+                    <div class="ts-text">2026-02-18</div>
+                    <div class="ts-text" style="opacity:.7;">16:44:02 SAST</div>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="actor-cell">
+                      <div class="avatar avatar-sm av-7">SR</div>
+                      <div>
+                        <div class="actor-name">Sarah Reyneke</div>
+                        <div class="actor-role">HR Admin</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;"><span class="event-type-badge evt-employee"><i data-lucide="user-pen"
+                        style="width:11px;height:11px;"></i>Employee</span></td>
+                  <td style="padding:12px 14px;"><span class="entity-label">employees/EMP-00023</span></td>
+                  <td style="padding:12px 14px;">
+                    <div class="desc-cell">Employee record updated: Sipho Khumalo
+                      <div class="desc-sub">Changed: job_title (Operations Lead → Operations Manager)</div>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="hash-cell">
+                      <span class="hash-value">7f1a3b8c…d4e92c01</span>
+                      <button class="copy-btn" onclick="copyHash(this,'7f1a3b8cd4e92c01')" title="Copy full hash">
+                        <i data-lucide="copy" style="width:12px;height:12px;"></i>
+                      </button>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;text-align:center;">
+                    <div class="chain-indicator chain-ok"><i data-lucide="link" style="width:12px;height:12px;"></i>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- 2842 - payroll finalize -->
+                <tr style="border-bottom:1px solid var(--border-subtle);">
+                  <td style="padding:12px 14px;"><span class="ts-text">2842</span></td>
+                  <td style="padding:12px 14px;">
+                    <div class="ts-text">2026-02-18</div>
+                    <div class="ts-text" style="opacity:.7;">15:20:50 SAST</div>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="actor-cell">
+                      <div class="avatar avatar-sm av-7">SR</div>
+                      <div>
+                        <div class="actor-name">Sarah Reyneke</div>
+                        <div class="actor-role">HR Admin</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;"><span class="event-type-badge evt-payroll"><i data-lucide="banknote"
+                        style="width:11px;height:11px;"></i>Payroll</span></td>
+                  <td style="padding:12px 14px;"><span class="entity-label">payroll_runs/PR-2026-02</span></td>
+                  <td style="padding:12px 14px;">
+                    <div class="desc-cell">Payroll run Feb 2026 <strong>Finalized &amp; Locked</strong>
+                      <div class="desc-sub">Net: R 2,847,320.00 · 247 employees · Write-once</div>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="hash-cell">
+                      <span class="hash-value">c0d92e4a…18f5b673</span>
+                      <button class="copy-btn" onclick="copyHash(this,'c0d92e4a18f5b673')" title="Copy full hash">
+                        <i data-lucide="copy" style="width:12px;height:12px;"></i>
+                      </button>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;text-align:center;">
+                    <div class="chain-indicator chain-ok"><i data-lucide="link" style="width:12px;height:12px;"></i>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- 2841 - data access -->
+                <tr style="border-bottom:1px solid var(--border-subtle);">
+                  <td style="padding:12px 14px;"><span class="ts-text">2841</span></td>
+                  <td style="padding:12px 14px;">
+                    <div class="ts-text">2026-02-18</div>
+                    <div class="ts-text" style="opacity:.7;">11:02:17 SAST</div>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="actor-cell">
+                      <div class="avatar avatar-sm" style="background:#2c3e50;font-size:.65rem;">SYS</div>
+                      <div>
+                        <div class="actor-name">System</div>
+                        <div class="actor-role">Retention Job</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;"><span class="event-type-badge evt-data"><i data-lucide="database"
+                        style="width:11px;height:11px;"></i>Data</span></td>
+                  <td style="padding:12px 14px;"><span class="entity-label">employees/EMP-00041</span></td>
+                  <td style="padding:12px 14px;">
+                    <div class="desc-cell">POPIA retention scan: record flagged for review
+                      <div class="desc-sub">Record age: 5.2 years · Action required</div>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="hash-cell">
+                      <span class="hash-value">2e5f8a9d…b3c17e40</span>
+                      <button class="copy-btn" onclick="copyHash(this,'2e5f8a9db3c17e40')" title="Copy full hash">
+                        <i data-lucide="copy" style="width:12px;height:12px;"></i>
+                      </button>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;text-align:center;">
+                    <div class="chain-indicator chain-ok"><i data-lucide="link" style="width:12px;height:12px;"></i>
+                    </div>
+                  </td>
+                </tr>
+
+                <!-- 2840 - leave applied -->
+                <tr style="border-bottom:1px solid var(--border-subtle);">
+                  <td style="padding:12px 14px;"><span class="ts-text">2840</span></td>
+                  <td style="padding:12px 14px;">
+                    <div class="ts-text">2026-02-17</div>
+                    <div class="ts-text" style="opacity:.7;">09:18:44 SAST</div>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="actor-cell">
+                      <div class="avatar avatar-sm av-4">LD</div>
+                      <div>
+                        <div class="actor-name">Lerato Dlamini</div>
+                        <div class="actor-role">HR Coordinator</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;"><span class="event-type-badge evt-leave"><i data-lucide="calendar-days"
+                        style="width:11px;height:11px;"></i>Leave</span></td>
+                  <td style="padding:12px 14px;"><span class="entity-label">leave_requests/LR-20260217-008</span></td>
+                  <td style="padding:12px 14px;">
+                    <div class="desc-cell">Leave application submitted by employee
+                      <div class="desc-sub">Annual · 3–7 Mar 2026 · 5 days · Awaiting approval</div>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;">
+                    <div class="hash-cell">
+                      <span class="hash-value">5d3a7f92…e1b40c68</span>
+                      <button class="copy-btn" onclick="copyHash(this,'5d3a7f92e1b40c68')" title="Copy full hash">
+                        <i data-lucide="copy" style="width:12px;height:12px;"></i>
+                      </button>
+                    </div>
+                  </td>
+                  <td style="padding:12px 14px;text-align:center;">
+                    <div class="chain-indicator chain-ok"><i data-lucide="link" style="width:12px;height:12px;"></i>
+                    </div>
+                  </td>
+                </tr>
+
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div
+            style="padding:14px 20px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:.8rem;color:var(--text-secondary);">Showing events 2840–2847 of 2,847</span>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-outline" style="padding:5px 12px;font-size:.8rem;" disabled>← Previous</button>
+              <button class="btn btn-outline"
+                style="padding:5px 12px;font-size:.8rem;background:var(--brand-primary);color:#fff;border-color:var(--brand-primary);">1</button>
+              <button class="btn btn-outline" style="padding:5px 12px;font-size:.8rem;">2</button>
+              <button class="btn btn-outline" style="padding:5px 12px;font-size:.8rem;">3</button>
+              <span style="font-size:.8rem;color:var(--text-muted);padding:5px 4px;">…</span>
+              <button class="btn btn-outline" style="padding:5px 12px;font-size:.8rem;">356</button>
+              <button class="btn btn-outline" style="padding:5px 12px;font-size:.8rem;">Next →</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Mobile drawer overlay -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+  <!-- Admin Bottom Navigation (≤640px) -->
+  <nav class="bottom-nav">
+    <a href="02-dashboard.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="7" height="9" x="3" y="3" rx="1" />
+        <rect width="7" height="5" x="14" y="3" rx="1" />
+        <rect width="7" height="9" x="14" y="12" rx="1" />
+        <rect width="7" height="5" x="3" y="16" rx="1" />
+      </svg>
+      <span class="bottom-nav-label">Dashboard</span>
+    </a>
+    <a href="03-employees.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+      <span class="bottom-nav-label">Employees</span>
+    </a>
+    <a href="07-timesheet.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+      <span class="bottom-nav-label">Timesheets</span>
+    </a>
+    <button class="bottom-nav-item" onclick="openAdminMore()">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="5" cy="12" r="1" />
+        <circle cx="12" cy="12" r="1" />
+        <circle cx="19" cy="12" r="1" />
+      </svg>
+      <span class="bottom-nav-label">More</span>
+    </button>
+  </nav>
+  <div class="admin-more-overlay" id="adminMoreOverlay" onclick="closeAdminMore()"></div>
+  <div class="admin-more-sheet" id="adminMoreSheet" style="display:none;">
+    <div class="admin-more-title">More</div>
+    <div class="admin-more-grid">
+      <a href="05-leave.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="4" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>Leave</a>
+      <a href="04-payroll.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="20" height="14" x="2" y="5" rx="2" />
+          <line x1="2" y1="10" x2="22" y2="10" />
+        </svg>Payroll</a>
+      <a href="06-compliance.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>Compliance</a>
+      <a href="08-audit.html" class="admin-more-item"
+        style="border-color:var(--brand-primary);color:var(--brand-primary);background:var(--brand-primary-subtle);"><svg
+          xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>Audit Trail</a>
+      <a href="10-settings.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>Settings</a>
+      <a href="12-analytics.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>Analytics</a>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script>
+    lucide.createIcons();
+    let sidebarCollapsed = false;
+    let isDark = false;
+
+    function toggleSidebar() {
+      sidebarCollapsed = !sidebarCollapsed;
+      document.getElementById('sidebar').classList.toggle('collapsed', sidebarCollapsed);
+      lucide.createIcons();
+    }
+    function openDrawer() {
+      document.getElementById('sidebar').classList.add('drawer-open');
+      document.getElementById('drawerOverlay').classList.add('visible');
+    }
+    function closeDrawer() {
+      document.getElementById('sidebar').classList.remove('drawer-open');
+      document.getElementById('drawerOverlay').classList.remove('visible');
+    }
+    function openAdminMore() {
+      document.getElementById('adminMoreOverlay').classList.add('visible');
+      document.getElementById('adminMoreSheet').style.display = 'block';
+    }
+    function closeAdminMore() {
+      document.getElementById('adminMoreOverlay').classList.remove('visible');
+      document.getElementById('adminMoreSheet').style.display = 'none';
+    }
+    function toggleTheme() {
+      isDark = !isDark;
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      document.getElementById('themeIcon').setAttribute('data-lucide', isDark ? 'moon' : 'sun');
+      lucide.createIcons();
+    }
+
+    function copyHash(btn, hash) {
+      const fullHash = hash + '...simulatedfullhash256bitvalue';
+      navigator.clipboard.writeText(fullHash).catch(() => { });
+      btn.classList.add('copied');
+      const icon = btn.querySelector('i');
+      if (icon) { icon.setAttribute('data-lucide', 'check'); lucide.createIcons(); }
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        if (icon) { icon.setAttribute('data-lucide', 'copy'); lucide.createIcons(); }
+      }, 1800);
+    }
+
+    function toggleExplain() {
+      const panel = document.getElementById('integrityExplain');
+      const chevron = document.getElementById('explainChevron');
+      const open = panel.style.display === 'none';
+      panel.style.display = open ? 'block' : 'none';
+      chevron.setAttribute('data-lucide', open ? 'chevron-up' : 'chevron-down');
+      lucide.createIcons();
+    }
+
+    function toggleTech() {
+      const panel = document.getElementById('integrityTech');
+      const chevron = document.getElementById('techChevron');
+      const open = panel.style.display === 'none';
+      panel.style.display = open ? 'block' : 'none';
+      chevron.setAttribute('data-lucide', open ? 'chevron-down' : 'chevron-right');
+      lucide.createIcons();
+    }
+
+    function verifyChain() {
+      const banner = document.getElementById('integrityBanner');
+      banner.style.transition = 'opacity .3s';
+      banner.style.opacity = '0.4';
+      setTimeout(() => {
+        banner.style.opacity = '1';
+      }, 1200);
+    }
+  </script>
+</body>
+
+</html>

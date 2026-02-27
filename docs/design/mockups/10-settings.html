@@ -1,0 +1,1722 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZenoHR - Settings</title>
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    /* ── Tab navigation ── */
+    .settings-tabs {
+      display: flex;
+      gap: 2px;
+      background: var(--bg-page);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: 4px;
+      width: fit-content;
+      margin-bottom: var(--space-6);
+    }
+
+    .settings-tab {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: 8px 18px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition-default);
+      border: none;
+      background: transparent;
+      font-family: var(--font-primary);
+      white-space: nowrap;
+    }
+
+    .settings-tab:hover {
+      color: var(--text-primary);
+      background: var(--bg-surface);
+    }
+
+    .settings-tab.active {
+      background: var(--bg-surface);
+      color: var(--brand-primary);
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* ── Tab content ── */
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    /* ── Invite user bar ── */
+    .users-toolbar {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-4);
+    }
+
+    /* ── Department list ── */
+    .dept-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background var(--transition-fast);
+    }
+
+    .dept-item:last-child {
+      border-bottom: none;
+    }
+
+    .dept-item:hover {
+      background: var(--bg-surface-hover);
+    }
+
+    .dept-color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: var(--radius-full);
+      flex-shrink: 0;
+    }
+
+    .dept-item-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .dept-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .dept-cost-code {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      margin-top: 1px;
+    }
+
+    /* ── Company form ── */
+    .settings-form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-5);
+    }
+
+    .form-field-full {
+      grid-column: 1 / -1;
+    }
+
+    /* Logo upload */
+    .logo-upload-area {
+      border: 2px dashed var(--border-default);
+      border-radius: var(--radius-lg);
+      padding: var(--space-8);
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition-default);
+      background: var(--bg-page);
+    }
+
+    .logo-upload-area:hover {
+      border-color: var(--brand-primary);
+      background: var(--brand-primary-subtle);
+    }
+
+    /* ── Security tab ── */
+    .security-toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      gap: var(--space-5);
+    }
+
+    .security-toggle-row:last-child {
+      border-bottom: none;
+    }
+
+    .security-toggle-info {
+      flex: 1;
+    }
+
+    .security-toggle-label {
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .security-toggle-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 3px;
+    }
+
+    /* Toggle switch (reuse from role page style) */
+    .toggle-switch {
+      position: relative;
+      width: 40px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius-full);
+      background: var(--border-strong);
+      cursor: pointer;
+      transition: background var(--transition-default);
+    }
+
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: white;
+      transition: transform var(--transition-default);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle-switch input:checked+.toggle-track {
+      background: var(--brand-primary);
+    }
+
+    .toggle-switch input:checked+.toggle-track::after {
+      transform: translateX(18px);
+    }
+
+    /* Privileged access events */
+    .sec-event-row {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .sec-event-row:last-child {
+      border-bottom: none;
+    }
+
+    .sec-event-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-full);
+      margin-top: 5px;
+      flex-shrink: 0;
+    }
+
+    .sec-event-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .sec-event-action {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.35;
+    }
+
+    .sec-event-meta {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      font-family: var(--font-mono);
+    }
+
+    .form-select {
+      height: 40px;
+      background: var(--bg-input);
+      border: 1.5px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: 0 var(--space-3);
+      font-size: 13.5px;
+      color: var(--text-primary);
+      font-family: var(--font-primary);
+      outline: none;
+      transition: all var(--transition-default);
+      width: 100%;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+
+    .form-select:focus {
+      border-color: var(--border-focus);
+      box-shadow: var(--shadow-focus);
+    }
+
+    /* Role chip colours for user table */
+    .role-chip-director {
+      background: #f0f4ff;
+      color: #3730a3;
+    }
+
+    .role-chip-hrmanager {
+      background: var(--brand-primary-subtle);
+      color: var(--brand-primary);
+    }
+
+    .role-chip-manager {
+      background: var(--brand-accent-subtle);
+      color: var(--brand-accent);
+    }
+
+    .role-chip-employee {
+      background: var(--success-subtle);
+      color: var(--success);
+    }
+
+    [data-theme="dark"] .role-chip-director {
+      background: rgba(55, 48, 163, 0.2);
+      color: #a5b4fc;
+    }
+
+    [data-theme="dark"] .role-chip-hrmanager {
+      background: rgba(29, 71, 119, 0.25);
+      color: #93c5fd;
+    }
+
+    [data-theme="dark"] .role-chip-manager {
+      background: rgba(212, 137, 14, 0.2);
+      color: #fbbf24;
+    }
+
+    [data-theme="dark"] .role-chip-employee {
+      background: rgba(22, 163, 74, 0.15);
+      color: #4ade80;
+    }
+
+    .section-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--text-muted);
+      margin-bottom: var(--space-4);
+    }
+
+    /* ── Mobile ≤640px ── */
+    @media (max-width: 640px) {
+      .settings-tabs {
+        overflow-x: auto;
+        width: 100%;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .settings-tab {
+        padding: 8px 14px;
+        font-size: 12px;
+      }
+
+      /* Data table: card-style rows */
+      .data-table thead {
+        display: none;
+      }
+
+      .data-table tbody tr {
+        display: block;
+        padding: 12px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .data-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 0;
+        border: none;
+        font-size: 13px;
+      }
+
+      .data-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      /* Stack form rows */
+      .form-row {
+        flex-direction: column;
+        gap: var(--space-3);
+      }
+
+      .form-row .form-group {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <img src="../Zenologo2.png" alt="ZenoHR" class="sidebar-logo-img">
+        <span class="sidebar-logo-text">Zeno<em>HR</em></span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Main</div>
+          <a class="nav-item" href="02-dashboard.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="7" height="9" x="3" y="3" rx="1" />
+              <rect width="7" height="5" x="14" y="3" rx="1" />
+              <rect width="7" height="9" x="14" y="12" rx="1" />
+              <rect width="7" height="5" x="3" y="16" rx="1" />
+            </svg>
+            <span class="nav-label">Dashboard</span>
+          </a>
+          <a class="nav-item" href="03-employees.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span class="nav-label">Employees</span>
+          </a>
+          <a class="nav-item" href="07-timesheet.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span class="nav-label">Timesheets</span>
+          </a>
+          <a class="nav-item" href="05-leave.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+              <line x1="16" x2="16" y1="2" y2="6" />
+              <line x1="8" x2="8" y1="2" y2="6" />
+              <line x1="3" x2="21" y1="10" y2="10" />
+            </svg>
+            <span class="nav-label">Leave</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Finance &amp; Compliance</div>
+          <a class="nav-item" href="04-payroll.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="14" x="2" y="5" rx="2" />
+              <line x1="2" x2="22" y1="10" y2="10" />
+            </svg>
+            <span class="nav-label">Payroll</span>
+          </a>
+          <a class="nav-item" href="06-compliance.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span class="nav-label">Compliance</span>
+            <span class="nav-badge">3</span>
+          </a>
+          <a class="nav-item" href="08-audit.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            <span class="nav-label">Audit Trail</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Settings</div>
+          <a class="nav-item" href="09-role-management.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span class="nav-label">Role Management</span>
+          </a>
+          <a class="nav-item" href="10-settings.html">
+            <i data-lucide="building-2" class="nav-icon"></i><span class="nav-label">Departments</span>
+          </a>
+          <a class="nav-item" href="10-settings.html">
+            <i data-lucide="users" class="nav-icon"></i><span class="nav-label">Users</span>
+          </a>
+          <a class="nav-item active" href="10-settings.html">
+            <i data-lucide="sliders-horizontal" class="nav-icon"></i><span class="nav-label">Company Settings</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Insights</div>
+          <a class="nav-item" href="12-analytics.html">
+            <i data-lucide="bar-chart-3" class="nav-icon"></i><span class="nav-label">Analytics</span>
+          </a>
+          <a class="nav-item" href="13-my-analytics.html">
+            <i data-lucide="activity" class="nav-icon"></i><span class="nav-label">My Analytics</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Account</div>
+          <a class="nav-item" href="03-employees.html">
+            <!-- /profile in Blazor — merged employee record + account prefs (REQ-SEC-002) -->
+            <i data-lucide="circle-user" class="nav-icon"></i><span class="nav-label">My Profile</span>
+          </a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-profile-card">
+          <img class="sidebar-profile-img" src="sarah.jpg" alt="Sarah Nkosi">
+          <div class="sidebar-profile-label">
+            <div class="sidebar-profile-name">Sarah Nkosi</div>
+            <div class="sidebar-profile-role">HR Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main-wrapper" id="mainWrapper">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+            <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+        </div>
+        <div class="header-search">
+          <span class="search-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </span>
+          <input type="text" placeholder="Search users, departments, settings…">
+        </div>
+        <div class="topbar-right">
+          <button class="icon-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+            <span class="notif-dot"></span>
+          </button>
+          <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+            <svg id="sun-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+            <svg id="moon-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+              style="display:none">
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="page-content">
+
+        <!-- Tab bar -->
+        <div class="settings-tabs">
+          <button class="settings-tab active" onclick="switchTab('users', this)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            Users
+          </button>
+          <button class="settings-tab" onclick="switchTab('departments', this)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+            </svg>
+            Departments
+          </button>
+          <button class="settings-tab" onclick="switchTab('company', this)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+            Company
+          </button>
+          <button class="settings-tab" onclick="switchTab('security', this)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            Security
+          </button>
+          <button class="settings-tab" onclick="switchTab('archival', this)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="5" x="2" y="3" rx="1" />
+              <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
+              <path d="M10 12h4" />
+            </svg>
+            Data Archival
+          </button>
+        </div>
+
+        <!-- USERS TAB -->
+        <div class="tab-pane active" id="tab-users">
+          <div class="users-toolbar">
+            <div class="header-search" style="max-width:300px;position:relative;flex:none;">
+              <span class="search-icon"
+                style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);display:flex;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.35-4.35" />
+                </svg>
+              </span>
+              <input type="text" placeholder="Search users by name or email…" class="form-input"
+                style="padding-left:36px;height:36px;border-radius:var(--radius-full);">
+            </div>
+            <select class="form-select" style="width:160px;height:36px;">
+              <option>All Roles</option>
+              <option>Director</option>
+              <option>HRManager</option>
+              <option>Manager</option>
+              <option>Employee</option>
+            </select>
+            <select class="form-select" style="width:160px;height:36px;">
+              <option>All Departments</option>
+              <option>Engineering</option>
+              <option>Operations</option>
+              <option>Finance</option>
+              <option>Human Resources</option>
+            </select>
+            <button class="btn btn-primary btn-sm" style="margin-left:auto;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path
+                  d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.77 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
+              </svg>
+              Invite User
+            </button>
+          </div>
+
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Department</th>
+                    <th>Status</th>
+                    <th style="text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar av-7">SN</div>
+                        <div>
+                          <div class="person-name">Sarah Nkosi</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="td-muted">sarah@zenowethu.co.za</td>
+                    <td><span class="badge badge-nodot role-chip-hrmanager" style="font-size:11px;">HRManager</span>
+                    </td>
+                    <td class="td-muted">Human Resources</td>
+                    <td><span class="badge badge-success">Active</span></td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);">Deactivate</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar av-4">JM</div>
+                        <div>
+                          <div class="person-name">James Mathebula</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="td-muted">james@zenowethu.co.za</td>
+                    <td><span class="badge badge-nodot role-chip-director" style="font-size:11px;">Director</span></td>
+                    <td class="td-muted">Executive</td>
+                    <td><span class="badge badge-success">Active</span></td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);">Deactivate</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar av-7">TM</div>
+                        <div>
+                          <div class="person-name">Thabo Molefe</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="td-muted">thabo@zenowethu.co.za</td>
+                    <td><span class="badge badge-nodot role-chip-manager" style="font-size:11px;">Manager</span></td>
+                    <td class="td-muted">Operations</td>
+                    <td><span class="badge badge-warning">On Leave</span></td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);">Deactivate</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar av-4">LD</div>
+                        <div>
+                          <div class="person-name">Lerato Dlamini</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="td-muted">lerato@zenowethu.co.za</td>
+                    <td><span class="badge badge-nodot role-chip-employee" style="font-size:11px;">Employee</span></td>
+                    <td class="td-muted">Engineering</td>
+                    <td><span class="badge badge-success">Active</span></td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);">Deactivate</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar av-6">PN</div>
+                        <div>
+                          <div class="person-name">Priya Naidoo</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="td-muted">priya@zenowethu.co.za</td>
+                    <td><span class="badge badge-nodot role-chip-employee" style="font-size:11px;">Employee</span></td>
+                    <td class="td-muted">Finance</td>
+                    <td><span class="badge badge-success">Active</span></td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);">Deactivate</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar av-1">AV</div>
+                        <div>
+                          <div class="person-name">Andre van Wyk</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="td-muted">andre@zenowethu.co.za</td>
+                    <td><span class="badge badge-nodot role-chip-employee" style="font-size:11px;">Employee</span></td>
+                    <td class="td-muted">Logistics</td>
+                    <td><span class="badge badge-danger">Inactive</span></td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--success);">Reactivate</button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div
+              style="padding:12px 16px;border-top:1px solid var(--border-default);display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:12px;color:var(--text-muted);">Showing 6 of 247 users</span>
+              <div class="flex gap-2">
+                <button class="btn btn-ghost btn-sm">← Prev</button>
+                <button class="btn btn-secondary btn-sm"
+                  style="background:var(--brand-primary-subtle);border-color:var(--brand-primary);color:var(--brand-primary);">1</button>
+                <button class="btn btn-ghost btn-sm">2</button>
+                <button class="btn btn-ghost btn-sm">Next →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DEPARTMENTS TAB -->
+        <div class="tab-pane" id="tab-departments">
+          <div class="flex items-center justify-between mb-5">
+            <div>
+              <h2 style="font-size:18px;font-weight:700;color:var(--text-primary);letter-spacing:-0.3px;">Departments
+              </h2>
+              <p style="font-size:13px;color:var(--text-secondary);margin-top:3px;">7 departments &nbsp;·&nbsp; 247
+                employees</p>
+            </div>
+            <button class="btn btn-primary btn-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" x2="12" y1="5" y2="19" />
+                <line x1="5" x2="19" y1="12" y2="12" />
+              </svg>
+              Add Department
+            </button>
+          </div>
+
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Department</th>
+                    <th>Cost Centre Code</th>
+                    <th>Department Head</th>
+                    <th>Employees</th>
+                    <th style="text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-3">
+                        <div class="dept-color-dot" style="background:#1d4777;"></div>
+                        <div>
+                          <div class="dept-name">Engineering</div>
+                          <div class="dept-cost-code">CC-001</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="td-mono td-muted">CC-001</td>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar avatar-sm av-4">LD</div>
+                        <span class="person-name" style="font-size:13px;">Lerato Dlamini</span>
+                      </div>
+                    </td>
+                    <td class="td-mono td-muted">42</td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-3">
+                        <div class="dept-color-dot" style="background:#d4890e;"></div>
+                        <div>
+                          <div class="dept-name">Operations</div>
+                          <div class="dept-cost-code">CC-002</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="td-mono td-muted">CC-002</td>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar avatar-sm av-7">TM</div>
+                        <span class="person-name" style="font-size:13px;">Thabo Molefe</span>
+                      </div>
+                    </td>
+                    <td class="td-mono td-muted">38</td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-3">
+                        <div class="dept-color-dot" style="background:#16a34a;"></div>
+                        <div>
+                          <div class="dept-name">Finance</div>
+                          <div class="dept-cost-code">CC-003</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="td-mono td-muted">CC-003</td>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar avatar-sm av-6">PN</div>
+                        <span class="person-name" style="font-size:13px;">Priya Naidoo</span>
+                      </div>
+                    </td>
+                    <td class="td-mono td-muted">24</td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-3">
+                        <div class="dept-color-dot" style="background:#2563eb;"></div>
+                        <div>
+                          <div class="dept-name">Human Resources</div>
+                          <div class="dept-cost-code">CC-004</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="td-mono td-muted">CC-004</td>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar avatar-sm av-7">SN</div>
+                        <span class="person-name" style="font-size:13px;">Sarah Nkosi</span>
+                      </div>
+                    </td>
+                    <td class="td-mono td-muted">18</td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-3">
+                        <div class="dept-color-dot" style="background:#7c3aed;"></div>
+                        <div>
+                          <div class="dept-name">Sales</div>
+                          <div class="dept-cost-code">CC-005</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="td-mono td-muted">CC-005</td>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar avatar-sm av-2">FK</div>
+                        <span class="person-name" style="font-size:13px;">Fatima Khumalo</span>
+                      </div>
+                    </td>
+                    <td class="td-mono td-muted">61</td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-3">
+                        <div class="dept-color-dot" style="background:#dc2626;"></div>
+                        <div>
+                          <div class="dept-name">Legal</div>
+                          <div class="dept-cost-code">CC-006</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="td-mono td-muted">CC-006</td>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar avatar-sm av-2">FO</div>
+                        <span class="person-name" style="font-size:13px;">Fatima Osman</span>
+                      </div>
+                    </td>
+                    <td class="td-mono td-muted">12</td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="flex items-center gap-3">
+                        <div class="dept-color-dot" style="background:#64748b;"></div>
+                        <div>
+                          <div class="dept-name">Logistics</div>
+                          <div class="dept-cost-code">CC-007</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="td-mono td-muted">CC-007</td>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar avatar-sm" style="background:var(--bg-page);color:var(--text-muted);">—</div>
+                        <span style="font-size:12px;color:var(--text-muted);">Unassigned</span>
+                      </div>
+                    </td>
+                    <td class="td-mono td-muted">52</td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">Edit</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--danger);">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- COMPANY TAB -->
+        <div class="tab-pane" id="tab-company">
+          <div class="grid grid-cols-60-40 gap-6">
+
+            <!-- Left: form -->
+            <div class="flex flex-col gap-5">
+              <div class="card">
+                <div class="card-header" style="margin-bottom:var(--space-5);">
+                  <span class="card-title">Company Information</span>
+                  <button class="btn btn-primary btn-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Save Changes
+                  </button>
+                </div>
+                <div class="settings-form-grid">
+                  <div class="form-group form-field-full">
+                    <label class="form-label">Company Name</label>
+                    <input type="text" class="form-input" value="Acme Manufacturing (Pty) Ltd">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Registration Number</label>
+                    <input type="text" class="form-input" value="2014/123456/07" style="font-family:var(--font-mono);">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Tax Reference Number</label>
+                    <input type="text" class="form-input" value="9312345679" style="font-family:var(--font-mono);">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">UIF Reference Number</label>
+                    <input type="text" class="form-input" value="UIF/2014/98765" style="font-family:var(--font-mono);">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">SDL Levy Number</label>
+                    <input type="text" class="form-input" value="L0001234567" style="font-family:var(--font-mono);">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Payroll Period</label>
+                    <select class="form-select">
+                      <option selected>Monthly</option>
+                      <option>Weekly</option>
+                      <option>Bi-Weekly</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Financial Year Start</label>
+                    <select class="form-select">
+                      <option>January</option>
+                      <option>February</option>
+                      <option selected>March</option>
+                      <option>April</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: logo + summary -->
+            <div class="flex flex-col gap-5">
+              <div class="card">
+                <div class="card-title mb-5">Company Logo</div>
+                <div class="logo-upload-area">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+                    stroke="var(--text-muted)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                    style="margin:0 auto var(--space-3);">
+                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                    <circle cx="9" cy="9" r="2" />
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                  </svg>
+                  <div style="font-size:13.5px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">Upload logo
+                  </div>
+                  <div style="font-size:12px;color:var(--text-muted);">PNG, SVG or JPEG &nbsp;·&nbsp; Max 2 MB
+                    &nbsp;·&nbsp; Recommended 200×60px</div>
+                  <button class="btn btn-secondary btn-sm" style="margin-top:var(--space-4);">Choose file</button>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-title mb-4">Summary</div>
+                <div style="display:flex;flex-direction:column;gap:0;">
+                  <div
+                    style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border-subtle);font-size:13px;">
+                    <span style="color:var(--text-secondary);">Employees</span>
+                    <span class="font-mono font-semibold">247</span>
+                  </div>
+                  <div
+                    style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border-subtle);font-size:13px;">
+                    <span style="color:var(--text-secondary);">Payroll Period</span>
+                    <span class="font-semibold">Monthly</span>
+                  </div>
+                  <div
+                    style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border-subtle);font-size:13px;">
+                    <span style="color:var(--text-secondary);">Tax Year</span>
+                    <span class="font-mono font-semibold">2025–2026</span>
+                  </div>
+                  <div
+                    style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border-subtle);font-size:13px;">
+                    <span style="color:var(--text-secondary);">Data Residency</span>
+                    <span class="font-semibold">Azure SA North</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;padding:9px 0;font-size:13px;">
+                    <span style="color:var(--text-secondary);">Plan</span>
+                    <span class="badge badge-accent badge-nodot">Professional</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECURITY TAB -->
+        <div class="tab-pane" id="tab-security">
+          <div class="grid grid-cols-60-40 gap-6">
+
+            <!-- Left: toggles + session -->
+            <div class="flex flex-col gap-5">
+
+              <!-- MFA enforcement -->
+              <div class="card">
+                <div class="card-header" style="margin-bottom:var(--space-5);">
+                  <span class="card-title">MFA Enforcement</span>
+                  <span class="badge badge-success badge-nodot">POPIA CTL-POPIA-003</span>
+                </div>
+                <div class="security-toggle-row">
+                  <div class="security-toggle-info">
+                    <div class="security-toggle-label">Require MFA — Director &amp; HRManager</div>
+                    <div class="security-toggle-desc">All users with elevated privileges must enrol in MFA before
+                      accessing the platform</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="toggle-track"></span>
+                  </label>
+                </div>
+                <div class="security-toggle-row">
+                  <div class="security-toggle-info">
+                    <div class="security-toggle-label">Require MFA — Manager</div>
+                    <div class="security-toggle-desc">Department managers must enrol in MFA</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="toggle-track"></span>
+                  </label>
+                </div>
+                <div class="security-toggle-row">
+                  <div class="security-toggle-info">
+                    <div class="security-toggle-label">Require MFA — Employee (self-service)</div>
+                    <div class="security-toggle-desc">Standard employees encouraged but not required</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox">
+                    <span class="toggle-track"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Session & Access -->
+              <div class="card">
+                <div class="card-title mb-5">Session &amp; Access Controls</div>
+                <div class="settings-form-grid" style="grid-template-columns:1fr 1fr;gap:var(--space-4);">
+                  <div class="form-group">
+                    <label class="form-label">Session Timeout</label>
+                    <select class="form-select">
+                      <option>15 minutes</option>
+                      <option>30 minutes</option>
+                      <option selected>60 minutes</option>
+                      <option>4 hours</option>
+                      <option>8 hours</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Access Review Schedule</label>
+                    <select class="form-select">
+                      <option selected>Monthly</option>
+                      <option>Quarterly</option>
+                      <option>Bi-annually</option>
+                      <option>Annually</option>
+                    </select>
+                  </div>
+                </div>
+                <div
+                  style="margin-top:var(--space-4);padding:12px 16px;background:var(--warning-subtle);border-radius:var(--radius-md);border:1px solid rgba(217,119,6,0.2);display:flex;gap:var(--space-3);align-items:flex-start;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                    stroke="var(--warning)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                    style="flex-shrink:0;margin-top:1px;">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                  </svg>
+                  <div style="font-size:12px;color:var(--warning);">Next scheduled access review: <strong>1 March
+                      2026</strong>. 3 users have not completed this cycle's review.</div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Right: recent privileged events -->
+            <div class="card">
+              <div class="card-header" style="margin-bottom:var(--space-4);">
+                <span class="card-title">Recent Privileged Access Events</span>
+                <a class="card-action" href="08-audit.html">Full audit →</a>
+              </div>
+              <div>
+                <div class="sec-event-row">
+                  <div class="sec-event-dot" style="background:var(--success);"></div>
+                  <div class="sec-event-info">
+                    <div class="sec-event-action">Sarah Nkosi — Role changed to HRManager</div>
+                    <div class="sec-event-meta">2026-02-18 &nbsp;09:42 &nbsp;·&nbsp; by james@zenowethu.co.za</div>
+                  </div>
+                  <span class="badge badge-success badge-nodot" style="font-size:10px;">OK</span>
+                </div>
+                <div class="sec-event-row">
+                  <div class="sec-event-dot" style="background:var(--brand-primary);"></div>
+                  <div class="sec-event-info">
+                    <div class="sec-event-action">New user invited — kobus@zenowethu.co.za</div>
+                    <div class="sec-event-meta">2026-02-18 &nbsp;08:15 &nbsp;·&nbsp; by sarah@zenowethu.co.za</div>
+                  </div>
+                  <span class="badge badge-primary badge-nodot" style="font-size:10px;">Invite</span>
+                </div>
+                <div class="sec-event-row">
+                  <div class="sec-event-dot" style="background:var(--warning);"></div>
+                  <div class="sec-event-info">
+                    <div class="sec-event-action">Failed MFA attempt — priya.m@zenowethu.co.za</div>
+                    <div class="sec-event-meta">2026-02-17 &nbsp;16:54 &nbsp;·&nbsp; 3 consecutive attempts</div>
+                  </div>
+                  <span class="badge badge-warning badge-nodot" style="font-size:10px;">Warning</span>
+                </div>
+                <div class="sec-event-row">
+                  <div class="sec-event-dot" style="background:var(--danger);"></div>
+                  <div class="sec-event-info">
+                    <div class="sec-event-action">User deactivated — andre@zenowethu.co.za</div>
+                    <div class="sec-event-meta">2026-02-15 &nbsp;11:30 &nbsp;·&nbsp; by sarah@zenowethu.co.za</div>
+                  </div>
+                  <span class="badge badge-danger badge-nodot" style="font-size:10px;">Deactivated</span>
+                </div>
+                <div class="sec-event-row">
+                  <div class="sec-event-dot" style="background:var(--success);"></div>
+                  <div class="sec-event-info">
+                    <div class="sec-event-action">Payroll run approved — RUN-2026-02</div>
+                    <div class="sec-event-meta">2026-02-19 &nbsp;09:14 &nbsp;·&nbsp; by sarah@zenowethu.co.za</div>
+                  </div>
+                  <span class="badge badge-success badge-nodot" style="font-size:10px;">Approved</span>
+                </div>
+                <div class="sec-event-row">
+                  <div class="sec-event-dot" style="background:var(--brand-accent);"></div>
+                  <div class="sec-event-info">
+                    <div class="sec-event-action">MFA policy updated for Director tier</div>
+                    <div class="sec-event-meta">2026-02-10 &nbsp;14:20 &nbsp;·&nbsp; by james@zenowethu.co.za</div>
+                  </div>
+                  <span class="badge badge-accent badge-nodot" style="font-size:10px;">Policy</span>
+                </div>
+                <div class="sec-event-row">
+                  <div class="sec-event-dot" style="background:var(--info);"></div>
+                  <div class="sec-event-info">
+                    <div class="sec-event-action">Compliance export downloaded (POPIA)</div>
+                    <div class="sec-event-meta">2026-02-08 &nbsp;10:05 &nbsp;·&nbsp; by fatima@zenowethu.co.za</div>
+                  </div>
+                  <span class="badge badge-info badge-nodot" style="font-size:10px;">Export</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- DATA ARCHIVAL TAB (GAP-FEAT-002) -->
+        <div class="tab-pane" id="tab-archival">
+
+          <!-- Archive count KPIs -->
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;">
+            <div
+              style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-xl);padding:18px 20px;">
+              <div
+                style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:6px;">
+                Archived Employees</div>
+              <div style="font-family:var(--font-mono);font-size:2rem;font-weight:700;color:var(--text-primary);">4
+              </div>
+              <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">Terminated &gt; 5 years ago</div>
+            </div>
+            <div
+              style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-xl);padding:18px 20px;">
+              <div
+                style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:6px;">
+                Archived Payroll Records</div>
+              <div style="font-family:var(--font-mono);font-size:2rem;font-weight:700;color:var(--text-primary);">61
+              </div>
+              <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">Pay runs filed &gt; 5 years ago
+              </div>
+            </div>
+            <div
+              style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-xl);padding:18px 20px;">
+              <div
+                style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted);margin-bottom:6px;">
+                Archived Audit Events</div>
+              <div style="font-family:var(--font-mono);font-size:2rem;font-weight:700;color:var(--text-primary);">12,840
+              </div>
+              <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px;">Events older than 5 years</div>
+            </div>
+          </div>
+
+          <!-- Policy info banner -->
+          <div
+            style="display:flex;gap:10px;padding:12px 16px;background:var(--brand-primary-subtle);border:1px solid rgba(29,71,119,.15);border-radius:10px;margin-bottom:20px;font-size:.82rem;color:var(--text-secondary);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="var(--brand-primary)" stroke-width="1.8" style="flex-shrink:0;margin-top:1px;">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" x2="12" y1="8" y2="12" />
+              <line x1="12" x2="12.01" y1="16" y2="16" />
+            </svg>
+            <span>After 5 years, records move to <em>archived</em> status and appear here. To free database space,
+              <strong>download the record first</strong>, then permanently remove it from ZenoHR. If you are not ready
+              to delete, leave it here — the record stays archived until you decide. Records under legal investigation
+              can be placed on <strong>Legal Hold</strong> to block deletion entirely.</span>
+          </div>
+
+          <!-- Archived employees table -->
+          <div
+            style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-xl);overflow:hidden;margin-bottom:20px;">
+            <div
+              style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border-default);">
+              <div>
+                <div style="font-size:.9rem;font-weight:700;color:var(--text-primary);">Archived Employees</div>
+                <div style="font-size:.74rem;color:var(--text-muted);margin-top:2px;">Download a record, then remove it
+                  from ZenoHR to reclaim database space.</div>
+              </div>
+              <input type="text" placeholder="Search archived employees…"
+                style="padding:6px 12px;border-radius:var(--radius-full);border:1px solid var(--border-default);background:var(--bg-surface);color:var(--text-primary);font-size:.78rem;outline:none;width:220px;">
+            </div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;">
+                <thead>
+                  <tr style="background:var(--bg-table-header);">
+                    <th
+                      style="padding:9px 14px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);text-align:left;">
+                      Employee</th>
+                    <th
+                      style="padding:9px 14px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);text-align:left;">
+                      Terminated</th>
+                    <th
+                      style="padding:9px 14px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);text-align:left;">
+                      Archived</th>
+                    <th
+                      style="padding:9px 14px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);text-align:left;">
+                      Status</th>
+                    <th
+                      style="padding:9px 14px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);text-align:right;">
+                      Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+
+                  <!-- Row 1: Awaiting download (cannot delete yet) -->
+                  <tr style="border-bottom:1px solid var(--border-subtle);">
+                    <td style="padding:12px 14px;">
+                      <div style="font-size:.84rem;font-weight:600;color:var(--text-primary);">Lindiwe Nkosi</div>
+                      <div style="font-size:.74rem;color:var(--text-muted);">EMP-00012 · Sales</div>
+                    </td>
+                    <td style="padding:12px 14px;font-size:.82rem;color:var(--text-secondary);">2019-11-30</td>
+                    <td
+                      style="padding:12px 14px;font-size:.82rem;font-family:var(--font-mono);color:var(--text-muted);">
+                      2024-11-30</td>
+                    <td style="padding:12px 14px;"><span class="badge"
+                        style="background:rgba(107,114,128,.12);color:var(--text-muted);font-size:.7rem;">Archived</span>
+                    </td>
+                    <td style="padding:12px 14px;text-align:right;">
+                      <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
+                        <button class="btn btn-secondary btn-sm" style="font-size:.74rem;"
+                          onclick="archiveDownload('Lindiwe Nkosi','EMP-00012')">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" x2="12" y1="15" y2="3" />
+                          </svg>
+                          Download
+                        </button>
+                        <button class="btn btn-ghost btn-sm" style="font-size:.74rem;opacity:.4;cursor:not-allowed;"
+                          disabled title="Download first to enable deletion">Remove from ZenoHR</button>
+                        <button class="btn btn-ghost btn-sm" style="font-size:.74rem;color:var(--warning);"
+                          onclick="alert('Legal hold applied. Record is protected from deletion.')">Legal Hold</button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <!-- Row 2: Legal Hold — deletion blocked -->
+                  <tr style="border-bottom:1px solid var(--border-subtle);background:rgba(217,119,6,.04);">
+                    <td style="padding:12px 14px;">
+                      <div style="font-size:.84rem;font-weight:600;color:var(--text-primary);">Hendrik du Plessis</div>
+                      <div style="font-size:.74rem;color:var(--text-muted);">EMP-00008 · Operations</div>
+                    </td>
+                    <td style="padding:12px 14px;font-size:.82rem;color:var(--text-secondary);">2019-08-15</td>
+                    <td
+                      style="padding:12px 14px;font-size:.82rem;font-family:var(--font-mono);color:var(--text-muted);">
+                      2024-08-15</td>
+                    <td style="padding:12px 14px;"><span class="badge"
+                        style="background:rgba(217,119,6,.12);color:var(--warning);font-size:.7rem;">Legal Hold</span>
+                    </td>
+                    <td style="padding:12px 14px;text-align:right;">
+                      <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
+                        <button class="btn btn-secondary btn-sm" style="font-size:.74rem;"
+                          onclick="archiveDownload('Hendrik du Plessis','EMP-00008')">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" x2="12" y1="15" y2="3" />
+                          </svg>
+                          Download
+                        </button>
+                        <button class="btn btn-ghost btn-sm" style="font-size:.74rem;opacity:.4;cursor:not-allowed;"
+                          disabled title="Legal hold active — lift hold before removing">Remove from ZenoHR</button>
+                        <button class="btn btn-ghost btn-sm" style="font-size:.74rem;color:var(--text-muted);"
+                          onclick="alert('Legal hold lifted.')">Lift Hold</button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <!-- Row 3: Downloaded — ready for deletion -->
+                  <tr style="border-bottom:1px solid var(--border-subtle);background:rgba(22,163,74,.03);">
+                    <td style="padding:12px 14px;">
+                      <div style="font-size:.84rem;font-weight:600;color:var(--text-primary);">Priya Pillay</div>
+                      <div style="font-size:.74rem;color:var(--text-muted);">EMP-00019 · Finance</div>
+                    </td>
+                    <td style="padding:12px 14px;font-size:.82rem;color:var(--text-secondary);">2020-03-31</td>
+                    <td
+                      style="padding:12px 14px;font-size:.82rem;font-family:var(--font-mono);color:var(--text-muted);">
+                      2025-03-31</td>
+                    <td style="padding:12px 14px;">
+                      <span class="badge badge-success" style="font-size:.7rem;">Downloaded</span>
+                      <div style="font-size:.7rem;color:var(--text-muted);margin-top:3px;">19 Feb 2026</div>
+                    </td>
+                    <td style="padding:12px 14px;text-align:right;">
+                      <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
+                        <button class="btn btn-ghost btn-sm" style="font-size:.74rem;"
+                          onclick="archiveDownload('Priya Pillay','EMP-00019')">Re-download</button>
+                        <button class="btn btn-sm"
+                          style="font-size:.74rem;background:#fef2f2;color:#dc2626;border:1px solid rgba(220,38,38,.2);"
+                          onclick="confirmDelete('Priya Pillay','EMP-00019')">Remove from ZenoHR</button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <!-- Row 4: Awaiting download -->
+                  <tr>
+                    <td style="padding:12px 14px;">
+                      <div style="font-size:.84rem;font-weight:600;color:var(--text-primary);">Siphamandla Mthethwa
+                      </div>
+                      <div style="font-size:.74rem;color:var(--text-muted);">EMP-00003 · Logistics</div>
+                    </td>
+                    <td style="padding:12px 14px;font-size:.82rem;color:var(--text-secondary);">2018-12-01</td>
+                    <td
+                      style="padding:12px 14px;font-size:.82rem;font-family:var(--font-mono);color:var(--text-muted);">
+                      2023-12-01</td>
+                    <td style="padding:12px 14px;"><span class="badge"
+                        style="background:rgba(107,114,128,.12);color:var(--text-muted);font-size:.7rem;">Archived</span>
+                    </td>
+                    <td style="padding:12px 14px;text-align:right;">
+                      <div style="display:flex;gap:6px;justify-content:flex-end;align-items:center;">
+                        <button class="btn btn-secondary btn-sm" style="font-size:.74rem;"
+                          onclick="archiveDownload('Siphamandla Mthethwa','EMP-00003')">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" x2="12" y1="15" y2="3" />
+                          </svg>
+                          Download
+                        </button>
+                        <button class="btn btn-ghost btn-sm" style="font-size:.74rem;opacity:.4;cursor:not-allowed;"
+                          disabled title="Download first to enable deletion">Remove from ZenoHR</button>
+                        <button class="btn btn-ghost btn-sm" style="font-size:.74rem;color:var(--warning);"
+                          onclick="alert('Legal hold applied.')">Legal Hold</button>
+                      </div>
+                    </td>
+                  </tr>
+
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Delete confirmation modal -->
+          <div id="deleteModal"
+            style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;">
+            <div
+              style="background:var(--bg-surface);border-radius:var(--radius-xl);padding:28px;max-width:440px;width:90%;box-shadow:var(--shadow-xl);">
+              <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:16px;">
+                <div
+                  style="width:40px;height:40px;border-radius:var(--radius-full);background:#fef2f2;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="#dc2626" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                  </svg>
+                </div>
+                <div>
+                  <div style="font-size:.95rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Remove from
+                    ZenoHR?</div>
+                  <div style="font-size:.82rem;color:var(--text-secondary);" id="deleteModalName">This employee's data
+                    will be permanently removed from the ZenoHR database. Your downloaded file is the only copy
+                    remaining.</div>
+                </div>
+              </div>
+              <div
+                style="background:var(--warning-subtle);border:1px solid rgba(217,119,6,.2);border-radius:var(--radius-md);padding:10px 14px;font-size:.78rem;color:#92400e;margin-bottom:20px;">
+                This action cannot be undone. Ensure your downloaded file is saved to a secure location (external drive,
+                secure cloud backup) before proceeding.
+              </div>
+              <div style="display:flex;gap:10px;justify-content:flex-end;">
+                <button class="btn btn-ghost btn-sm"
+                  onclick="document.getElementById('deleteModal').style.display='none'">Cancel</button>
+                <button class="btn btn-sm" style="background:#dc2626;color:#fff;"
+                  onclick="document.getElementById('deleteModal').style.display='none';alert('Record permanently removed from ZenoHR. Ensure your local copy is securely stored.')">Permanently
+                  Remove</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Retention schedule info -->
+          <div
+            style="background:var(--bg-surface);border:1px solid var(--border-default);border-radius:var(--radius-xl);padding:20px;">
+            <div style="font-size:.9rem;font-weight:700;color:var(--text-primary);margin-bottom:14px;">Retention
+              Schedule</div>
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+              <div style="padding:12px 14px;background:var(--bg-table-header);border-radius:var(--radius-lg);">
+                <div
+                  style="font-size:.76rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">
+                  Employee Records</div>
+                <div style="font-size:.82rem;color:var(--text-primary);">5 years from termination date</div>
+              </div>
+              <div style="padding:12px 14px;background:var(--bg-table-header);border-radius:var(--radius-lg);">
+                <div
+                  style="font-size:.76rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">
+                  Payroll Records</div>
+                <div style="font-size:.82rem;color:var(--text-primary);">5 years from filing date</div>
+              </div>
+              <div style="padding:12px 14px;background:var(--bg-table-header);border-radius:var(--radius-lg);">
+                <div
+                  style="font-size:.76rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">
+                  Compliance Submissions</div>
+                <div style="font-size:.82rem;color:var(--text-primary);">5 years from submission date</div>
+              </div>
+              <div style="padding:12px 14px;background:var(--bg-table-header);border-radius:var(--radius-lg);">
+                <div
+                  style="font-size:.76rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">
+                  Audit Events</div>
+                <div style="font-size:.82rem;color:var(--text-primary);">5 years from event date</div>
+              </div>
+            </div>
+            <div style="font-size:.76rem;color:var(--text-muted);margin-top:12px;">Archival runs daily at 02:00 SAST.
+              Records marked <strong>Legal Hold</strong> are never archived until the hold is lifted by a Director. All
+              archival transitions are logged in the Audit Trail (REQ-COMP-004, CTL-POPIA-009).</div>
+          </div>
+
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('collapsed');
+      const icon = document.getElementById('toggle-icon');
+      icon.innerHTML = sidebar.classList.contains('collapsed')
+        ? '<polyline points="9 18 15 12 9 6"/>'
+        : '<polyline points="15 18 9 12 15 6"/>';
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('sun-icon').style.display = isDark ? 'block' : 'none';
+      document.getElementById('moon-icon').style.display = isDark ? 'none' : 'block';
+    }
+
+    function switchTab(name, btn) {
+      document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + name).classList.add('active');
+    }
+
+    function archiveDownload(name, empId) {
+      // Simulate file download then mark row as downloaded
+      alert('Downloading archive for ' + name + ' (' + empId + ')…\n\nSave this file to a secure location — external drive or encrypted cloud backup.\nOnce saved, you can permanently remove this record from ZenoHR.');
+    }
+
+    function confirmDelete(name, empId) {
+      document.getElementById('deleteModalName').textContent =
+        name + ' (' + empId + ') will be permanently removed from the ZenoHR database. Your downloaded file is the only copy remaining.';
+      document.getElementById('deleteModal').style.display = 'flex';
+    }
+
+    function openDrawer() {
+      document.getElementById('sidebar').classList.add('drawer-open');
+      document.getElementById('drawerOverlay').classList.add('visible');
+    }
+
+    function closeDrawer() {
+      document.getElementById('sidebar').classList.remove('drawer-open');
+      document.getElementById('drawerOverlay').classList.remove('visible');
+    }
+
+    function openAdminMore() {
+      document.getElementById('adminMoreOverlay').classList.add('visible');
+      document.getElementById('adminMoreSheet').style.display = 'block';
+    }
+
+    function closeAdminMore() {
+      document.getElementById('adminMoreOverlay').classList.remove('visible');
+      document.getElementById('adminMoreSheet').style.display = 'none';
+    }
+  </script>
+
+  <!-- Mobile drawer overlay -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+  <!-- Admin Bottom Navigation (≤640px) -->
+  <nav class="bottom-nav">
+    <a href="02-dashboard.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="7" height="9" x="3" y="3" rx="1" />
+        <rect width="7" height="5" x="14" y="3" rx="1" />
+        <rect width="7" height="9" x="14" y="12" rx="1" />
+        <rect width="7" height="5" x="3" y="16" rx="1" />
+      </svg>
+      <span class="bottom-nav-label">Dashboard</span>
+    </a>
+    <a href="03-employees.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+      <span class="bottom-nav-label">Employees</span>
+    </a>
+    <a href="10-settings.html" class="bottom-nav-item active">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3" />
+        <path
+          d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+      </svg>
+      <span class="bottom-nav-label">Settings</span>
+    </a>
+    <button class="bottom-nav-item" onclick="openAdminMore()">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="5" cy="12" r="1" />
+        <circle cx="12" cy="12" r="1" />
+        <circle cx="19" cy="12" r="1" />
+      </svg>
+      <span class="bottom-nav-label">More</span>
+    </button>
+  </nav>
+
+  <div class="admin-more-overlay" id="adminMoreOverlay" onclick="closeAdminMore()"></div>
+  <div class="admin-more-sheet" id="adminMoreSheet" style="display:none;">
+    <div class="admin-more-title">More</div>
+    <div class="admin-more-grid">
+      <a href="07-timesheet.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>Timesheets</a>
+      <a href="05-leave.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="4" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>Leave</a>
+      <a href="04-payroll.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="20" height="14" x="2" y="5" rx="2" />
+          <line x1="2" y1="10" x2="22" y2="10" />
+        </svg>Payroll</a>
+      <a href="06-compliance.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>Compliance</a>
+      <a href="08-audit.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>Audit Trail</a>
+      <a href="09-role-management.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>Roles</a>
+      <a href="12-analytics.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>Analytics</a>
+    </div>
+  </div>
+
+</body>
+
+</html>

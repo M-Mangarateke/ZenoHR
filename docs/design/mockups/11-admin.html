@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZenoHR Platform — Admin Console</title>
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    /* ── Admin-specific overrides — more technical, less warm ── */
+
+    /* Sidebar tint: deeper/cooler than tenant sidebar */
+    .admin-sidebar {
+      background: #060c18;
+      border-right: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    [data-theme="dark"] .admin-sidebar {
+      background: #030710;
+    }
+
+    /* Admin accent: a red-tinted orange to signal "different environment" */
+    .admin-accent {
+      color: #e05a1e !important;
+    }
+
+    .admin-logo-text em {
+      color: #e05a1e;
+    }
+
+    /* Top pill: more technical feel */
+    .admin-topbar {
+      background: rgba(6, 12, 24, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: #e2e8f0;
+    }
+
+    [data-theme="light"] .admin-topbar {
+      background: #0f1f33;
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .admin-topbar .page-title {
+      color: #e2e8f0;
+    }
+
+    .admin-topbar .page-subtitle {
+      color: #475569;
+    }
+
+    .admin-topbar .icon-btn {
+      color: #64748b;
+    }
+
+    .admin-topbar .icon-btn:hover {
+      background: rgba(255, 255, 255, 0.07);
+      color: #e2e8f0;
+    }
+
+    .admin-topbar .theme-toggle {
+      border-color: rgba(255, 255, 255, 0.1);
+      color: #64748b;
+    }
+
+    .admin-topbar .theme-toggle:hover {
+      background: rgba(255, 255, 255, 0.07);
+      color: #e2e8f0;
+    }
+
+    /* Environment banner */
+    .env-banner {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: 8px 20px;
+      background: #0f1f33;
+      border-bottom: 1px solid rgba(224, 90, 30, 0.3);
+      flex-shrink: 0;
+    }
+
+    [data-theme="dark"] .env-banner {
+      background: #060c18;
+      border-bottom-color: rgba(224, 90, 30, 0.25);
+    }
+
+    .env-banner-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-full);
+      background: #e05a1e;
+      box-shadow: 0 0 6px rgba(224, 90, 30, 0.7);
+      flex-shrink: 0;
+      animation: pulse-admin 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-admin {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .env-banner-text {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #e05a1e;
+    }
+
+    .env-banner-sep {
+      width: 1px;
+      height: 14px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .env-banner-info {
+      font-size: 11px;
+      color: #475569;
+      font-family: var(--font-mono);
+    }
+
+    /* KPI cards on admin: dark by default in light mode too, to signal admin */
+    .admin-kpi-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-md);
+      padding: var(--space-5) var(--space-6);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .admin-kpi-card::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+    }
+
+    .admin-kpi-card.accent-blue::before {
+      background: var(--brand-primary);
+    }
+
+    .admin-kpi-card.accent-orange::before {
+      background: #e05a1e;
+    }
+
+    .admin-kpi-card.accent-green::before {
+      background: var(--success);
+    }
+
+    .admin-kpi-card.accent-amber::before {
+      background: var(--warning);
+    }
+
+    .admin-kpi-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-bottom: var(--space-2);
+    }
+
+    /* Health status orb */
+    .health-orb {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+      margin-bottom: var(--space-2);
+    }
+
+    .health-green {
+      background: var(--success-subtle);
+      color: var(--success);
+      box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1);
+    }
+
+    .health-amber {
+      background: var(--warning-subtle);
+      color: var(--warning);
+      box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.12);
+    }
+
+    .health-red {
+      background: var(--danger-subtle);
+      color: var(--danger);
+      box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+    }
+
+    [data-theme="dark"] .health-green {
+      background: rgba(22, 163, 74, 0.15);
+    }
+
+    [data-theme="dark"] .health-amber {
+      background: rgba(217, 119, 6, 0.15);
+    }
+
+    [data-theme="dark"] .health-red {
+      background: rgba(220, 38, 38, 0.15);
+    }
+
+    /* Tenant table health dot */
+    .health-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-full);
+      flex-shrink: 0;
+    }
+
+    /* Platform event row */
+    .platform-event-row {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--space-3);
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 13px;
+    }
+
+    .platform-event-row:last-child {
+      border-bottom: none;
+    }
+
+    .platform-event-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .platform-event-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .platform-event-title {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.35;
+    }
+
+    .platform-event-meta {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      font-family: var(--font-mono);
+    }
+
+    /* Seed data / job rows */
+    .seed-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .seed-row:last-child {
+      border-bottom: none;
+    }
+
+    .seed-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .seed-name {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+    }
+
+    .seed-version {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      font-family: var(--font-mono);
+    }
+
+    .job-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .job-row:last-child {
+      border-bottom: none;
+    }
+
+    .job-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .job-name {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .job-timing {
+      font-size: 10.5px;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      margin-top: 2px;
+    }
+
+    /* Job status pill */
+    .job-status-success {
+      background: var(--success-subtle);
+      color: var(--success);
+    }
+
+    .job-status-failed {
+      background: var(--danger-subtle);
+      color: var(--danger);
+    }
+
+    .job-status-running {
+      background: var(--info-subtle);
+      color: var(--info);
+    }
+
+    .job-status-scheduled {
+      background: var(--bg-page);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+    }
+
+    [data-theme="dark"] .job-status-scheduled {
+      background: var(--bg-elevated);
+    }
+
+    .admin-section-header {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      margin-bottom: var(--space-5);
+    }
+
+    .admin-section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      flex: 1;
+    }
+
+    /* Tenant plan badges */
+    .plan-free {
+      background: var(--bg-page);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-default);
+    }
+
+    .plan-starter {
+      background: var(--brand-primary-subtle);
+      color: var(--brand-primary);
+    }
+
+    .plan-professional {
+      background: var(--brand-accent-subtle);
+      color: var(--brand-accent);
+    }
+
+    .plan-enterprise {
+      background: #f0f4ff;
+      color: #3730a3;
+    }
+
+    [data-theme="dark"] .plan-enterprise {
+      background: rgba(55, 48, 163, 0.2);
+      color: #a5b4fc;
+    }
+
+    [data-theme="dark"] .plan-free {
+      background: var(--bg-elevated);
+    }
+
+    .form-select {
+      height: 36px;
+      background: var(--bg-input);
+      border: 1.5px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: 0 var(--space-3);
+      font-size: 13px;
+      color: var(--text-primary);
+      font-family: var(--font-primary);
+      outline: none;
+      transition: all var(--transition-default);
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      padding-right: 30px;
+    }
+
+    /* ── Mobile ≤640px ── */
+    @media (max-width: 640px) {
+      .env-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        padding: 12px;
+      }
+
+      .env-banner-sep {
+        display: none;
+      }
+
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .two-col-layout {
+        grid-template-columns: 1fr;
+      }
+
+      /* Data table: card-style rows */
+      .data-table thead {
+        display: none;
+      }
+
+      .data-table tbody tr {
+        display: block;
+        padding: 12px;
+        border-bottom: 1px solid var(--border-subtle);
+      }
+
+      .data-table td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px 0;
+        border: none;
+        font-size: 13px;
+      }
+
+      .data-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-secondary);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .platform-event-row,
+      .job-row,
+      .seed-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+
+      .admin-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <!-- Admin Sidebar — distinctly different from tenant sidebar -->
+    <aside class="sidebar admin-sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <!-- No tenant logo — platform logo -->
+        <div
+          style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#1d4777,#0f2d4e);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white"
+            stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="18" x="3" y="3" rx="2" />
+            <path d="M3 9h18" />
+            <path d="M9 21V9" />
+          </svg>
+        </div>
+        <div class="admin-logo-text sidebar-logo-text">Zeno<em>HR</em></div>
+      </div>
+
+      <!-- Admin context indicator -->
+      <div style="padding: 8px 14px 4px; flex-shrink:0;">
+        <div
+          style="background:rgba(224,90,30,0.12);border:1px solid rgba(224,90,30,0.25);border-radius:8px;padding:6px 10px;display:flex;align-items:center;gap:6px;">
+          <div style="width:6px;height:6px;border-radius:50%;background:#e05a1e;flex-shrink:0;"></div>
+          <span
+            style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#e05a1e;white-space:nowrap;overflow:hidden;">Platform
+            Admin</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Operations</div>
+          <a class="nav-item active" href="11-admin.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="7" height="9" x="3" y="3" rx="1" />
+              <rect width="7" height="5" x="14" y="3" rx="1" />
+              <rect width="7" height="9" x="14" y="12" rx="1" />
+              <rect width="7" height="5" x="3" y="16" rx="1" />
+            </svg>
+            <span class="nav-label">Overview</span>
+          </a>
+          <a class="nav-item" href="#">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+            <span class="nav-label">Tenants</span>
+          </a>
+          <a class="nav-item" href="#">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" x2="12" y1="1" y2="23" />
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+            <span class="nav-label">Billing</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Platform</div>
+          <a class="nav-item" href="#">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span class="nav-label">Background Jobs</span>
+          </a>
+          <a class="nav-item" href="#">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            <span class="nav-label">Seed Data</span>
+            <span class="nav-badge" style="background:#e05a1e;">2</span>
+          </a>
+          <a class="nav-item" href="#">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span class="nav-label">Audit Log</span>
+          </a>
+          <a class="nav-item" href="#">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path
+                d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+            <span class="nav-label">Platform Settings</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-profile-card">
+          <div
+            style="background:linear-gradient(135deg,#1d4777,#0f2d4e);padding:14px 14px 10px;display:flex;align-items:center;gap:10px;">
+            <div class="avatar"
+              style="background:rgba(224,90,30,0.2);color:#e05a1e;width:36px;height:36px;font-size:13px;flex-shrink:0;">
+              ZA</div>
+            <div class="sidebar.collapsed" style="overflow:hidden;">
+              <div class="sidebar-profile-name" style="color:white;font-size:13px;">ZenoHR Support</div>
+              <div class="sidebar-profile-role" style="color:#475569;">SaasAdmin</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main-wrapper" id="mainWrapper" style="display:flex;flex-direction:column;">
+
+      <!-- Admin topbar — dark always -->
+      <header class="topbar admin-topbar" id="adminTopbar">
+        <div class="topbar-left">
+          <button class="icon-btn" onclick="toggleSidebar()" title="Toggle sidebar" style="color:#64748b;">
+            <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <div>
+            <div class="page-title" style="color:#e2e8f0;">Platform Overview</div>
+            <div class="page-subtitle" style="color:#475569;">ZenoHR Control Plane &nbsp;·&nbsp; Last updated 2026-02-20
+              09:00 SAST</div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-sm"
+            style="background:rgba(224,90,30,0.15);color:#e05a1e;border:1px solid rgba(224,90,30,0.3);font-size:12px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            Maintenance Mode
+          </button>
+          <button class="icon-btn" style="color:#64748b;" onclick="toggleTheme()">
+            <svg id="sun-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+            <svg id="moon-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+              style="display:none">
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Environment banner -->
+      <div class="env-banner">
+        <div class="env-banner-dot"></div>
+        <span class="env-banner-text">PRODUCTION</span>
+        <div class="env-banner-sep"></div>
+        <span class="env-banner-info">Azure SA North (southafricanorth) &nbsp;·&nbsp; API v1.4.2 &nbsp;·&nbsp; 99.97%
+          uptime (30d)</span>
+      </div>
+
+      <!-- Content -->
+      <main class="page-content" style="overflow-y:auto;flex:1;">
+
+        <!-- Row 1: KPI Cards -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+
+          <!-- Active Tenants -->
+          <div class="admin-kpi-card accent-blue">
+            <div class="admin-kpi-icon" style="background:var(--brand-primary-subtle);color:var(--brand-primary);">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+            </div>
+            <div class="kpi-label">Active Tenants</div>
+            <div class="kpi-value">148</div>
+            <div class="kpi-meta">
+              <span class="trend-up">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2.5">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+                +6
+              </span>
+              this month
+            </div>
+          </div>
+
+          <!-- MRR -->
+          <div class="admin-kpi-card accent-orange">
+            <div class="admin-kpi-icon" style="background:rgba(224,90,30,0.1);color:#e05a1e;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" x2="12" y1="1" y2="23" />
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            </div>
+            <div class="kpi-label">MRR (ZAR)</div>
+            <div class="kpi-value" style="font-size:22px;letter-spacing:-1px;">R 312,400</div>
+            <div class="kpi-meta">
+              <span class="trend-up">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2.5">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+                4.2%
+              </span>
+              vs Jan 2026
+            </div>
+          </div>
+
+          <!-- System Health -->
+          <div class="admin-kpi-card accent-green">
+            <div class="health-orb health-green">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+              </svg>
+            </div>
+            <div class="kpi-label">System Health</div>
+            <div class="kpi-value" style="color:var(--success);font-size:20px;letter-spacing:-0.5px;">Healthy</div>
+            <div class="kpi-meta">
+              <span style="color:var(--success);font-weight:600;font-size:11.5px;">All systems operational</span>
+            </div>
+          </div>
+
+          <!-- Active Users -->
+          <div class="admin-kpi-card accent-amber">
+            <div class="admin-kpi-icon" style="background:var(--warning-subtle);color:var(--warning);">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </div>
+            <div class="kpi-label">Active Users (all tenants)</div>
+            <div class="kpi-value">18,342</div>
+            <div class="kpi-meta">
+              <span class="trend-up">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2.5">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+                +248
+              </span>
+              week-on-week
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Row 2: Tenant list + Platform events -->
+        <div class="grid grid-cols-60-40 gap-4 mb-6">
+
+          <!-- Tenant List -->
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div
+              style="padding:var(--space-4) var(--space-5);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-default);">
+              <div class="admin-section-title" style="margin-bottom:0;">Tenants</div>
+              <div class="flex gap-2 items-center">
+                <select class="form-select" style="width:130px;">
+                  <option>All Plans</option>
+                  <option>Professional</option>
+                  <option>Enterprise</option>
+                  <option>Starter</option>
+                </select>
+                <button class="btn btn-primary btn-sm"
+                  onclick="document.getElementById('onboardWizard').style.display='flex';">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" x2="12" y1="5" y2="19" />
+                    <line x1="5" x2="19" y1="12" y2="12" />
+                  </svg>
+                  Onboard Tenant
+                </button>
+              </div>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Tenant</th>
+                    <th>Plan</th>
+                    <th>Employees</th>
+                    <th>Last Active</th>
+                    <th>Health</th>
+                    <th style="text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar avatar-sm"
+                          style="background:linear-gradient(135deg,#1d4777,#2a6baa);color:white;">AC</div>
+                        <div>
+                          <div class="person-name">Acme Manufacturing</div>
+                          <div class="person-sub td-mono" style="font-size:10.5px;">T-000148</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="badge badge-nodot plan-professional" style="font-size:10px;">Professional</span>
+                    </td>
+                    <td class="td-mono td-muted">247</td>
+                    <td class="td-mono td-muted" style="font-size:11.5px;">Today 09:14</td>
+                    <td>
+                      <div class="flex items-center gap-2">
+                        <div class="health-dot"
+                          style="background:var(--success);box-shadow:0 0 4px rgba(22,163,74,0.5);"></div>
+                        <span style="font-size:12px;color:var(--success);">OK</span>
+                      </div>
+                    </td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">View</button>
+                        <button class="btn btn-ghost btn-sm">Configure</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar avatar-sm" style="background:#f0f4ff;color:#3730a3;">SB</div>
+                        <div>
+                          <div class="person-name">Sable Engineering</div>
+                          <div class="person-sub td-mono" style="font-size:10.5px;">T-000147</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="badge badge-nodot plan-enterprise" style="font-size:10px;">Enterprise</span></td>
+                    <td class="td-mono td-muted">834</td>
+                    <td class="td-mono td-muted" style="font-size:11.5px;">Today 08:52</td>
+                    <td>
+                      <div class="flex items-center gap-2">
+                        <div class="health-dot"
+                          style="background:var(--success);box-shadow:0 0 4px rgba(22,163,74,0.5);"></div>
+                        <span style="font-size:12px;color:var(--success);">OK</span>
+                      </div>
+                    </td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">View</button>
+                        <button class="btn btn-ghost btn-sm">Configure</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar avatar-sm" style="background:var(--warning-subtle);color:var(--warning);">KR
+                        </div>
+                        <div>
+                          <div class="person-name">Kruger Retail Group</div>
+                          <div class="person-sub td-mono" style="font-size:10.5px;">T-000139</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="badge badge-nodot plan-professional" style="font-size:10px;">Professional</span>
+                    </td>
+                    <td class="td-mono td-muted">412</td>
+                    <td class="td-mono td-muted" style="font-size:11.5px;">Yesterday</td>
+                    <td>
+                      <div class="flex items-center gap-2">
+                        <div class="health-dot"
+                          style="background:var(--warning);box-shadow:0 0 4px rgba(217,119,6,0.5);"></div>
+                        <span style="font-size:12px;color:var(--warning);">Degraded</span>
+                      </div>
+                    </td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">View</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--warning);">Investigate</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar avatar-sm"
+                          style="background:var(--brand-primary-subtle);color:var(--brand-primary);">NV</div>
+                        <div>
+                          <div class="person-name">Nova Staffing Solutions</div>
+                          <div class="person-sub td-mono" style="font-size:10.5px;">T-000136</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="badge badge-nodot plan-starter" style="font-size:10px;">Starter</span></td>
+                    <td class="td-mono td-muted">87</td>
+                    <td class="td-mono td-muted" style="font-size:11.5px;">2 days ago</td>
+                    <td>
+                      <div class="flex items-center gap-2">
+                        <div class="health-dot"
+                          style="background:var(--success);box-shadow:0 0 4px rgba(22,163,74,0.5);"></div>
+                        <span style="font-size:12px;color:var(--success);">OK</span>
+                      </div>
+                    </td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">View</button>
+                        <button class="btn btn-ghost btn-sm">Configure</button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="person-cell">
+                        <div class="avatar avatar-sm" style="background:var(--danger-subtle);color:var(--danger);">PH
+                        </div>
+                        <div>
+                          <div class="person-name">Phoenix Logistics</div>
+                          <div class="person-sub td-mono" style="font-size:10.5px;">T-000121</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="badge badge-nodot plan-starter" style="font-size:10px;">Starter</span></td>
+                    <td class="td-mono td-muted">43</td>
+                    <td class="td-mono td-muted" style="font-size:11.5px;">14 days ago</td>
+                    <td>
+                      <div class="flex items-center gap-2">
+                        <div class="health-dot"
+                          style="background:var(--danger);box-shadow:0 0 4px rgba(220,38,38,0.5);"></div>
+                        <span style="font-size:12px;color:var(--danger);">Suspended</span>
+                      </div>
+                    </td>
+                    <td style="text-align:right;">
+                      <div class="flex gap-2 justify-end">
+                        <button class="btn btn-ghost btn-sm">View</button>
+                        <button class="btn btn-ghost btn-sm" style="color:var(--success);">Unsuspend</button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div
+              style="padding:10px 16px;border-top:1px solid var(--border-default);display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:12px;color:var(--text-muted);">Showing 5 of 148 tenants</span>
+              <div class="flex gap-2">
+                <button class="btn btn-ghost btn-sm">← Prev</button>
+                <button class="btn btn-secondary btn-sm"
+                  style="background:var(--brand-primary-subtle);border-color:var(--brand-primary);color:var(--brand-primary);">1</button>
+                <button class="btn btn-ghost btn-sm">2</button>
+                <button class="btn btn-ghost btn-sm">Next →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Platform Events -->
+          <div class="card">
+            <div class="admin-section-header">
+              <span class="admin-section-title">Recent Platform Events</span>
+              <select class="form-select" style="width:110px;">
+                <option>All Events</option>
+                <option>Errors</option>
+                <option>Provisioning</option>
+                <option>System</option>
+              </select>
+            </div>
+            <div>
+              <div class="platform-event-row">
+                <div class="platform-event-icon" style="background:var(--success-subtle);color:var(--success);">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                  </svg>
+                </div>
+                <div class="platform-event-info">
+                  <div class="platform-event-title">Tenant T-000148 provisioned</div>
+                  <div class="platform-event-meta">2026-02-20 &nbsp;08:00 &nbsp;·&nbsp; Acme Manufacturing</div>
+                </div>
+                <span class="badge badge-success badge-nodot" style="font-size:10px;">OK</span>
+              </div>
+              <div class="platform-event-row">
+                <div class="platform-event-icon" style="background:var(--warning-subtle);color:var(--warning);">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                  </svg>
+                </div>
+                <div class="platform-event-info">
+                  <div class="platform-event-title">T-000139 — Firestore latency spike (380ms)</div>
+                  <div class="platform-event-meta">2026-02-19 &nbsp;23:14 &nbsp;·&nbsp; Auto-resolved</div>
+                </div>
+                <span class="badge badge-warning badge-nodot" style="font-size:10px;">Warn</span>
+              </div>
+              <div class="platform-event-row">
+                <div class="platform-event-icon"
+                  style="background:var(--brand-primary-subtle);color:var(--brand-primary);">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12 16 14" />
+                  </svg>
+                </div>
+                <div class="platform-event-info">
+                  <div class="platform-event-title">EMP201 batch job completed — 142 tenants</div>
+                  <div class="platform-event-meta">2026-02-19 &nbsp;22:00 &nbsp;·&nbsp; 0 failures</div>
+                </div>
+                <span class="badge badge-primary badge-nodot" style="font-size:10px;">System</span>
+              </div>
+              <div class="platform-event-row">
+                <div class="platform-event-icon" style="background:var(--danger-subtle);color:var(--danger);">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                  </svg>
+                </div>
+                <div class="platform-event-info">
+                  <div class="platform-event-title">T-000121 payment failed — subscription suspended</div>
+                  <div class="platform-event-meta">2026-02-06 &nbsp;07:00 &nbsp;·&nbsp; Phoenix Logistics</div>
+                </div>
+                <span class="badge badge-danger badge-nodot" style="font-size:10px;">Error</span>
+              </div>
+              <div class="platform-event-row">
+                <div class="platform-event-icon" style="background:var(--success-subtle);color:var(--success);">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                </div>
+                <div class="platform-event-info">
+                  <div class="platform-event-title">Seed data updated — PAYE 2025-2026 v1.1</div>
+                  <div class="platform-event-meta">2026-02-05 &nbsp;14:30 &nbsp;·&nbsp; Applied to all tenants</div>
+                </div>
+                <span class="badge badge-success badge-nodot" style="font-size:10px;">Update</span>
+              </div>
+              <div class="platform-event-row">
+                <div class="platform-event-icon"
+                  style="background:var(--brand-primary-subtle);color:var(--brand-primary);">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                  </svg>
+                </div>
+                <div class="platform-event-info">
+                  <div class="platform-event-title">Tenant T-000147 provisioned</div>
+                  <div class="platform-event-meta">2026-02-03 &nbsp;09:12 &nbsp;·&nbsp; Sable Engineering</div>
+                </div>
+                <span class="badge badge-success badge-nodot" style="font-size:10px;">OK</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Row 3: Seed Data + Background Jobs -->
+        <div class="grid grid-cols-60-40 gap-4">
+
+          <!-- Seed Data Versions -->
+          <div class="card">
+            <div class="admin-section-header">
+              <span class="admin-section-title">Seed Data Versions</span>
+              <span class="badge badge-warning badge-nodot" style="font-size:11px;">2 updates available</span>
+            </div>
+            <div>
+              <div class="seed-row">
+                <div
+                  style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--brand-primary-subtle);color:var(--brand-primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                </div>
+                <div class="seed-info">
+                  <div class="seed-name">sars-paye-2025-2026.json</div>
+                  <div class="seed-version">v1.1 &nbsp;·&nbsp; Updated 2026-02-05 &nbsp;·&nbsp; Applied to 148 tenants
+                  </div>
+                </div>
+                <span class="badge badge-success badge-nodot" style="font-size:10px;">Current</span>
+                <button class="btn btn-ghost btn-sm" style="margin-left:8px;">Update</button>
+              </div>
+              <div class="seed-row">
+                <div
+                  style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--warning-subtle);color:var(--warning);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                </div>
+                <div class="seed-info">
+                  <div class="seed-name">sars-eti.json</div>
+                  <div class="seed-version">v1.0 &nbsp;·&nbsp; Updated 2025-11-01 &nbsp;·&nbsp; v1.1 available</div>
+                </div>
+                <span class="badge badge-warning badge-nodot" style="font-size:10px;">Update Available</span>
+                <button class="btn btn-accent btn-sm" style="margin-left:8px;">Update</button>
+              </div>
+              <div class="seed-row">
+                <div
+                  style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--success-subtle);color:var(--success);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                </div>
+                <div class="seed-info">
+                  <div class="seed-name">sars-uif-sdl.json</div>
+                  <div class="seed-version">v1.2 &nbsp;·&nbsp; Updated 2026-01-15 &nbsp;·&nbsp; Applied to all tenants
+                  </div>
+                </div>
+                <span class="badge badge-success badge-nodot" style="font-size:10px;">Current</span>
+                <button class="btn btn-ghost btn-sm" style="margin-left:8px;">Update</button>
+              </div>
+              <div class="seed-row">
+                <div
+                  style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--warning-subtle);color:var(--warning);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                </div>
+                <div class="seed-info">
+                  <div class="seed-name">bcea-leave.json</div>
+                  <div class="seed-version">v1.0 &nbsp;·&nbsp; Updated 2025-03-01 &nbsp;·&nbsp; v1.1 available</div>
+                </div>
+                <span class="badge badge-warning badge-nodot" style="font-size:10px;">Update Available</span>
+                <button class="btn btn-accent btn-sm" style="margin-left:8px;">Update</button>
+              </div>
+              <div class="seed-row">
+                <div
+                  style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--brand-primary-subtle);color:var(--brand-primary);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                </div>
+                <div class="seed-info">
+                  <div class="seed-name">bcea-working-time.json</div>
+                  <div class="seed-version">v1.1 &nbsp;·&nbsp; Updated 2026-01-10 &nbsp;·&nbsp; Applied to all tenants
+                  </div>
+                </div>
+                <span class="badge badge-success badge-nodot" style="font-size:10px;">Current</span>
+                <button class="btn btn-ghost btn-sm" style="margin-left:8px;">Update</button>
+              </div>
+              <div class="seed-row">
+                <div
+                  style="width:36px;height:36px;border-radius:var(--radius-md);background:var(--info-subtle);color:var(--info);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                  </svg>
+                </div>
+                <div class="seed-info">
+                  <div class="seed-name">public-holidays-2026.json</div>
+                  <div class="seed-version">v1.0 &nbsp;·&nbsp; Updated 2025-11-20 &nbsp;·&nbsp; Applied to all tenants
+                  </div>
+                </div>
+                <span class="badge badge-success badge-nodot" style="font-size:10px;">Current</span>
+                <button class="btn btn-ghost btn-sm" style="margin-left:8px;">Update</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Background Jobs -->
+          <div class="card">
+            <div class="admin-section-header">
+              <span class="admin-section-title">Background Jobs</span>
+              <button class="btn btn-secondary btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="1 4 1 10 7 10" />
+                  <path d="M3.51 15a9 9 0 1 0 .49-3.51" />
+                </svg>
+                Refresh
+              </button>
+            </div>
+            <div>
+              <div class="job-row">
+                <div
+                  style="width:8px;height:8px;border-radius:50%;background:var(--success);flex-shrink:0;box-shadow:0 0 5px rgba(22,163,74,0.5);">
+                </div>
+                <div class="job-info">
+                  <div class="job-name">EMP201 Batch Generation</div>
+                  <div class="job-timing">Last: 2026-02-19 22:00 &nbsp;·&nbsp; Next: 2026-03-01 22:00</div>
+                </div>
+                <span class="badge badge-nodot job-status-success" style="font-size:10px;">Success</span>
+              </div>
+              <div class="job-row">
+                <div
+                  style="width:8px;height:8px;border-radius:50%;background:var(--success);flex-shrink:0;box-shadow:0 0 5px rgba(22,163,74,0.5);">
+                </div>
+                <div class="job-info">
+                  <div class="job-name">Leave Accrual Engine</div>
+                  <div class="job-timing">Last: 2026-02-20 00:00 &nbsp;·&nbsp; Daily midnight</div>
+                </div>
+                <span class="badge badge-nodot job-status-success" style="font-size:10px;">Success</span>
+              </div>
+              <div class="job-row">
+                <div
+                  style="width:8px;height:8px;border-radius:50%;background:var(--info);flex-shrink:0;box-shadow:0 0 5px rgba(37,99,235,0.5);animation:pulse-admin 1.5s ease-in-out infinite;">
+                </div>
+                <div class="job-info">
+                  <div class="job-name">Payslip PDF Generation</div>
+                  <div class="job-timing">Started: 2026-02-20 09:00 &nbsp;·&nbsp; 142 / 247 complete</div>
+                </div>
+                <span class="badge badge-nodot job-status-running" style="font-size:10px;">Running</span>
+              </div>
+              <div class="job-row">
+                <div
+                  style="width:8px;height:8px;border-radius:50%;background:var(--danger);flex-shrink:0;box-shadow:0 0 5px rgba(220,38,38,0.5);">
+                </div>
+                <div class="job-info">
+                  <div class="job-name">SARS e-filing Reminder</div>
+                  <div class="job-timing">Last: 2026-02-18 08:00 &nbsp;·&nbsp; Exit code 1</div>
+                </div>
+                <span class="badge badge-nodot job-status-failed" style="font-size:10px;">Failed</span>
+              </div>
+              <div class="job-row">
+                <div style="width:8px;height:8px;border-radius:50%;background:var(--border-strong);flex-shrink:0;">
+                </div>
+                <div class="job-info">
+                  <div class="job-name">Audit Hash Verification</div>
+                  <div class="job-timing">Last: 2026-02-19 03:00 &nbsp;·&nbsp; Next: 2026-02-21 03:00</div>
+                </div>
+                <span class="badge badge-nodot job-status-scheduled" style="font-size:10px;">Scheduled</span>
+              </div>
+              <div class="job-row">
+                <div
+                  style="width:8px;height:8px;border-radius:50%;background:var(--success);flex-shrink:0;box-shadow:0 0 5px rgba(22,163,74,0.5);">
+                </div>
+                <div class="job-info">
+                  <div class="job-name">Risk Score Refresh</div>
+                  <div class="job-timing">Last: 2026-02-20 06:00 &nbsp;·&nbsp; Daily 06:00</div>
+                </div>
+                <span class="badge badge-nodot job-status-success" style="font-size:10px;">Success</span>
+              </div>
+              <div class="job-row">
+                <div style="width:8px;height:8px;border-radius:50%;background:var(--border-strong);flex-shrink:0;">
+                </div>
+                <div class="job-info">
+                  <div class="job-name">Subscription Renewal Check</div>
+                  <div class="job-timing">Last: 2026-02-01 00:01 &nbsp;·&nbsp; Next: 2026-03-01 00:01</div>
+                </div>
+                <span class="badge badge-nodot job-status-scheduled" style="font-size:10px;">Scheduled</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('collapsed');
+      const icon = document.getElementById('toggle-icon');
+      icon.innerHTML = sidebar.classList.contains('collapsed')
+        ? '<polyline points="9 18 15 12 9 6"/>'
+        : '<polyline points="15 18 9 12 15 6"/>';
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('sun-icon').style.display = isDark ? 'block' : 'none';
+      document.getElementById('moon-icon').style.display = isDark ? 'none' : 'block';
+    }
+
+    function openDrawer() {
+      document.getElementById('sidebar').classList.add('drawer-open');
+      document.getElementById('drawerOverlay').classList.add('visible');
+    }
+
+    function closeDrawer() {
+      document.getElementById('sidebar').classList.remove('drawer-open');
+      document.getElementById('drawerOverlay').classList.remove('visible');
+    }
+
+    function openAdminMore() {
+      document.getElementById('adminMoreOverlay').classList.add('visible');
+      document.getElementById('adminMoreSheet').style.display = 'block';
+    }
+
+    function closeAdminMore() {
+      document.getElementById('adminMoreOverlay').classList.remove('visible');
+      document.getElementById('adminMoreSheet').style.display = 'none';
+    }
+  </script>
+
+  <!-- Mobile drawer overlay -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+  <!-- Admin Bottom Navigation (≤640px) -->
+  <nav class="bottom-nav">
+    <a href="11-admin.html" class="bottom-nav-item active">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="7" height="9" x="3" y="3" rx="1" />
+        <rect width="7" height="5" x="14" y="3" rx="1" />
+        <rect width="7" height="9" x="14" y="12" rx="1" />
+        <rect width="7" height="5" x="3" y="16" rx="1" />
+      </svg>
+      <span class="bottom-nav-label">Dashboard</span>
+    </a>
+    <a href="03-employees.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+      <span class="bottom-nav-label">Employees</span>
+    </a>
+    <a href="10-settings.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3" />
+        <path
+          d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+      </svg>
+      <span class="bottom-nav-label">Settings</span>
+    </a>
+    <button class="bottom-nav-item" onclick="openAdminMore()">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="5" cy="12" r="1" />
+        <circle cx="12" cy="12" r="1" />
+        <circle cx="19" cy="12" r="1" />
+      </svg>
+      <span class="bottom-nav-label">More</span>
+    </button>
+  </nav>
+
+  <div class="admin-more-overlay" id="adminMoreOverlay" onclick="closeAdminMore()"></div>
+  <div class="admin-more-sheet" id="adminMoreSheet" style="display:none;">
+    <div class="admin-more-title">More</div>
+    <div class="admin-more-grid">
+      <a href="07-timesheet.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>Timesheets</a>
+      <a href="05-leave.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="4" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>Leave</a>
+      <a href="04-payroll.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="20" height="14" x="2" y="5" rx="2" />
+          <line x1="2" y1="10" x2="22" y2="10" />
+        </svg>Payroll</a>
+      <a href="06-compliance.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>Compliance</a>
+      <a href="08-audit.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>Audit Trail</a>
+      <a href="09-role-management.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+          stroke-linejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>Roles</a>
+      <a href="12-analytics.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>Analytics</a>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       Tenant Onboarding Wizard — 5-Step Modal
+       Triggered by "Onboard Tenant" button on Tenants table header
+       REQ-OPS-001, CTL-POPIA-003
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div id="onboardWizard"
+    style="display:none;position:fixed;inset:0;background:rgba(6,12,24,.72);z-index:400;align-items:center;justify-content:center;padding:24px;">
+    <div
+      style="background:var(--bg-surface);border-radius:12px;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.4);">
+
+      <!-- Wizard Header -->
+      <div
+        style="display:flex;align-items:center;justify-content:space-between;padding:20px 28px;border-bottom:1px solid var(--border-default);">
+        <div>
+          <div style="font-size:1.05rem;font-weight:700;color:var(--text-primary);">Onboard New Tenant</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">5-step provisioning wizard</div>
+        </div>
+        <button onclick="document.getElementById('onboardWizard').style.display='none';"
+          style="background:none;border:none;cursor:pointer;color:var(--text-muted);padding:4px;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Step Indicators -->
+      <div
+        style="display:flex;gap:0;padding:16px 28px;border-bottom:1px solid var(--border-default);background:var(--bg-subtle);">
+        <div id="wStep1" class="wizard-step-indicator" onclick="showWizardStep(1)"
+          style="flex:1;text-align:center;cursor:pointer;">
+          <div
+            style="width:28px;height:28px;border-radius:50%;background:var(--brand-primary);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;">
+            1</div>
+          <div style="font-size:10px;font-weight:600;color:var(--brand-primary);">Company</div>
+        </div>
+        <div style="flex:0;display:flex;align-items:center;padding:0 4px;padding-bottom:16px;">
+          <div style="width:32px;height:1px;background:var(--border-default);"></div>
+        </div>
+        <div id="wStep2" onclick="showWizardStep(2)" style="flex:1;text-align:center;cursor:pointer;">
+          <div
+            style="width:28px;height:28px;border-radius:50%;background:var(--border-default);color:var(--text-muted);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;">
+            2</div>
+          <div style="font-size:10px;color:var(--text-muted);">SARS Config</div>
+        </div>
+        <div style="flex:0;display:flex;align-items:center;padding:0 4px;padding-bottom:16px;">
+          <div style="width:32px;height:1px;background:var(--border-default);"></div>
+        </div>
+        <div id="wStep3" onclick="showWizardStep(3)" style="flex:1;text-align:center;cursor:pointer;">
+          <div
+            style="width:28px;height:28px;border-radius:50%;background:var(--border-default);color:var(--text-muted);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;">
+            3</div>
+          <div style="font-size:10px;color:var(--text-muted);">Director</div>
+        </div>
+        <div style="flex:0;display:flex;align-items:center;padding:0 4px;padding-bottom:16px;">
+          <div style="width:32px;height:1px;background:var(--border-default);"></div>
+        </div>
+        <div id="wStep4" onclick="showWizardStep(4)" style="flex:1;text-align:center;cursor:pointer;">
+          <div
+            style="width:28px;height:28px;border-radius:50%;background:var(--border-default);color:var(--text-muted);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;">
+            4</div>
+          <div style="font-size:10px;color:var(--text-muted);">Seed Data</div>
+        </div>
+        <div style="flex:0;display:flex;align-items:center;padding:0 4px;padding-bottom:16px;">
+          <div style="width:32px;height:1px;background:var(--border-default);"></div>
+        </div>
+        <div id="wStep5" onclick="showWizardStep(5)" style="flex:1;text-align:center;cursor:pointer;">
+          <div
+            style="width:28px;height:28px;border-radius:50%;background:var(--border-default);color:var(--text-muted);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;">
+            5</div>
+          <div style="font-size:10px;color:var(--text-muted);">Review</div>
+        </div>
+      </div>
+
+      <!-- Step Content -->
+      <div style="padding:28px;">
+
+        <!-- Step 1: Company Details -->
+        <div id="wizardPanel1">
+          <div style="font-size:.95rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Company Details
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:20px;">Enter the company's legal and payroll
+            configuration.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;">
+            <div>
+              <label class="form-label">Company Legal Name *</label>
+              <input class="form-input" type="text" placeholder="Zenowethu (Pty) Ltd">
+            </div>
+            <div>
+              <label class="form-label">Registration Number *</label>
+              <input class="form-input" type="text" placeholder="2024/123456/07">
+            </div>
+            <div>
+              <label class="form-label">Tax Reference Number *</label>
+              <input class="form-input" type="text" placeholder="9 123 456 789">
+            </div>
+            <div>
+              <label class="form-label">UIF Reference Number *</label>
+              <input class="form-input" type="text" placeholder="U0987654321">
+            </div>
+            <div>
+              <label class="form-label">Pay Frequency *</label>
+              <select class="form-select">
+                <option>Monthly</option>
+                <option>Weekly</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Pay Day (day of month / week)</label>
+              <input class="form-input" type="text" placeholder="28 (monthly) or Friday (weekly)">
+            </div>
+            <div>
+              <label class="form-label">Financial Year-End Month *</label>
+              <select class="form-select">
+                <option>February (SARS default)</option>
+                <option>March</option>
+                <option>June</option>
+                <option>December</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">Trading Name (optional)</label>
+              <input class="form-input" type="text" placeholder="Acme Tech">
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: SARS Configuration (hidden by default) -->
+        <div id="wizardPanel2" style="display:none;">
+          <div style="font-size:.95rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">SARS Configuration
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:20px;">Configure SARS eFiling credentials.
+            Stored in Azure Key Vault — never in Firestore.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;">
+            <div>
+              <label class="form-label">PAYE Employer Reference *</label>
+              <input class="form-input" type="text" placeholder="7234567890">
+            </div>
+            <div>
+              <label class="form-label">SDL Number</label>
+              <input class="form-input" type="text" placeholder="L0123456789 (leave blank if SDL exempt)">
+            </div>
+            <div style="grid-column:1/-1;">
+              <label class="form-label">ISV Environment *</label>
+              <div style="display:flex;gap:12px;margin-top:4px;">
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                  <input type="radio" name="isvEnv" value="test" checked style="accent-color:var(--brand-primary);">
+                  <span style="font-size:12px;font-weight:500;">Test (eFiling sandbox)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;">
+                  <input type="radio" name="isvEnv" value="production" style="accent-color:var(--brand-primary);">
+                  <span style="font-size:12px;font-weight:500;">Production</span>
+                </label>
+              </div>
+            </div>
+            <div style="grid-column:1/-1;">
+              <label class="form-label">eFiling API Endpoint</label>
+              <input class="form-input" type="text"
+                value="https://test.efiling.gov.za/api/v1" style="font-family:'JetBrains Mono',monospace;font-size:12px;">
+              <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Auto-populated for test environment.
+                Update when ISV accreditation (IBIR-006) is approved.</div>
+            </div>
+          </div>
+          <div
+            style="margin-top:16px;padding:12px 14px;background:var(--warning-subtle);border:1px solid var(--warning);border-radius:6px;font-size:11px;color:var(--warning);">
+            <strong>Phase 1 note:</strong> Direct SARS API submission is Phase 2 (post-ISV accreditation). Phase 1
+            generates EMP201 CSV for manual upload. This config is saved for Phase 2 readiness.
+          </div>
+        </div>
+
+        <!-- Step 3: First Admin Account — HR Manager (primary operator) or Director -->
+        <div id="wizardPanel3" style="display:none;">
+          <div style="font-size:.95rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">First Admin Account</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:16px;">The HR Manager is the primary day-to-day operator of ZenoHR. Create their account first — they will configure the system and add other users including the Director from Settings → Users.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 20px;">
+            <div>
+              <label class="form-label">Role *</label>
+              <select class="form-select">
+                <option value="hrmanager">HR Manager (Recommended — primary operator)</option>
+                <option value="director">Director (company owner / full access)</option>
+              </select>
+            </div>
+            <div></div>
+            <div>
+              <label class="form-label">First Name *</label>
+              <input class="form-input" type="text" placeholder="Sarah">
+            </div>
+            <div>
+              <label class="form-label">Last Name *</label>
+              <input class="form-input" type="text" placeholder="Nkosi">
+            </div>
+            <div style="grid-column:1/-1;">
+              <label class="form-label">Work Email *</label>
+              <input class="form-input" type="email" placeholder="sarah.nkosi@zenowethu.co.za">
+              <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">Must be a @zenowethu.co.za address. Firebase Auth account created here. Welcome email sent here.</div>
+            </div>
+            <div style="grid-column:1/-1;">
+              <label class="form-label">Password Policy *</label>
+              <select class="form-select">
+                <option value="force_change">Force password change on first login (Recommended)</option>
+                <option value="temp_password">Generate temporary password (auto-expire 24h)</option>
+              </select>
+            </div>
+          </div>
+          <div
+            style="margin-top:16px;padding:12px 14px;background:var(--brand-primary-subtle);border:1px solid var(--brand-primary);border-radius:6px;font-size:11px;color:var(--brand-primary);">
+            The HR Manager and Director have identical system access. The Director retains full authority over all functions. Additional accounts (Director, Managers, Employees) are added from Settings → Users after first login.
+          </div>
+        </div>
+
+        <!-- Step 4: Statutory Seed Data (hidden) -->
+        <div id="wizardPanel4" style="display:none;">
+          <div style="font-size:.95rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Statutory Seed
+            Data</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:20px;">These statutory rule sets will be
+            seeded into the new tenant's Firestore collections. All pre-selected — do not modify unless explicitly
+            required.</div>
+
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+            <label
+              style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border-default);border-radius:6px;cursor:not-allowed;background:var(--bg-subtle);">
+              <input type="checkbox" checked disabled style="width:15px;height:15px;accent-color:var(--brand-primary);">
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-primary);">PAYE Tax Tables 2025/2026</div>
+                <div style="font-size:10px;color:var(--text-muted);">7 brackets, rebates (primary/secondary/tertiary),
+                  annual threshold · sars-paye-2025-2026.json</div>
+              </div>
+              <span class="badge badge-success badge-nodot" style="margin-left:auto;font-size:10px;">Required</span>
+            </label>
+            <label
+              style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border-default);border-radius:6px;cursor:not-allowed;background:var(--bg-subtle);">
+              <input type="checkbox" checked disabled style="width:15px;height:15px;accent-color:var(--brand-primary);">
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-primary);">UIF / SDL Rates 2025/2026</div>
+                <div style="font-size:10px;color:var(--text-muted);">1% UIF each side, R177.12 cap · 1% SDL · sars-uif-sdl.json</div>
+              </div>
+              <span class="badge badge-success badge-nodot" style="margin-left:auto;font-size:10px;">Required</span>
+            </label>
+            <label
+              style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border-default);border-radius:6px;cursor:not-allowed;background:var(--bg-subtle);">
+              <input type="checkbox" checked disabled style="width:15px;height:15px;accent-color:var(--brand-primary);">
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-primary);">ETI Incentive Rules 2025/2026
+                </div>
+                <div style="font-size:10px;color:var(--text-muted);">Age 18–29, 24-month tier, R7,500 max remuneration ·
+                  sars-eti.json</div>
+              </div>
+              <span class="badge badge-success badge-nodot" style="margin-left:auto;font-size:10px;">Required</span>
+            </label>
+            <label
+              style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border-default);border-radius:6px;cursor:not-allowed;background:var(--bg-subtle);">
+              <input type="checkbox" checked disabled style="width:15px;height:15px;accent-color:var(--brand-primary);">
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-primary);">BCEA Working Time + Leave
+                  Entitlements</div>
+                <div style="font-size:10px;color:var(--text-muted);">5 leave types, BCEA S.9–S.27 rules ·
+                  bcea-leave.json + bcea-working-time.json</div>
+              </div>
+              <span class="badge badge-success badge-nodot" style="margin-left:auto;font-size:10px;">Required</span>
+            </label>
+            <label
+              style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--border-default);border-radius:6px;cursor:not-allowed;background:var(--bg-subtle);">
+              <input type="checkbox" checked disabled style="width:15px;height:15px;accent-color:var(--brand-primary);">
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-primary);">Public Holidays 2026</div>
+                <div style="font-size:10px;color:var(--text-muted);">South African statutory public holidays ·
+                  sa-public-holidays.json</div>
+              </div>
+              <span class="badge badge-success badge-nodot" style="margin-left:auto;font-size:10px;">Required</span>
+            </label>
+          </div>
+
+          <label
+            style="display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--success-subtle);border:1px solid var(--success);border-radius:6px;cursor:pointer;">
+            <input type="checkbox" id="seedAllConfirm"
+              style="width:16px;height:16px;accent-color:var(--success);flex-shrink:0;">
+            <span style="font-size:12px;color:var(--success);font-weight:600;">I confirm — seed all statutory rule sets
+              listed above into the new tenant.</span>
+          </label>
+        </div>
+
+        <!-- Step 5: Review & Provision (hidden) -->
+        <div id="wizardPanel5" style="display:none;">
+          <div style="font-size:.95rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Review &amp;
+            Provision</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:20px;">Review the configuration before
+            provisioning. This action creates the tenant and cannot be undone.</div>
+
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+            <div
+              style="padding:12px 16px;border:1px solid var(--border-default);border-radius:6px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">Company</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-primary);">Zenowethu (Pty) Ltd</div>
+                <div style="font-size:11px;color:var(--text-muted);">Monthly payroll · Feb year-end · UIF: U0987654321</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="showWizardStep(1)">Edit</button>
+            </div>
+            <div
+              style="padding:12px 16px;border:1px solid var(--border-default);border-radius:6px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">SARS</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-primary);">PAYE: 7234567890</div>
+                <div style="font-size:11px;color:var(--text-muted);">ISV Environment: Test (Phase 1 — CSV generation)</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="showWizardStep(2)">Edit</button>
+            </div>
+            <div
+              style="padding:12px 16px;border:1px solid var(--border-default);border-radius:6px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">Admin Account (HR Manager)</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-primary);">Sarah Nkosi</div>
+                <div style="font-size:11px;color:var(--text-muted);">sarah.nkosi@zenowethu.co.za · Force password change on first login</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="showWizardStep(3)">Edit</button>
+            </div>
+            <div
+              style="padding:12px 16px;border:1px solid var(--border-default);border-radius:6px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;">Seed Data</div>
+                <div style="font-size:13px;font-weight:600;color:var(--text-primary);">5 statutory rule sets</div>
+                <div style="font-size:11px;color:var(--text-muted);">PAYE 2025/2026 · UIF/SDL · ETI · BCEA · Public Holidays</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" onclick="showWizardStep(4)">Edit</button>
+            </div>
+          </div>
+
+          <!-- Provision button + progress -->
+          <div id="provisionReady">
+            <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;"
+              onclick="startProvisioning()">
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              &nbsp; Provision Tenant
+            </button>
+          </div>
+          <div id="provisionProgress" style="display:none;">
+            <div style="margin-bottom:10px;font-size:12px;font-weight:600;color:var(--text-primary);">Provisioning…</div>
+            <div style="background:var(--border-default);border-radius:4px;height:6px;overflow:hidden;margin-bottom:12px;">
+              <div id="provisionBar"
+                style="height:100%;background:var(--brand-primary);width:0%;border-radius:4px;transition:width 0.6s ease;"></div>
+            </div>
+            <div id="provisionStatus" style="font-size:11px;color:var(--text-muted);">Creating company_settings
+              document…</div>
+          </div>
+          <div id="provisionDone" style="display:none;">
+            <div
+              style="padding:16px;background:var(--success-subtle);border:1px solid var(--success);border-radius:8px;text-align:center;">
+              <div style="font-size:14px;font-weight:700;color:var(--success);margin-bottom:4px;">✓ Tenant Provisioned</div>
+              <div style="font-size:11px;color:var(--success);">Welcome email sent to sarah.nkosi@zenowethu.co.za</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:8px;">Zenowethu now appears in the tenant list with status: Active</div>
+              <button class="btn btn-secondary btn-sm" style="margin-top:12px;"
+                onclick="document.getElementById('onboardWizard').style.display='none';">Close</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Wizard Footer Nav -->
+      <div
+        style="display:flex;justify-content:space-between;padding:16px 28px;border-top:1px solid var(--border-default);background:var(--bg-subtle);">
+        <button id="wBtnBack" class="btn btn-ghost btn-sm" onclick="wizardNav(-1)" style="display:none;">
+          ← Back
+        </button>
+        <div style="flex:1;"></div>
+        <button id="wBtnNext" class="btn btn-primary btn-sm" onclick="wizardNav(1)">
+          Next →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ─── Tenant Onboarding Wizard JS ────────────────────────
+    let _currentStep = 1;
+    const TOTAL_STEPS = 5;
+
+    function showWizardStep(step) {
+      // Hide all panels
+      for (let i = 1; i <= TOTAL_STEPS; i++) {
+        document.getElementById('wizardPanel' + i).style.display = 'none';
+      }
+      // Show target panel
+      document.getElementById('wizardPanel' + step).style.display = 'block';
+      _currentStep = step;
+
+      // Back button
+      document.getElementById('wBtnBack').style.display = step > 1 ? 'block' : 'none';
+      // Next button label
+      document.getElementById('wBtnNext').textContent = step === TOTAL_STEPS ? '' : 'Next →';
+      document.getElementById('wBtnNext').style.display = step === TOTAL_STEPS ? 'none' : 'block';
+    }
+
+    function wizardNav(direction) {
+      const next = Math.max(1, Math.min(TOTAL_STEPS, _currentStep + direction));
+      showWizardStep(next);
+    }
+
+    function startProvisioning() {
+      document.getElementById('provisionReady').style.display = 'none';
+      document.getElementById('provisionProgress').style.display = 'block';
+      const steps = [
+        { pct: 20, msg: 'Creating company_settings document…' },
+        { pct: 40, msg: 'Seeding 5 statutory rule sets…' },
+        { pct: 60, msg: 'Creating user_role_assignments (Director)…' },
+        { pct: 80, msg: 'Configuring Firestore security rules…' },
+        { pct: 95, msg: 'Sending welcome email…' },
+        { pct: 100, msg: 'Done!' }
+      ];
+      let i = 0;
+      const interval = setInterval(() => {
+        if (i >= steps.length) {
+          clearInterval(interval);
+          document.getElementById('provisionProgress').style.display = 'none';
+          document.getElementById('provisionDone').style.display = 'block';
+          return;
+        }
+        document.getElementById('provisionBar').style.width = steps[i].pct + '%';
+        document.getElementById('provisionStatus').textContent = steps[i].msg;
+        i++;
+      }, 700);
+    }
+  </script>
+  <!-- End Tenant Onboarding Wizard -->
+
+</body>
+
+</html>

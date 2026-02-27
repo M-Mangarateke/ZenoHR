@@ -1,0 +1,68 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "BCEA_NOTICE_SEVERANCE",
+  "version": "2026.1.0",
+  "effective_from": "2025-03-01",
+  "source": "Basic Conditions of Employment Act 75 of 1997 - Sections 37, 38, 39, 40, 41",
+
+  "notice_periods": {
+    "ctl_id": "CTL-BCEA-006",
+    "tiers": [
+      {
+        "tenure_min_months": 0,
+        "tenure_max_months": 6,
+        "notice_weeks": 1,
+        "description": "First 6 months of employment"
+      },
+      {
+        "tenure_min_months": 6,
+        "tenure_max_months": 12,
+        "notice_weeks": 2,
+        "description": "More than 6 months but less than 1 year"
+      },
+      {
+        "tenure_min_months": 12,
+        "tenure_max_months": null,
+        "notice_weeks": 4,
+        "description": "1 year or more of employment"
+      }
+    ],
+    "notice_rules": {
+      "must_be_in_writing": true,
+      "cannot_be_given_during_leave": true,
+      "notice_runs_concurrently_with_leave": false,
+      "payment_in_lieu_allowed": true,
+      "employee_may_give_shorter_notice": "Only by agreement"
+    }
+  },
+
+  "severance_pay": {
+    "trigger": "Dismissal based on operational requirements (retrenchment) under Section 189 or 189A of LRA",
+    "rate_per_completed_year": {
+      "weeks_pay": 1,
+      "description": "1 week's remuneration for each completed year of continuous service"
+    },
+    "calculation": {
+      "remuneration_basis": "Employee's current weekly remuneration at date of dismissal",
+      "completed_years": "Only completed years count; partial years are not included",
+      "example": "Employee with 5 years 8 months service = 5 weeks severance pay"
+    },
+    "does_not_apply_to": [
+      "Resignation",
+      "Dismissal for misconduct",
+      "Dismissal for incapacity",
+      "Dismissal for operational requirements where employee unreasonably refused alternative employment"
+    ]
+  },
+
+  "certificate_of_service": {
+    "required": true,
+    "must_include": [
+      "Full name of employee",
+      "Name and address of employer",
+      "Description of main work categories or trade",
+      "Date employment commenced",
+      "Date employment ended"
+    ]
+  }
+}

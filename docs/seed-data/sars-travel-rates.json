@@ -1,0 +1,81 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "SARS_TRAVEL",
+  "version": "2026.1.0",
+  "effective_from": "2025-03-01",
+  "effective_to": "2026-02-28",
+  "tax_year": "2026",
+  "source": "SARS PAYE-GEN-01-G03-A01 Rate per Kilometre Schedule",
+  "source_url": "https://www.sars.gov.za/tax-rates/employers/rates-per-kilometer/",
+
+  "reimbursive_rate_cents_per_km": 476,
+  "reimbursive_rate_rands_per_km": 4.76,
+
+  "fixed_cost_table": [
+    {
+      "vehicle_value_min": 0,
+      "vehicle_value_max": 100000,
+      "fixed_cost_annual": 34940,
+      "fuel_cost_cents_per_km": 146.7,
+      "maintenance_cost_cents_per_km": 47.4
+    },
+    {
+      "vehicle_value_min": 100001,
+      "vehicle_value_max": 200000,
+      "fixed_cost_annual": 60688,
+      "fuel_cost_cents_per_km": 163.8,
+      "maintenance_cost_cents_per_km": 59.3
+    },
+    {
+      "vehicle_value_min": 200001,
+      "vehicle_value_max": 300000,
+      "fixed_cost_annual": 87497,
+      "fuel_cost_cents_per_km": 177.9,
+      "maintenance_cost_cents_per_km": 65.4
+    },
+    {
+      "vehicle_value_min": 300001,
+      "vehicle_value_max": 400000,
+      "fixed_cost_annual": 111273,
+      "fuel_cost_cents_per_km": 191.4,
+      "maintenance_cost_cents_per_km": 71.4
+    },
+    {
+      "vehicle_value_min": 400001,
+      "vehicle_value_max": 500000,
+      "fixed_cost_annual": 135048,
+      "fuel_cost_cents_per_km": 204.8,
+      "maintenance_cost_cents_per_km": 83.9
+    },
+    {
+      "vehicle_value_min": 500001,
+      "vehicle_value_max": 600000,
+      "fixed_cost_annual": 159934,
+      "fuel_cost_cents_per_km": 234.9,
+      "maintenance_cost_cents_per_km": 98.5
+    },
+    {
+      "vehicle_value_min": 600001,
+      "vehicle_value_max": 700000,
+      "fixed_cost_annual": 184867,
+      "fuel_cost_cents_per_km": 238.9,
+      "maintenance_cost_cents_per_km": 110.5
+    },
+    {
+      "vehicle_value_min": 700001,
+      "vehicle_value_max": null,
+      "fixed_cost_annual": 211121,
+      "fuel_cost_cents_per_km": 242.9,
+      "maintenance_cost_cents_per_km": 122.5
+    }
+  ],
+
+  "travel_allowance_rules": {
+    "paye_inclusion_rate": 0.80,
+    "reduced_rate_with_logbook": "Actual business km / total km ratio applied to allowance",
+    "logbook_required": true,
+    "fuel_cost_claim_restriction": "No fuel cost claim if employee did not bear full fuel cost",
+    "maintenance_cost_claim_restriction": "No maintenance cost claim if vehicle covered by maintenance plan",
+    "proration": "Fixed cost must be pro-rated if vehicle used for business for less than full year"
+  }
+}

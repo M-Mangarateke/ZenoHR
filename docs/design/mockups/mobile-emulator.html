@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ZenoHR Mobile Emulator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .toolbar {
+            background: #0f172a;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .toolbar h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .form-select {
+            height: 36px;
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 0 12px;
+            padding-right: 32px;
+            font-size: 14px;
+            color: white;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            min-width: 250px;
+        }
+
+        .emulator-container {
+            flex: 1;
+            display: flex;
+            align-items: flex-start;
+            /* Fixes top-cutoff in flex containers */
+            justify-content: center;
+            padding: 40px 24px;
+            overflow-y: auto;
+        }
+
+        /* iPhone 14 Pro style frame */
+        .device-frame {
+            width: 393px;
+            height: 852px;
+            background: black;
+            border-radius: 54px;
+            padding: 14px;
+            box-shadow:
+                0 0 0 1px #334155,
+                0 20px 40px -10px rgba(0, 0, 0, 0.5),
+                inset 0 0 0 5px #1e293b;
+            position: relative;
+            flex-shrink: 0;
+            margin: auto;
+            /* Safely centers vertically if taller than container */
+            transform-origin: top center;
+        }
+
+        .device-screen {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: 40px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Simulate the dynamic island notch overlay */
+        .device-notch {
+            position: absolute;
+            top: 11px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 125px;
+            height: 37px;
+            background: black;
+            border-radius: 20px;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: var(--bg-default, #f8fafc);
+        }
+
+        @media (max-height: 950px) {
+            .device-frame {
+                transform: scale(0.85);
+                margin: -40px 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="toolbar">
+        <h1>ZenoHR Mobile Simulator</h1>
+        <select class="form-select" id="pageSelect" onchange="changePage()">
+            <optgroup label="P0 Screens (Core)">
+                <option value="01-login.html">01 - Login</option>
+                <option value="14-clock-in.html">14 - Time & Attendance</option>
+            </optgroup>
+            <optgroup label="P1 Screens (Tenant / Manager)">
+                <option value="02-dashboard.html">02 - Dashboard</option>
+                <option value="04-payroll.html">04 - Payroll</option>
+                <option value="05-leave.html">05 - Leave Management</option>
+                <option value="13-my-analytics.html">13 - My Analytics</option>
+            </optgroup>
+            <optgroup label="P2 Screens (Admin)">
+                <option value="03-employees.html">03 - Employees Directory</option>
+                <option value="06-compliance.html">06 - Compliance Hub</option>
+                <option value="07-timesheet.html">07 - Timesheet Admin</option>
+                <option value="08-audit.html">08 - Audit Trail</option>
+                <option value="09-role-management.html">09 - Role Management</option>
+                <option value="10-settings.html">10 - Settings</option>
+                <option value="11-admin.html">11 - Admin Console</option>
+                <option value="12-analytics.html">12 - Company Analytics</option>
+                <option value="15-security-ops.html">15 - Security Ops</option>
+            </optgroup>
+        </select>
+    </div>
+
+    <div class="emulator-container">
+        <div class="device-frame">
+            <div class="device-notch"></div>
+            <div class="device-screen">
+                <iframe id="emulatorFrame" src="01-login.html" title="ZenoHR Mobile View"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function changePage() {
+            const select = document.getElementById('pageSelect');
+            const frame = document.getElementById('emulatorFrame');
+            frame.src = select.value;
+        }
+    </script>
+</body>
+
+</html>

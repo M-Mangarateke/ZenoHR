@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZenoHR — Payslip Template (QuestPDF Source of Truth)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    /* ─── Browser preview wrapper ─────────────────────────── */
+    body {
+      background: #e8ecf0;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 32px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      color: #1a1a2e;
+    }
+
+    .preview-note {
+      font-size: 12px;
+      color: #64748b;
+      text-align: center;
+      max-width: 760px;
+      line-height: 1.5;
+      background: #fff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 12px 16px;
+    }
+
+    .preview-note strong { color: #1d4777; }
+
+    /* ─── A4 Paper (794px × 1123px at 96dpi) ─────────────── */
+    .payslip {
+      width: 794px;
+      min-height: 1123px;
+      background: #ffffff;
+      box-shadow: 0 4px 24px rgba(0,0,0,.15);
+      display: flex;
+      flex-direction: column;
+      font-size: 11px;
+      line-height: 1.4;
+      color: #1a202c;
+    }
+
+    /* ─── 1. Header Bar ───────────────────────────────────── */
+    .ps-header {
+      background: #1d4777;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 28px;
+    }
+
+    .ps-header-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .ps-header-logo-mark {
+      width: 36px;
+      height: 36px;
+      background: #ffffff20;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: -0.5px;
+    }
+
+    .ps-header-company-name {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .ps-header-company-sub {
+      font-size: 10px;
+      opacity: 0.72;
+      margin-top: 1px;
+    }
+
+    .ps-header-right {
+      text-align: right;
+    }
+
+    .ps-advice-label {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .ps-period-label {
+      font-size: 10px;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
+
+    /* Accent stripe */
+    .ps-accent-stripe {
+      height: 4px;
+      background: linear-gradient(90deg, #d4890e 0%, #f0a930 60%, #d4890e 100%);
+    }
+
+    /* ─── 2. Info Section ─────────────────────────────────── */
+    .ps-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .ps-info-block {
+      padding: 16px 28px;
+    }
+
+    .ps-info-block:first-child {
+      border-right: 1px solid #e2e8f0;
+    }
+
+    .ps-info-label {
+      font-size: 9px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: #64748b;
+      margin-bottom: 10px;
+    }
+
+    .ps-info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 2px 0;
+      gap: 8px;
+    }
+
+    .ps-info-key {
+      color: #64748b;
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    .ps-info-val {
+      font-weight: 500;
+      font-size: 10.5px;
+      color: #1a202c;
+      text-align: right;
+    }
+
+    .ps-info-val.mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* ─── 3. Tables (Earnings + Deductions) ───────────────── */
+    .ps-section {
+      padding: 0 28px;
+      margin-top: 16px;
+    }
+
+    .ps-table-header {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: #1d4777;
+      padding: 6px 0;
+      border-bottom: 1.5px solid #1d4777;
+      display: grid;
+      gap: 0;
+    }
+
+    .ps-table-header.earnings-cols { grid-template-columns: 1fr 90px 90px 100px; }
+    .ps-table-header.deductions-cols { grid-template-columns: 1fr 100px 100px; }
+    .ps-table-header.ytd-cols { grid-template-columns: 1fr 100px 100px; }
+
+    .ps-table-header span:not(:first-child) { text-align: right; }
+
+    .ps-table-row {
+      display: grid;
+      padding: 5px 0;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .ps-table-row.earnings-cols { grid-template-columns: 1fr 90px 90px 100px; }
+    .ps-table-row.deductions-cols { grid-template-columns: 1fr 100px 100px; }
+    .ps-table-row.ytd-cols { grid-template-columns: 1fr 100px 100px; }
+
+    .ps-table-row span:not(:first-child) {
+      text-align: right;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+    }
+
+    .ps-table-row.subtotal {
+      background: #f8fafc;
+      border-top: 1px solid #cbd5e1;
+      border-bottom: 1.5px solid #cbd5e1;
+      font-weight: 700;
+      font-size: 11px;
+    }
+
+    .ps-table-row span:first-child { font-size: 10.5px; color: #334155; }
+    .ps-table-row.subtotal span:first-child { color: #1a202c; font-size: 11px; }
+    .ps-table-row.subtotal span:not(:first-child) { font-size: 11px; font-weight: 700; color: #1a202c; }
+
+    .ps-note {
+      font-size: 9px;
+      color: #94a3b8;
+      padding: 3px 0;
+    }
+
+    /* ─── 5. Net Pay Box ──────────────────────────────────── */
+    .ps-net-pay {
+      margin: 16px 28px;
+      background: #1d4777;
+      color: #ffffff;
+      border-radius: 8px;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .ps-net-label {
+      font-size: 12px;
+      font-weight: 600;
+      opacity: 0.85;
+      letter-spacing: .5px;
+    }
+
+    .ps-net-amount {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -1px;
+    }
+
+    .ps-net-sub {
+      font-size: 9px;
+      opacity: 0.65;
+      margin-top: 2px;
+    }
+
+    /* ─── 6. Employer Contributions ──────────────────────── */
+    .ps-employer {
+      margin: 0 28px 16px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 12px 16px;
+    }
+
+    .ps-employer-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+
+    .ps-employer-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px 32px;
+    }
+
+    .ps-employer-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+    }
+
+    .ps-employer-row span:last-child {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 500;
+      color: #334155;
+    }
+
+    .ps-employer-note {
+      font-size: 9px;
+      color: #94a3b8;
+      margin-top: 8px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 6px;
+    }
+
+    /* ─── 7. Leave Balances ───────────────────────────────── */
+    .ps-leave {
+      margin: 0 28px 16px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+
+    .ps-leave-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: #64748b;
+      white-space: nowrap;
+    }
+
+    .ps-leave-item {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .ps-leave-type { font-size: 9px; color: #64748b; }
+    .ps-leave-val { font-size: 11px; font-weight: 600; color: #1d4777; font-family: 'JetBrains Mono', monospace; }
+
+    /* ─── 8. Year to Date ─────────────────────────────────── */
+    /* uses .ps-section + .ps-table-* with ytd-cols */
+
+    /* ─── 9. Footer ───────────────────────────────────────── */
+    .ps-footer {
+      margin-top: auto;
+      border-top: 1px solid #e2e8f0;
+      background: #f8fafc;
+      padding: 10px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .ps-footer-left { font-size: 9px; color: #64748b; line-height: 1.6; }
+    .ps-footer-right { font-size: 9px; color: #94a3b8; text-align: right; }
+
+    /* ─── BCEA S.33 field annotation (dev tool) ───────────── */
+    .bcea-tag {
+      font-size: 8px;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fcd34d;
+      border-radius: 3px;
+      padding: 0 3px;
+      margin-left: 4px;
+      vertical-align: middle;
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="preview-note">
+    <strong>ZenoHR Payslip Template — QuestPDF Source of Truth</strong><br>
+    This HTML mockup defines the exact layout that <code>ZenoHR.Infrastructure.PDF.PayslipGenerator</code> (QuestPDF) must replicate pixel-by-pixel.
+    <code class="bcea-tag">BCEA§33</code> tags mark BCEA Section 33 mandatory fields — all must appear on every payslip.
+    Route: <strong>/payslip/{payrollResultId}/pdf</strong>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════
+       A4 Payslip (794 × 1123px)
+       QuestPDF class: ZenoHR.Infrastructure.PDF.PayslipDocument
+       REQ-HR-004, CTL-SARS-005, BCEA Section 33
+       ═══════════════════════════════════════════════ -->
+  <div class="payslip">
+
+    <!-- 1. Header Bar -->
+    <div class="ps-header">
+      <div class="ps-header-logo">
+        <div class="ps-header-logo-mark">Z</div>
+        <div>
+          <div class="ps-header-company-name">Zenowethu (Pty) Ltd <span class="bcea-tag">BCEA§33: employer_name</span></div>
+          <div class="ps-header-company-sub">23 Innovation Drive, Sandton, Gauteng, 2196 <span class="bcea-tag">BCEA§33: work_address</span></div>
+        </div>
+      </div>
+      <div class="ps-header-right">
+        <div class="ps-advice-label">Pay Advice</div>
+        <div class="ps-period-label">Pay Period: March 2026 &nbsp;·&nbsp; Pay Date: 28 Mar 2026 <span class="bcea-tag">BCEA§33: pay_date</span></div>
+      </div>
+    </div>
+    <div class="ps-accent-stripe"></div>
+
+    <!-- 2. Company + Employee Info -->
+    <div class="ps-info">
+      <div class="ps-info-block">
+        <div class="ps-info-label">Company Details</div>
+        <div class="ps-info-row">
+          <span class="ps-info-key">Registration No.</span>
+          <span class="ps-info-val mono">2018/123456/07</span>
+        </div>
+        <div class="ps-info-row">
+          <span class="ps-info-key">Tax Reference No.</span>
+          <span class="ps-info-val mono">9123456789</span>
+        </div>
+        <div class="ps-info-row">
+          <span class="ps-info-key">PAYE Reference</span>
+          <span class="ps-info-val mono">7234567890</span>
+        </div>
+        <div class="ps-info-row">
+          <span class="ps-info-key">UIF Reference</span>
+          <span class="ps-info-val mono">U0987654321</span>
+        </div>
+        <div class="ps-info-row">
+          <span class="ps-info-key">Pay Frequency</span>
+          <span class="ps-info-val">Monthly</span>
+        </div>
+      </div>
+      <div class="ps-info-block">
+        <div class="ps-info-label">Employee Details</div>
+        <div class="ps-info-row">
+          <span class="ps-info-key">Name <span class="bcea-tag">BCEA§33: employee_name</span></span>
+          <span class="ps-info-val">Lerato Dlamini</span>
+        </div>
+        <div class="ps-info-row">
+          <span class="ps-info-key">Employee No.</span>
+          <span class="ps-info-val mono">EMP-0182</span>
+        </div>
+        <div class="ps-info-row">
+          <span class="ps-info-key">ID Number</span>
+          <span class="ps-info-val mono">890215****086</span>
+        </div>
+        <div class="ps-info-row">
+          <span class="ps-info-key">Department</span>
+          <span class="ps-info-val">Engineering</span>
+        </div>
+        <div class="ps-info-row">
+          <span class="ps-info-key">Job Title <span class="bcea-tag">BCEA§33: occupation</span></span>
+          <span class="ps-info-val">Senior Developer</span>
+        </div>
+        <div class="ps-info-row">
+          <span class="ps-info-key">Hire Date <span class="bcea-tag">BCEA§33: employment_date</span></span>
+          <span class="ps-info-val mono">2022-03-01</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Earnings Table -->
+    <div class="ps-section" style="margin-top:20px;">
+      <div class="ps-table-header earnings-cols">
+        <span>Earnings</span>
+        <span>Hours <span class="bcea-tag">BCEA§33: ordinary_hours</span></span>
+        <span>Rate</span>
+        <span>Amount</span>
+      </div>
+
+      <div class="ps-table-row earnings-cols">
+        <span>Basic Salary</span>
+        <span>173.33</span>
+        <span>R 288.46</span>
+        <span>R 50,000.00</span>
+      </div>
+      <div class="ps-table-row earnings-cols">
+        <span>Overtime (1.5×) <span class="bcea-tag">BCEA§33: overtime_hours</span></span>
+        <span>8.00</span>
+        <span>R 432.69</span>
+        <span>R 3,461.54</span>
+      </div>
+      <div class="ps-table-row earnings-cols">
+        <span>Travel Allowance</span>
+        <span>—</span>
+        <span>—</span>
+        <span>R 2,000.00</span>
+      </div>
+      <div class="ps-table-row earnings-cols">
+        <span>Commission</span>
+        <span>—</span>
+        <span>—</span>
+        <span>R 0.00</span>
+      </div>
+      <div class="ps-table-row earnings-cols">
+        <span>Other Allowances</span>
+        <span>—</span>
+        <span>—</span>
+        <span>R 0.00</span>
+      </div>
+      <div class="ps-table-row subtotal earnings-cols">
+        <span>Gross Earnings <span class="bcea-tag">BCEA§33: ordinary_pay + overtime_pay</span></span>
+        <span>181.33</span>
+        <span></span>
+        <span>R 55,461.54</span>
+      </div>
+      <div class="ps-note">Ordinary hours worked this period: 173.33 &nbsp;·&nbsp; Overtime hours: 8.00 <span class="bcea-tag">BCEA§33: actual_hours_worked_period</span></div>
+    </div>
+
+    <!-- 4. Deductions Table -->
+    <div class="ps-section" style="margin-top:16px;">
+      <div class="ps-table-header deductions-cols">
+        <span>Deductions</span>
+        <span>Rate / Reference</span>
+        <span>Amount</span>
+      </div>
+
+      <div class="ps-table-row deductions-cols">
+        <span>PAYE (Income Tax)</span>
+        <span>Annual equiv.</span>
+        <span>R 14,921.54</span>
+      </div>
+      <div class="ps-table-row deductions-cols">
+        <span>UIF (Employee) <span class="bcea-tag">BCEA§33: deductions_itemised</span></span>
+        <span>1% · cap R177.12</span>
+        <span>R 177.12</span>
+      </div>
+      <div class="ps-table-row deductions-cols">
+        <span>Pension Fund (Employee) <span class="bcea-tag">BCEA§33: scheme_name</span></span>
+        <span>Old Mutual · 7.5%</span>
+        <span>R 3,750.00</span>
+      </div>
+      <div class="ps-table-row deductions-cols">
+        <span>Medical Aid (Employee)</span>
+        <span>Discovery · 7.5%</span>
+        <span>R 3,750.00</span>
+      </div>
+      <div class="ps-table-row deductions-cols">
+        <span>Other Deductions</span>
+        <span>—</span>
+        <span>R 0.00</span>
+      </div>
+      <div class="ps-table-row subtotal deductions-cols">
+        <span>Total Deductions</span>
+        <span></span>
+        <span>R 22,598.66</span>
+      </div>
+    </div>
+
+    <!-- 5. Net Pay Box -->
+    <div class="ps-net-pay">
+      <div>
+        <div class="ps-net-label">NET PAY <span class="bcea-tag" style="background:#ffffff30;color:#fff;border-color:#ffffff40;">BCEA§33: net_pay</span></div>
+        <div class="ps-net-sub">Credited to Standard Bank ****4492 on 28 Mar 2026</div>
+      </div>
+      <div class="ps-net-amount">R 32,862.88</div>
+    </div>
+
+    <!-- 6. Employer Contributions (not deducted from employee) -->
+    <div class="ps-employer">
+      <div class="ps-employer-label">Employer Contributions — Not deducted from your salary</div>
+      <div class="ps-employer-grid">
+        <div class="ps-employer-row">
+          <span>UIF (Employer) · 1%</span>
+          <span>R 177.12</span>
+        </div>
+        <div class="ps-employer-row">
+          <span>Pension Fund (Employer) · 7.5%</span>
+          <span>R 3,750.00</span>
+        </div>
+        <div class="ps-employer-row">
+          <span>SDL · 1%</span>
+          <span>R 554.62</span>
+        </div>
+        <div class="ps-employer-row">
+          <span>Medical Aid (Employer) · 7.5%</span>
+          <span>R 3,750.00</span>
+        </div>
+        <div class="ps-employer-row" style="color:#64748b;">
+          <span>ETI Reduction (employer benefit)</span>
+          <span>R 0.00</span>
+        </div>
+      </div>
+      <div class="ps-employer-note">These costs are borne by your employer and do not affect your net pay.</div>
+    </div>
+
+    <!-- 7. Leave Balance Summary -->
+    <div class="ps-leave">
+      <div class="ps-leave-label">Leave<br>Balances</div>
+      <div class="ps-leave-item">
+        <span class="ps-leave-type">Annual Leave</span>
+        <span class="ps-leave-val">14 / 21 days</span>
+      </div>
+      <div class="ps-leave-item">
+        <span class="ps-leave-type">Sick Leave (3-yr cycle)</span>
+        <span class="ps-leave-val">18 / 30 days</span>
+      </div>
+      <div class="ps-leave-item">
+        <span class="ps-leave-type">Family Responsibility</span>
+        <span class="ps-leave-val">2 / 3 days</span>
+      </div>
+      <div class="ps-leave-item">
+        <span class="ps-leave-type">Maternity</span>
+        <span class="ps-leave-val">0 / 4 months</span>
+      </div>
+    </div>
+
+    <!-- 8. Tax Year to Date -->
+    <div class="ps-section" style="margin-bottom:16px;">
+      <div class="ps-table-header ytd-cols">
+        <span>Tax Year to Date (2025/2026)</span>
+        <span>This Period</span>
+        <span>Year to Date</span>
+      </div>
+      <div class="ps-table-row ytd-cols">
+        <span>Gross Earnings</span>
+        <span>R 55,461.54</span>
+        <span>R 55,461.54</span>
+      </div>
+      <div class="ps-table-row ytd-cols">
+        <span>PAYE Withheld</span>
+        <span>R 14,921.54</span>
+        <span>R 14,921.54</span>
+      </div>
+      <div class="ps-table-row ytd-cols">
+        <span>UIF (Employee)</span>
+        <span>R 177.12</span>
+        <span>R 177.12</span>
+      </div>
+      <div class="ps-table-row ytd-cols">
+        <span>Net Pay</span>
+        <span>R 32,862.88</span>
+        <span>R 32,862.88</span>
+      </div>
+    </div>
+
+    <!-- 9. Footer -->
+    <div class="ps-footer">
+      <div class="ps-footer-left">
+        This payslip is computer generated and valid without signature.<br>
+        BCEA Section 33 compliant &nbsp;·&nbsp; All values in South African Rand (ZAR)
+      </div>
+      <div class="ps-footer-right">
+        ZenoHR v1.0 &nbsp;·&nbsp; Payslip ID: PSL-2026-03-0182<br>
+        Page 1 of 1
+      </div>
+    </div>
+
+  </div>
+  <!-- End payslip -->
+
+  <!-- ─── BCEA Section 33 Compliance Checklist ───────────────────────── -->
+  <div class="preview-note" style="max-width:794px;text-align:left;">
+    <strong>BCEA Section 33 Mandatory Fields — Compliance Checklist</strong><br>
+    All fields below must be verified by <code>PayslipInvariantChecker.VerifyBCEASection33(payslip)</code>
+    before the PDF is written. Missing fields → throw <code>BCEAComplianceException</code> (Sev-1).
+    <br><br>
+    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+      <tr style="background:#f1f5f9;">
+        <th style="text-align:left;padding:4px 8px;border:1px solid #cbd5e1;">BCEA S.33 Field</th>
+        <th style="text-align:left;padding:4px 8px;border:1px solid #cbd5e1;">ZenoHR Field</th>
+        <th style="text-align:left;padding:4px 8px;border:1px solid #cbd5e1;">Payslip Location</th>
+      </tr>
+      <tr><td style="padding:4px 8px;border:1px solid #e2e8f0;">employer_name</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">company_settings.legal_name</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">Header bar</td></tr>
+      <tr style="background:#f8fafc;"><td style="padding:4px 8px;border:1px solid #e2e8f0;">employer_address</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">company_settings.registered_address</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">Header bar subtitle</td></tr>
+      <tr><td style="padding:4px 8px;border:1px solid #e2e8f0;">scheme_name</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">benefits[pension].provider_name + plan_name</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">Deductions table</td></tr>
+      <tr style="background:#f8fafc;"><td style="padding:4px 8px;border:1px solid #e2e8f0;">employee_name</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">employees.legal_first_name + legal_last_name</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">Employee info block</td></tr>
+      <tr><td style="padding:4px 8px;border:1px solid #e2e8f0;">employment_date</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">employment_contracts.start_date</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">Employee info block</td></tr>
+      <tr style="background:#f8fafc;"><td style="padding:4px 8px;border:1px solid #e2e8f0;">occupation</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">employment_contracts.job_title</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">Employee info block</td></tr>
+      <tr><td style="padding:4px 8px;border:1px solid #e2e8f0;">work_address</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">company_settings.registered_address (same as employer)</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">Header bar subtitle</td></tr>
+      <tr style="background:#f8fafc;"><td style="padding:4px 8px;border:1px solid #e2e8f0;">ordinary_hours</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">payroll_result.ordinary_hours_worked</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">Earnings table: Hours column</td></tr>
+      <tr><td style="padding:4px 8px;border:1px solid #e2e8f0;">overtime_hours</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">payroll_result.overtime_hours_worked</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">Earnings table: Overtime row</td></tr>
+      <tr style="background:#f8fafc;"><td style="padding:4px 8px;border:1px solid #e2e8f0;">ordinary_pay</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">payroll_result.basic_salary_zar</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">Earnings table: Basic Salary row</td></tr>
+      <tr><td style="padding:4px 8px;border:1px solid #e2e8f0;">overtime_pay</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">payroll_result.overtime_pay_zar</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">Earnings table: Overtime row</td></tr>
+      <tr style="background:#f8fafc;"><td style="padding:4px 8px;border:1px solid #e2e8f0;">deductions_itemised</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">All deduction rows: paye, uif, pension, medical, other</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">Deductions table (itemised rows)</td></tr>
+      <tr><td style="padding:4px 8px;border:1px solid #e2e8f0;">net_pay</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">payroll_result.net_pay_zar</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">Net Pay box</td></tr>
+      <tr style="background:#f8fafc;"><td style="padding:4px 8px;border:1px solid #e2e8f0;">actual_hours_worked_period</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">payroll_result.ordinary_hours_worked + overtime_hours_worked</td><td style="padding:4px 8px;border:1px solid #e2e8f0;">Note below Earnings subtotal</td></tr>
+    </table>
+    <br>
+    <strong>Payslip Invariant</strong>: <code>net_pay == gross_pay − paye − uif_employee − pension_employee − medical_employee − other_deductions + other_additions</code>
+    (verified to the cent by <code>PayslipInvariantChecker</code> before PDF generation — <code>PayrollInvariantException</code> halts the run).
+  </div>
+
+</body>
+</html>

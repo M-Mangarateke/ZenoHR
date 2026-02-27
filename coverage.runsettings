@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  REQ-OPS-003: Code coverage configuration for ZenoHR CI pipeline.
+
+  Line coverage gate  : >=90% on ZenoHR.Domain + ZenoHR.Module.* assemblies (enforced by coverlet).
+  Branch coverage gate: >=85% on the same assemblies (enforced by ReportGenerator step in ci.yml).
+
+  Assembly filter rationale:
+    Include  — Domain + Modules: business logic that must be tested.
+    Exclude  — Tests, Infrastructure, Api, Web: infrastructure/framework code not subject to the gate.
+               Empty module assemblies (AssemblyMarker only) contribute 0 coverable lines
+               and do not affect the percentage.
+
+  ExcludeByAttribute — auto-generated partial classes, compiler-generated async state machines,
+                       and methods decorated with [ExcludeFromCodeCoverage] are excluded.
+-->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <!-- Emit OpenCover XML — required by ReportGenerator for the HTML + JsonSummary reports -->
+          <Format>opencover</Format>
+
+          <!-- Include domain + all module assemblies -->
+          <Include>[ZenoHR.Domain]*;[ZenoHR.Module.*]*</Include>
+
+          <!-- Exclude test, infrastructure, and presentation assemblies from the gate -->
+          <Exclude>[*.Tests]*;[ZenoHR.Infrastructure]*;[ZenoHR.Api]*;[ZenoHR.Web]*</Exclude>
+
+          <!-- Skip generated / compiler-synthesised code -->
+          <ExcludeByAttribute>
+            GeneratedCodeAttribute;
+            CompilerGeneratedAttribute;
+            ExcludeFromCodeCoverageAttribute
+          </ExcludeByAttribute>
+
+          <!-- false = count every hit (better branch coverage accuracy) -->
+          <SingleHit>false</SingleHit>
+
+          <!-- Allow clickable source links in the HTML report -->
+          <UseSourceLink>true</UseSourceLink>
+
+          <!--
+            Line coverage gate: CI fails if total line coverage across all included assemblies
+            falls below 90%. ThresholdStat=total means it is computed as:
+              covered_lines / coverable_lines across ALL included assemblies combined.
+            Branch coverage is NOT enforced here — see the ReportGenerator step in ci.yml.
+          -->
+          <Threshold>90</Threshold>
+          <ThresholdType>line</ThresholdType>
+          <ThresholdStat>total</ThresholdStat>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

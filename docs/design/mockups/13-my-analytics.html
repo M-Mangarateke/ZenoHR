@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZenoHR — My Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    /* ── KPI icon variants ─────────────────────────────── */
+    .kpi-icon-blue {
+      background: var(--brand-primary-subtle);
+      color: var(--brand-primary);
+    }
+
+    .kpi-icon-orange {
+      background: var(--brand-accent-subtle);
+      color: var(--brand-accent);
+    }
+
+    .kpi-icon-green {
+      background: var(--success-subtle);
+      color: var(--success);
+    }
+
+    .kpi-icon-amber {
+      background: var(--warning-subtle);
+      color: var(--warning);
+    }
+
+    /* ── Chart containers ──────────────────────────────── */
+    .chart-container-md {
+      position: relative;
+      height: 200px;
+    }
+
+    .chart-container-lg {
+      position: relative;
+      height: 240px;
+    }
+
+    .chart-container-xl {
+      position: relative;
+      height: 280px;
+    }
+
+    /* ── Period chip selector ──────────────────────────── */
+    .chip-group {
+      display: flex;
+      gap: 4px;
+      background: var(--surface-hover);
+      padding: 3px;
+      border-radius: var(--radius-md);
+    }
+
+    .chip {
+      padding: 4px 10px;
+      border-radius: calc(var(--radius-md) - 2px);
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .chip.active {
+      background: var(--surface);
+      color: var(--text-primary);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    [data-theme="dark"] .chip.active {
+      background: var(--sidebar-bg);
+    }
+
+    /* ── Doughnut center label ─────────────────────────── */
+    .doughnut-wrap {
+      position: relative;
+    }
+
+    .doughnut-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .doughnut-center-value {
+      font-size: 1.4rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--text-primary);
+      line-height: 1;
+    }
+
+    .doughnut-center-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-top: 3px;
+    }
+
+    /* ── Deductions legend table ───────────────────────── */
+    .deductions-legend {
+      margin-top: 14px;
+    }
+
+    .deductions-legend-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 12px;
+    }
+
+    .deductions-legend-row:last-child {
+      border-bottom: none;
+    }
+
+    .legend-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+
+    .legend-label {
+      flex: 1;
+      color: var(--text-secondary);
+    }
+
+    .legend-amount {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .legend-pct {
+      width: 40px;
+      text-align: right;
+      color: var(--text-muted);
+    }
+
+    /* ── Leave ring items ──────────────────────────────── */
+    .leave-rings-row {
+      display: flex;
+      gap: 0;
+      justify-content: space-around;
+    }
+
+    .leave-ring-item {
+      flex: 1;
+      text-align: center;
+      padding: 0 12px;
+      border-right: 1px solid var(--border-subtle);
+    }
+
+    .leave-ring-item:last-child {
+      border-right: none;
+    }
+
+    .leave-ring-svg-wrap {
+      position: relative;
+      width: 90px;
+      height: 90px;
+      margin: 0 auto 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ring-label-inner {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ring-value-inner {
+      font-size: 1.05rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      line-height: 1;
+      color: var(--text-primary);
+    }
+
+    .ring-sub-inner {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 2px;
+      font-weight: 600;
+    }
+
+    .leave-type-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .leave-type-ref {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .leave-ring-svg {
+      transform: rotate(-90deg);
+      display: block;
+    }
+
+    /* ── Payslip summary table ─────────────────────────── */
+    .payslip-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .payslip-table th {
+      text-align: left;
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 0 8px 8px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .payslip-table th:last-child {
+      text-align: right;
+    }
+
+    .payslip-table td {
+      padding: 9px 8px 9px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .payslip-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .payslip-table .td-right {
+      text-align: right;
+    }
+
+    /* ── Dark accent IRP5 card ─────────────────────────── */
+    .card-dark.card-irp5 {
+      border-left: 3px solid var(--brand-accent);
+    }
+
+    .card-dark .irp5-label {
+      color: rgba(203, 213, 225, 0.55);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .card-dark .irp5-value {
+      color: white;
+      font-family: var(--font-mono);
+      font-size: 20px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .card-dark .irp5-value.accent {
+      color: var(--brand-accent);
+    }
+
+    .card-dark .irp5-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      margin-top: 20px;
+      padding-top: 14px;
+      font-size: 12px;
+      color: rgba(203, 213, 225, 0.5);
+    }
+
+    .card-dark .irp5-footer strong {
+      color: var(--brand-accent);
+    }
+
+    /* ── Greeting ──────────────────────────────────────── */
+    .page-greeting span {
+      color: var(--brand-primary);
+    }
+
+    /* ── Mobile responsive ──────────────────────────────── */
+    @media (max-width: 768px) {
+      .leave-rings-row {
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+
+      .leave-ring-item {
+        flex: 0 0 calc(50% - 8px);
+        border-right: none;
+        padding: 0;
+      }
+
+      .grid-cols-60-40 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .leave-ring-item {
+        flex: 0 0 100%;
+      }
+
+      .leave-ring-svg-wrap {
+        width: 70px;
+        height: 70px;
+      }
+
+      .leave-ring-svg {
+        width: 70px;
+        height: 70px;
+      }
+
+      .ring-value-inner {
+        font-size: .9rem;
+      }
+
+      .grid-cols-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .grid-cols-4 {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .irp5-value {
+        font-size: 16px;
+      }
+
+      .irp5-footer {
+        font-size: 11px;
+      }
+
+      .chart-container-md {
+        height: 180px;
+      }
+
+      .chart-container-xl {
+        height: 220px;
+      }
+
+      h1[style*="font-size:1.5rem"] {
+        font-size: 1.2rem !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="../Zenologo2.png" alt="ZenoHR" class="sidebar-logo" id="sidebarLogo">
+        <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Collapse sidebar">
+          <i data-lucide="panel-left-close" style="width:18px;height:18px;"></i>
+        </button>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Main</div>
+          <a href="02-dashboard.html" class="nav-item">
+            <i data-lucide="layout-dashboard" class="nav-icon"></i><span class="nav-label">Dashboard</span>
+          </a>
+          <a href="03-employees.html" class="nav-item">
+            <i data-lucide="user" class="nav-icon"></i><span class="nav-label">My Profile</span>
+          </a>
+          <a href="04-payroll.html" class="nav-item">
+            <i data-lucide="banknote" class="nav-icon"></i><span class="nav-label">My Payslips</span>
+          </a>
+          <a href="05-leave.html" class="nav-item">
+            <i data-lucide="calendar-days" class="nav-icon"></i><span class="nav-label">My Leave</span>
+          </a>
+          <a href="14-clock-in.html" class="nav-item">
+            <i data-lucide="timer" class="nav-icon"></i><span class="nav-label">Clock In / Out</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Insights</div>
+          <!-- NOTE: Employee role does NOT see company /analytics — My Analytics only (REQ-SEC-002) -->
+          <a href="13-my-analytics.html" class="nav-item active">
+            <i data-lucide="activity" class="nav-icon"></i><span class="nav-label">My Analytics</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Account</div>
+          <a href="03-employees.html" class="nav-item">
+            <!-- /profile route in Blazor — links to employee self-view (merged record + account prefs) -->
+            <i data-lucide="circle-user" class="nav-icon"></i><span class="nav-label">My Profile</span>
+          </a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-profile-card">
+          <img class="sidebar-profile-img" src="sarah.jpg" alt="Sarah Nkosi">
+          <div class="sidebar-profile-label">
+            <div class="sidebar-profile-name">Sarah Nkosi</div>
+            <div class="sidebar-profile-role">HR Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+            <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+        </div>
+        <div class="header-search">
+          <span class="search-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </span>
+          <input type="text" placeholder="Search your payslips, leave records…">
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-outline" style="font-size:.85rem;">
+            <i data-lucide="download" style="width:15px;height:15px;"></i> Download Tax Summary
+          </button>
+          <button class="icon-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+            <span class="notif-dot"></span>
+          </button>
+          <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
+            <i data-lucide="sun" style="width:18px;height:18px;" id="themeIcon"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="content-body">
+
+        <!-- Page Greeting -->
+        <div style="margin-bottom:24px;">
+          <h1 style="font-size:1.5rem;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;margin:0 0 4px;">My
+            Analytics, <span style="color:var(--brand-primary);">Sarah</span></h1>
+          <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">Your personal earnings, leave &amp; tax
+            summary · Tax year 1 Mar 2025 – 28 Feb 2026</p>
+        </div>
+
+        <!-- ── Section 1: Personal KPIs ──────────────────────── -->
+        <div class="grid grid-cols-3 gap-4 mb-6">
+
+          <!-- YTD Net Earnings -->
+          <div class="card kpi-card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="kpi-label">YTD Net Earnings</span>
+              <div class="kpi-icon kpi-icon-green"
+                style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;">
+                <i data-lucide="wallet" style="width:16px;height:16px;"></i>
+              </div>
+            </div>
+            <div class="kpi-value" style="font-size:22px;letter-spacing:-0.5px;">R 231,480</div>
+            <div class="kpi-meta">
+              <span style="color:var(--text-muted);font-size:11.5px;">11 of 12 months paid this tax year</span>
+            </div>
+          </div>
+
+          <!-- Annual Leave Remaining -->
+          <div class="card kpi-card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="kpi-label">Annual Leave Remaining</span>
+              <div class="kpi-icon kpi-icon-amber"
+                style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;">
+                <i data-lucide="sun" style="width:16px;height:16px;"></i>
+              </div>
+            </div>
+            <div class="kpi-value" style="color:var(--brand-accent);">15.5 days</div>
+            <div class="kpi-meta">
+              <span style="font-size:11.5px;color:var(--text-muted);">6.5 days used · 21 days entitlement</span>
+            </div>
+          </div>
+
+          <!-- YTD PAYE Paid -->
+          <div class="card kpi-card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="kpi-label">YTD PAYE Paid</span>
+              <div class="kpi-icon kpi-icon-blue"
+                style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;">
+                <i data-lucide="receipt" style="width:16px;height:16px;"></i>
+              </div>
+            </div>
+            <div class="kpi-value" style="font-size:22px;letter-spacing:-0.5px;">R 48,360</div>
+            <div class="kpi-meta">
+              <span style="font-size:11.5px;color:var(--text-muted);">Monthly avg R 4,396</span>
+            </div>
+          </div>
+
+        </div><!-- /Section 1 -->
+
+        <!-- ── Section 2: Earnings Trend ────────────────────── -->
+        <div class="grid grid-cols-60-40 gap-4 mb-6">
+
+          <!-- Mixed bar + line chart -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">My Earnings — Last 12 Months</span>
+              <div class="chip-group">
+                <button class="chip" onclick="setEarningsPeriod(this,'6M')">6M</button>
+                <button class="chip active" onclick="setEarningsPeriod(this,'12M')">12M</button>
+                <button class="chip" onclick="setEarningsPeriod(this,'All')">All</button>
+              </div>
+            </div>
+            <div class="chart-container-xl">
+              <canvas id="earningsChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Payslip summary table -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Recent Payslips</span>
+              <a class="card-action" href="04-payroll.html">All payslips →</a>
+            </div>
+            <table class="payslip-table">
+              <thead>
+                <tr>
+                  <th>Month</th>
+                  <th style="text-align:right;">Gross</th>
+                  <th style="text-align:right;">Net</th>
+                  <th style="text-align:right;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div style="font-size:13px;font-weight:600;color:var(--text-primary);">Feb 2026</div>
+                    <div style="font-size:11px;color:var(--text-muted);">PAYE R 5,430</div>
+                  </td>
+                  <td class="td-mono td-right" style="font-size:13px;">R 28,500</td>
+                  <td class="td-mono td-right" style="font-size:13px;font-weight:700;color:var(--brand-primary);">R
+                    21,040</td>
+                  <td class="td-right"><span class="badge badge-success">Paid</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="font-size:13px;font-weight:600;color:var(--text-primary);">Jan 2026</div>
+                    <div style="font-size:11px;color:var(--text-muted);">PAYE R 5,430</div>
+                  </td>
+                  <td class="td-mono td-right" style="font-size:13px;">R 28,500</td>
+                  <td class="td-mono td-right" style="font-size:13px;font-weight:700;color:var(--brand-primary);">R
+                    21,040</td>
+                  <td class="td-right"><span class="badge badge-success">Paid</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="font-size:13px;font-weight:600;color:var(--text-primary);">Dec 2025</div>
+                    <div style="font-size:11px;color:var(--text-muted);">PAYE R 5,430</div>
+                  </td>
+                  <td class="td-mono td-right" style="font-size:13px;">R 28,500</td>
+                  <td class="td-mono td-right" style="font-size:13px;font-weight:700;color:var(--brand-primary);">R
+                    21,040</td>
+                  <td class="td-right"><span class="badge badge-success">Paid</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="font-size:13px;font-weight:600;color:var(--text-primary);">Nov 2025</div>
+                    <div style="font-size:11px;color:var(--text-muted);">PAYE R 5,230</div>
+                  </td>
+                  <td class="td-mono td-right" style="font-size:13px;">R 27,800</td>
+                  <td class="td-mono td-right" style="font-size:13px;font-weight:700;color:var(--brand-primary);">R
+                    20,540</td>
+                  <td class="td-right"><span class="badge badge-success">Paid</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="font-size:13px;font-weight:600;color:var(--text-primary);">Oct 2025</div>
+                    <div style="font-size:11px;color:var(--text-muted);">PAYE R 5,230</div>
+                  </td>
+                  <td class="td-mono td-right" style="font-size:13px;">R 27,800</td>
+                  <td class="td-mono td-right" style="font-size:13px;font-weight:700;color:var(--brand-primary);">R
+                    20,540</td>
+                  <td class="td-right"><span class="badge badge-success">Paid</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="font-size:13px;font-weight:600;color:var(--text-primary);">Sep 2025</div>
+                    <div style="font-size:11px;color:var(--text-muted);">PAYE R 5,230</div>
+                  </td>
+                  <td class="td-mono td-right" style="font-size:13px;">R 27,800</td>
+                  <td class="td-mono td-right" style="font-size:13px;font-weight:700;color:var(--brand-primary);">R
+                    20,540</td>
+                  <td class="td-right"><span class="badge badge-success">Paid</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+        </div><!-- /Section 2 -->
+
+        <!-- ── Section 3: Deductions Breakdown ──────────────── -->
+        <div class="grid grid-cols-60-40 gap-4 mb-6">
+
+          <!-- Stacked deductions trend (60%) -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">YTD Deductions Trend</span>
+              <span class="badge badge-muted badge-nodot">12 months</span>
+            </div>
+            <div class="chart-container-md">
+              <canvas id="deductionsTrendChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Deductions doughnut + legend (40%) -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">This Month's Deductions</span>
+              <span class="badge badge-muted badge-nodot">Feb 2026</span>
+            </div>
+            <div class="doughnut-wrap" style="position:relative;height:160px;">
+              <canvas id="deductionsChart"></canvas>
+              <div class="doughnut-center">
+                <div class="doughnut-center-value">R 7,460</div>
+                <div class="doughnut-center-label">Total</div>
+              </div>
+            </div>
+            <div class="deductions-legend">
+              <div class="deductions-legend-row">
+                <div class="legend-swatch" style="background:#1d4777;"></div>
+                <span class="legend-label">PAYE</span>
+                <span class="legend-amount">R 5,430</span>
+                <span class="legend-pct">72.8%</span>
+              </div>
+              <div class="deductions-legend-row">
+                <div class="legend-swatch" style="background:#d4890e;"></div>
+                <span class="legend-label">UIF</span>
+                <span class="legend-amount">R 177</span>
+                <span class="legend-pct"> 2.4%</span>
+              </div>
+              <div class="deductions-legend-row">
+                <div class="legend-swatch" style="background:#16a34a;"></div>
+                <span class="legend-label">Pension</span>
+                <span class="legend-amount">R 1,425</span>
+                <span class="legend-pct">19.1%</span>
+              </div>
+              <div class="deductions-legend-row">
+                <div class="legend-swatch" style="background:#2563eb;"></div>
+                <span class="legend-label">Medical Aid</span>
+                <span class="legend-amount">R 428</span>
+                <span class="legend-pct"> 5.7%</span>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /Section 3 -->
+
+        <!-- ── Section 4: Leave Balance Rings ───────────────── -->
+        <div class="card mb-6">
+          <div class="card-header">
+            <span class="card-title">My Leave Balances</span>
+            <div class="flex gap-2 items-center">
+              <span class="badge badge-muted badge-nodot">2025/2026 cycle</span>
+              <a class="card-action" href="05-leave.html">Apply for Leave →</a>
+            </div>
+          </div>
+
+          <div class="leave-rings-row">
+
+            <!-- Annual Leave -->
+            <div class="leave-ring-item">
+              <div class="leave-ring-svg-wrap">
+                <svg class="leave-ring-svg" width="90" height="90" viewBox="0 0 90 90">
+                  <circle cx="45" cy="45" r="36" fill="none" stroke="var(--surface-hover)" stroke-width="8" />
+                  <circle cx="45" cy="45" r="36" fill="none" stroke="#1d4777" stroke-width="8" stroke-linecap="round"
+                    stroke-dasharray="226.2" stroke-dashoffset="59.4" /><!-- 73.8% available: 226.2*(1-0.738)=59.4 -->
+                </svg>
+                <div class="ring-label-inner">
+                  <div class="ring-value-inner" style="color:#1d4777;">15.5</div>
+                  <div class="ring-sub-inner">days</div>
+                </div>
+              </div>
+              <div class="leave-type-name">Annual</div>
+              <div class="leave-type-ref">of 21 days</div>
+            </div>
+
+            <!-- Sick Leave -->
+            <div class="leave-ring-item">
+              <div class="leave-ring-svg-wrap">
+                <svg class="leave-ring-svg" width="90" height="90" viewBox="0 0 90 90">
+                  <circle cx="45" cy="45" r="36" fill="none" stroke="var(--surface-hover)" stroke-width="8" />
+                  <circle cx="45" cy="45" r="36" fill="none" stroke="var(--danger)" stroke-width="8"
+                    stroke-linecap="round" stroke-dasharray="226.2" stroke-dashoffset="11.3" />
+                  <!-- 95% available: 226.2*0.05=11.3 -->
+                </svg>
+                <div class="ring-label-inner">
+                  <div class="ring-value-inner" style="color:var(--danger);">28.5</div>
+                  <div class="ring-sub-inner">days</div>
+                </div>
+              </div>
+              <div class="leave-type-name">Sick</div>
+              <div class="leave-type-ref">of 30 days</div>
+            </div>
+
+            <!-- Family Responsibility -->
+            <div class="leave-ring-item">
+              <div class="leave-ring-svg-wrap">
+                <svg class="leave-ring-svg" width="90" height="90" viewBox="0 0 90 90">
+                  <circle cx="45" cy="45" r="36" fill="none" stroke="var(--surface-hover)" stroke-width="8" />
+                  <circle cx="45" cy="45" r="36" fill="none" stroke="var(--brand-accent)" stroke-width="8"
+                    stroke-linecap="round" stroke-dasharray="226.2" stroke-dashoffset="15.8" />
+                  <!-- 93% available: 226.2*0.07=15.8 -->
+                </svg>
+                <div class="ring-label-inner">
+                  <div class="ring-value-inner" style="color:var(--brand-accent);">2.8</div>
+                  <div class="ring-sub-inner">days</div>
+                </div>
+              </div>
+              <div class="leave-type-name">Family</div>
+              <div class="leave-type-ref">of 3 days</div>
+            </div>
+
+            <!-- Parental -->
+            <div class="leave-ring-item">
+              <div class="leave-ring-svg-wrap">
+                <svg class="leave-ring-svg" width="90" height="90" viewBox="0 0 90 90">
+                  <circle cx="45" cy="45" r="36" fill="none" stroke="var(--surface-hover)" stroke-width="8" />
+                  <circle cx="45" cy="45" r="36" fill="none" stroke="var(--info)" stroke-width="8"
+                    stroke-linecap="round" stroke-dasharray="226.2" stroke-dashoffset="22.6" /><!-- 90% available -->
+                </svg>
+                <div class="ring-label-inner">
+                  <div class="ring-value-inner" style="color:var(--info);">9.0</div>
+                  <div class="ring-sub-inner">days</div>
+                </div>
+              </div>
+              <div class="leave-type-name">Parental</div>
+              <div class="leave-type-ref">of 10 days</div>
+            </div>
+
+            <!-- Maternity (N/A for Sarah) -->
+            <div class="leave-ring-item">
+              <div class="leave-ring-svg-wrap">
+                <svg class="leave-ring-svg" width="90" height="90" viewBox="0 0 90 90">
+                  <circle cx="45" cy="45" r="36" fill="none" stroke="var(--surface-hover)" stroke-width="8" />
+                  <circle cx="45" cy="45" r="36" fill="none" stroke="var(--border-subtle)" stroke-width="8"
+                    stroke-linecap="round" stroke-dasharray="226.2" stroke-dashoffset="226.2" />
+                </svg>
+                <div class="ring-label-inner">
+                  <div class="ring-value-inner" style="color:var(--text-muted);font-size:.85rem;">N/A</div>
+                </div>
+              </div>
+              <div class="leave-type-name" style="color:var(--text-muted);">Maternity</div>
+              <div class="leave-type-ref">not applicable</div>
+            </div>
+
+          </div>
+
+          <!-- Upcoming leave strip -->
+          <div
+            style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div style="font-size:13px;color:var(--text-secondary);">
+              Your next approved leave:
+              <strong style="color:var(--text-primary);">Annual Leave</strong>
+              <span class="td-mono" style="font-size:12px;color:var(--text-secondary);margin:0 4px;">·</span>
+              <span class="td-mono" style="font-size:12px;">3–7 Mar 2026</span>
+              <span class="td-mono" style="font-size:12px;color:var(--text-secondary);margin:0 4px;">·</span>
+              5 days
+            </div>
+            <span class="badge badge-success">Approved</span>
+          </div>
+        </div><!-- /Section 4 -->
+
+        <!-- ── Section 5: YTD Tax Summary (IRP5 Preview) ────── -->
+        <div class="card card-dark card-irp5 mb-6" style="padding:24px;">
+          <div class="flex items-center justify-between mb-5">
+            <div>
+              <div style="font-size:14px;font-weight:700;color:white;margin-bottom:2px;">YTD Tax Summary — IRP5 Preview
+              </div>
+              <div style="font-size:12px;color:rgba(203,213,225,0.5);">Statutory deductions year-to-date · Based on 11
+                finalized payslips</div>
+            </div>
+            <div class="flex gap-2">
+              <span class="badge badge-muted badge-nodot"
+                style="background:rgba(255,255,255,0.08);color:rgba(203,213,225,0.7);">Tax year 2025/2026</span>
+              <span class="badge badge-muted badge-nodot"
+                style="background:rgba(255,255,255,0.08);color:rgba(203,213,225,0.7);">11 of 12 months</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-4 gap-4">
+            <div>
+              <div class="irp5-label">YTD Gross Income</div>
+              <div style="font-size:10px;color:rgba(203,213,225,0.35);font-family:var(--font-mono);margin-bottom:4px;">
+                IRP5 code 3699</div>
+              <div class="irp5-value">R 313,500</div>
+            </div>
+            <div>
+              <div class="irp5-label">YTD PAYE Deducted</div>
+              <div style="font-size:10px;color:rgba(203,213,225,0.35);font-family:var(--font-mono);margin-bottom:4px;">
+                IRP5 code 4102</div>
+              <div class="irp5-value">R 48,360</div>
+            </div>
+            <div>
+              <div class="irp5-label">YTD UIF Deducted</div>
+              <div style="font-size:10px;color:rgba(203,213,225,0.35);font-family:var(--font-mono);margin-bottom:4px;">
+                IRP5 code 4141</div>
+              <div class="irp5-value">R 1,947</div>
+            </div>
+            <div>
+              <div class="irp5-label">YTD Net Received</div>
+              <div style="font-size:10px;color:rgba(203,213,225,0.35);font-family:var(--font-mono);margin-bottom:4px;">
+                3699 minus deductions</div>
+              <div class="irp5-value accent">R 231,480</div>
+            </div>
+          </div>
+
+          <div class="irp5-footer">
+            Projected annual PAYE liability based on current earnings trajectory:
+            <strong>R 52,680</strong> &nbsp;·&nbsp;
+            Effective tax rate: <strong>16.8%</strong> &nbsp;·&nbsp;
+            IRP5 certificate issued at tax year-end (28 Feb 2026)
+          </div>
+        </div><!-- /Section 5 -->
+
+      </div><!-- /content-body -->
+    </main>
+  </div>
+
+  <!-- Bottom Navigation (visible ≤640px only) -->
+  <nav class="bottom-nav">
+    <a href="02-dashboard.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7" />
+        <rect x="14" y="3" width="7" height="7" />
+        <rect x="14" y="14" width="7" height="7" />
+        <rect x="3" y="14" width="7" height="7" />
+      </svg>
+      <span class="bottom-nav-label">Dashboard</span>
+    </a>
+    <a href="05-leave.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+      </svg>
+      <span class="bottom-nav-label">Leave</span>
+    </a>
+    <a href="14-clock-in.html" class="bottom-nav-item clock-in-nav">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+      <span class="bottom-nav-label">Clock In</span>
+    </a>
+    <a href="04-payroll.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="6" width="20" height="12" rx="2" />
+        <circle cx="12" cy="12" r="2" />
+        <path d="M6 12h.01M18 12h.01" />
+      </svg>
+      <span class="bottom-nav-label">Payslips</span>
+    </a>
+    <a href="13-my-analytics.html" class="bottom-nav-item active">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+      </svg>
+      <span class="bottom-nav-label">Analytics</span>
+    </a>
+  </nav>
+
+  <script>
+    // ── Sidebar / Theme ─────────────────────────────────────────────────────
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('collapsed');
+    }
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('themeIcon').setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+      lucide.createIcons();
+      updateAllCharts();
+    }
+    function setEarningsPeriod(btn, period) {
+      btn.closest('.chip-group').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    // ── Chart helpers ─────────────────────────────────────────────────────
+    let charts = {};
+
+    function getThemeColors() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      return {
+        isDark,
+        gridColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+        textColor: isDark ? '#94a3b8' : '#64748b',
+        tooltipBg: isDark ? '#1e293b' : '#fff',
+        tooltipTitle: isDark ? '#f1f5f9' : '#0f172a',
+        tooltipBody: isDark ? '#94a3b8' : '#64748b',
+        tooltipBorder: isDark ? '#334155' : '#e2e8f0',
+      };
+    }
+
+    function tooltipDefaults(c) {
+      return {
+        backgroundColor: c.tooltipBg, titleColor: c.tooltipTitle,
+        bodyColor: c.tooltipBody, borderColor: c.tooltipBorder,
+        borderWidth: 1, padding: 10, cornerRadius: 8,
+      };
+    }
+
+    function axisDefaults(c) {
+      return {
+        grid: { color: c.gridColor, drawBorder: false },
+        ticks: { color: c.textColor, font: { family: "'JetBrains Mono', monospace", size: 11 } },
+        border: { display: false }
+      };
+    }
+
+    // ── Earnings chart (mixed bar + line) ────────────────────────────────
+    function createEarningsChart() {
+      const c = getThemeColors();
+      const ctx = document.getElementById('earningsChart').getContext('2d');
+      if (charts.earnings) charts.earnings.destroy();
+
+      const netData = [18800, 18800, 18800, 18800, 19200, 20540, 20540, 20540, 20540, 21040, 21040, 21040];
+      const grossData = [25200, 25200, 25200, 25200, 25800, 27800, 27800, 27800, 27800, 28500, 28500, 28500];
+
+      charts.earnings = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'],
+          datasets: [
+            {
+              type: 'bar', label: 'Net Pay',
+              data: netData,
+              backgroundColor: '#1d4777',
+              borderRadius: 6, borderSkipped: false,
+            },
+            {
+              type: 'line', label: 'Gross Pay',
+              data: grossData,
+              borderColor: '#d4890e', backgroundColor: 'transparent',
+              borderWidth: 2.5, pointBackgroundColor: '#d4890e',
+              pointRadius: 4, pointHoverRadius: 6, tension: 0.4, fill: false,
+            }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true, position: 'top', align: 'end',
+              labels: { boxWidth: 12, color: c.textColor, font: { size: 11 } }
+            },
+            tooltip: {
+              ...tooltipDefaults(c), mode: 'index', intersect: false,
+              callbacks: { label: ctx => ` ${ctx.dataset.label}: R ${ctx.raw.toLocaleString()}` }
+            }
+          },
+          scales: {
+            x: axisDefaults(c),
+            y: { ...axisDefaults(c), ticks: { ...axisDefaults(c).ticks, callback: v => 'R ' + (v / 1000).toFixed(0) + 'K' } }
+          }
+        }
+      });
+    }
+
+    // ── Deductions stacked trend chart ────────────────────────────────────
+    function createDeductionsTrendChart() {
+      const c = getThemeColors();
+      const ctx = document.getElementById('deductionsTrendChart').getContext('2d');
+      if (charts.deductionsTrend) charts.deductionsTrend.destroy();
+
+      charts.deductionsTrend = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'],
+          datasets: [
+            { label: 'PAYE', data: [4200, 4200, 4200, 4200, 4400, 5230, 5230, 5230, 5230, 5430, 5430, 5430], backgroundColor: '#1d4777', borderWidth: 0 },
+            { label: 'UIF', data: [177, 177, 177, 177, 177, 177, 177, 177, 177, 177, 177, 177], backgroundColor: '#d4890e', borderWidth: 0 },
+            { label: 'Pension', data: [1200, 1200, 1200, 1200, 1250, 1390, 1390, 1390, 1390, 1425, 1425, 1425], backgroundColor: '#16a34a', borderWidth: 0 },
+            { label: 'Medical', data: [380, 380, 380, 380, 380, 428, 428, 428, 428, 428, 428, 428], backgroundColor: '#2563eb', borderWidth: 0 },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true, position: 'top', align: 'end',
+              labels: { boxWidth: 10, color: c.textColor, font: { size: 10 } }
+            },
+            tooltip: {
+              ...tooltipDefaults(c), mode: 'index', intersect: false,
+              callbacks: { label: ctx => ` ${ctx.dataset.label}: R ${ctx.raw.toLocaleString()}` }
+            }
+          },
+          scales: {
+            x: { ...axisDefaults(c), stacked: true },
+            y: { ...axisDefaults(c), stacked: true, ticks: { ...axisDefaults(c).ticks, callback: v => 'R ' + (v / 1000).toFixed(0) + 'K' } }
+          }
+        }
+      });
+    }
+
+    // ── Deductions doughnut ───────────────────────────────────────────────
+    function createDeductionsChart() {
+      const c = getThemeColors();
+      const ctx = document.getElementById('deductionsChart').getContext('2d');
+      if (charts.deductions) charts.deductions.destroy();
+
+      charts.deductions = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['PAYE', 'UIF', 'Pension', 'Medical Aid'],
+          datasets: [{
+            data: [5430, 177, 1425, 428],
+            backgroundColor: ['#1d4777', '#d4890e', '#16a34a', '#2563eb'],
+            borderWidth: 2,
+            borderColor: c.isDark ? '#1e293b' : '#fff',
+            hoverOffset: 8,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          cutout: '72%',
+          plugins: {
+            legend: { display: false },
+            tooltip: { ...tooltipDefaults(c), callbacks: { label: ctx => ` ${ctx.label}: R ${ctx.raw.toLocaleString()} (${Math.round(ctx.raw / 7460 * 100)}%)` } }
+          }
+        }
+      });
+    }
+
+    // ── Init / update all ─────────────────────────────────────────────────
+    function updateAllCharts() {
+      createEarningsChart();
+      createDeductionsTrendChart();
+      createDeductionsChart();
+    }
+
+    lucide.createIcons();
+    updateAllCharts();
+  </script>
+</body>
+
+</html>

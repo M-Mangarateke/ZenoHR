@@ -1,0 +1,87 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "SARS_IRP5_IT3A",
+  "version": "2026.1.0",
+  "source": "SARS Guide for Codes Applicable to Employees Tax Certificates 2026",
+  "source_url": "https://www.sars.gov.za/guide-for-codes-applicable-to-employees-tax-certificates-2026/",
+
+  "description": "IRP5 is issued when tax was deducted. IT3(a) is issued when no tax was deducted. Both use the same source code system.",
+  "max_income_codes_per_certificate": 20,
+  "max_deduction_codes_per_certificate": 12,
+
+  "income_codes": {
+    "normal_income": [
+      { "code": 3601, "description": "Salary, wages, overtime, bonus, pension (subject to PAYE)" },
+      { "code": 3602, "description": "Non-taxable income and capital payments" },
+      { "code": 3605, "description": "Annual payments (13th cheque, performance bonus)" },
+      { "code": 3606, "description": "Commission" },
+      { "code": 3607, "description": "Overtime payments" }
+    ],
+    "allowances": [
+      { "code": 3701, "description": "Travel allowance" },
+      { "code": 3702, "description": "Reimbursive travel allowance (taxable portion)" },
+      { "code": 3703, "description": "Reimbursive travel allowance (non-taxable portion)" },
+      { "code": 3704, "description": "Subsistence allowance (local)" },
+      { "code": 3713, "description": "Other allowances (taxable)" },
+      { "code": 3714, "description": "Other allowances (non-taxable)" }
+    ],
+    "fringe_benefits": [
+      { "code": 3801, "description": "General fringe benefits" },
+      { "code": 3802, "description": "Use of motor vehicle (fringe benefit)" },
+      { "code": 3805, "description": "Accommodation (fringe benefit)" },
+      { "code": 3809, "description": "Employer contributions to medical scheme (fringe benefit)" },
+      { "code": 3810, "description": "Employer medical scheme contributions" }
+    ],
+    "lump_sums": [
+      { "code": 3901, "description": "Gratuities / severance benefit" },
+      { "code": 3907, "description": "Other lump sums" },
+      { "code": 3920, "description": "Retirement benefit (lump sum from retirement fund)" }
+    ]
+  },
+
+  "deduction_codes": {
+    "employee_contributions": [
+      { "code": 4001, "description": "Employee pension fund contribution" },
+      { "code": 4003, "description": "Employee provident fund contribution" },
+      { "code": 4005, "description": "Medical scheme contributions paid by employee" },
+      { "code": 4006, "description": "Retirement annuity fund contributions" }
+    ],
+    "employer_contributions": [
+      { "code": 4472, "description": "Employer pension fund contribution" },
+      { "code": 4473, "description": "Employer provident fund contribution" },
+      { "code": 4474, "description": "Employer medical scheme contribution" }
+    ]
+  },
+
+  "tax_codes": [
+    { "code": 4102, "description": "PAYE (employees' tax deducted)" },
+    { "code": 4115, "description": "Tax on retirement lump sum" },
+    { "code": 4116, "description": "Medical scheme fees tax credit" },
+    { "code": 4141, "description": "UIF contribution (employee portion)" },
+    { "code": 4142, "description": "SDL contribution" },
+    { "code": 4150, "description": "Reason code (IT3(a) only: reason no tax deducted)" }
+  ],
+
+  "certificate_header_fields": [
+    { "field": "certificate_number", "description": "Unique certificate ID per tax year per employee" },
+    { "field": "employee_tax_reference", "description": "Employee's 10-digit SARS income tax number" },
+    { "field": "employee_id_number", "description": "SA ID number or passport number" },
+    { "field": "employee_surname", "description": "Surname" },
+    { "field": "employee_first_names", "description": "First name(s)" },
+    { "field": "employee_date_of_birth", "description": "CCYYMMDD format" },
+    { "field": "employer_paye_reference", "description": "Employer's PAYE reference number" },
+    { "field": "employer_trading_name", "description": "Employer's trading name" },
+    { "field": "period_start", "description": "Employment start date or period start (CCYYMMDD)" },
+    { "field": "period_end", "description": "Employment end date or period end (CCYYMMDD)" },
+    { "field": "pay_periods", "description": "Number of periods in which remuneration was paid (weekly=52, monthly=12)" },
+    { "field": "certificate_type", "description": "IRP5 (tax deducted) or IT3(a) (no tax deducted)" }
+  ],
+
+  "emp501_reconciliation": {
+    "description": "EMP501 reconciles EMP201 monthly declarations against IRP5/IT3(a) certificates for the tax year",
+    "interim_period": "March to August (due September-October)",
+    "annual_period": "March to February (due May-June following year)",
+    "validation": "Sum of all IRP5/IT3(a) code 4102 values must reconcile to sum of EMP201 total_paye for the period",
+    "source_url": "https://www.sars.gov.za/types-of-tax/pay-as-you-earn/reconciliations/"
+  }
+}

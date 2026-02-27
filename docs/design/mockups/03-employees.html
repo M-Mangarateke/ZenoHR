@@ -1,0 +1,1139 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZenoHR - Employees</title>
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    .employees-layout {
+      display: flex;
+      gap: var(--card-gap);
+      align-items: flex-start;
+    }
+
+    .employees-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .profile-panel {
+      width: 310px;
+      flex-shrink: 0;
+      position: sticky;
+      top: calc(var(--header-height) + var(--content-padding));
+      display: none;
+    }
+
+    .profile-panel.visible {
+      display: block;
+    }
+
+    .profile-header {
+      text-align: center;
+      padding-bottom: var(--space-5);
+      border-bottom: 1px solid var(--border-default);
+      margin-bottom: var(--space-5);
+    }
+
+    .profile-avatar-lg {
+      width: 68px;
+      height: 68px;
+      border-radius: var(--radius-full);
+      background: linear-gradient(135deg, var(--brand-primary) 0%, #2a6baa 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      color: white;
+      margin: 0 auto var(--space-3);
+      border: 3px solid var(--bg-surface);
+      box-shadow: 0 0 0 3px var(--brand-primary-subtle);
+    }
+
+    .profile-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.3px;
+    }
+
+    .profile-title {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      margin-top: 3px;
+    }
+
+    .profile-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 13px;
+    }
+
+    .profile-row:last-child {
+      border-bottom: none;
+    }
+
+    .profile-row-label {
+      color: var(--text-secondary);
+    }
+
+    .profile-row-val {
+      font-weight: 500;
+      color: var(--text-primary);
+      text-align: right;
+    }
+
+    .leave-balance-item {
+      margin-bottom: var(--space-3);
+    }
+
+    .leave-balance-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-2);
+      font-size: 12.5px;
+    }
+
+    .leave-balance-label {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .leave-balance-val {
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    /* ── Mobile responsive ─────────────────────────────── */
+    @media (max-width: 768px) {
+      .employees-layout {
+        flex-direction: column;
+      }
+
+      .profile-panel {
+        width: 100%;
+        position: static;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page-header .flex.items-center.justify-between {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-3);
+      }
+
+      .page-header .flex.gap-3 {
+        width: 100%;
+      }
+
+      .page-header .flex.gap-3 .btn {
+        flex: 1;
+        justify-content: center;
+      }
+
+      /* Hide less-critical table columns */
+      th:nth-child(3),
+      td:nth-child(3),
+      /* Job Title */
+      th:nth-child(5),
+      td:nth-child(5)
+
+      /* Start Date */
+        {
+        display: none;
+      }
+
+      /* Profile panel becomes bottom sheet */
+      .profile-panel.visible {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        width: 100%;
+        border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+        max-height: 85vh;
+        overflow-y: auto;
+        z-index: 250;
+        box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.15);
+      }
+
+      input,
+      select,
+      textarea {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <img src="../Zenologo2.png" alt="ZenoHR" class="sidebar-logo-img">
+        <span class="sidebar-logo-text">Zeno<em>HR</em></span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Main</div>
+          <a class="nav-item" href="02-dashboard.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="7" height="9" x="3" y="3" rx="1" />
+              <rect width="7" height="5" x="14" y="3" rx="1" />
+              <rect width="7" height="9" x="14" y="12" rx="1" />
+              <rect width="7" height="5" x="3" y="16" rx="1" />
+            </svg>
+            <span class="nav-label">Dashboard</span>
+          </a>
+          <a class="nav-item active" href="03-employees.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span class="nav-label">Employees</span>
+          </a>
+          <a class="nav-item" href="07-timesheet.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span class="nav-label">Timesheets</span>
+          </a>
+          <a class="nav-item" href="05-leave.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+              <line x1="16" x2="16" y1="2" y2="6" />
+              <line x1="8" x2="8" y1="2" y2="6" />
+              <line x1="3" x2="21" y1="10" y2="10" />
+            </svg>
+            <span class="nav-label">Leave</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Finance &amp; Compliance</div>
+          <a class="nav-item" href="04-payroll.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="14" x="2" y="5" rx="2" />
+              <line x1="2" x2="22" y1="10" y2="10" />
+            </svg>
+            <span class="nav-label">Payroll</span>
+          </a>
+          <a class="nav-item" href="06-compliance.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span class="nav-label">Compliance</span>
+            <span class="nav-badge">3</span>
+          </a>
+          <a class="nav-item" href="08-audit.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            <span class="nav-label">Audit Trail</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Settings</div>
+          <a class="nav-item" href="09-role-management.html">
+            <i data-lucide="shield-check" class="nav-icon"></i>
+            <span class="nav-label">Role Management</span>
+          </a>
+          <a class="nav-item" href="10-settings.html">
+            <i data-lucide="building-2" class="nav-icon"></i>
+            <span class="nav-label">Departments</span>
+          </a>
+          <a class="nav-item" href="10-settings.html">
+            <i data-lucide="users" class="nav-icon"></i>
+            <span class="nav-label">Users</span>
+          </a>
+          <a class="nav-item" href="10-settings.html">
+            <i data-lucide="sliders-horizontal" class="nav-icon"></i>
+            <span class="nav-label">Company Settings</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Insights</div>
+          <a class="nav-item" href="12-analytics.html">
+            <i data-lucide="bar-chart-3" class="nav-icon"></i>
+            <span class="nav-label">Analytics</span>
+          </a>
+          <a class="nav-item" href="13-my-analytics.html">
+            <i data-lucide="activity" class="nav-icon"></i>
+            <span class="nav-label">My Analytics</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Account</div>
+          <a class="nav-item" href="#" onclick="event.preventDefault();document.getElementById('myProfileView').style.display='block';window.scrollTo(0,0);">
+            <!-- /profile in Blazor — merged employee record + account prefs (REQ-SEC-002) -->
+            <i data-lucide="circle-user" class="nav-icon"></i>
+            <span class="nav-label">My Profile</span>
+          </a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-profile-card">
+          <img class="sidebar-profile-img" src="sarah.jpg" alt="Sarah Nkosi">
+          <div class="sidebar-profile-label">
+            <div class="sidebar-profile-name">Sarah Nkosi</div>
+            <div class="sidebar-profile-role">HR Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main-wrapper" id="mainWrapper">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+            <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <button class="icon-btn" id="hamburger" onclick="toggleSidebar()" style="display:none">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="18" x2="20" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div class="header-search">
+          <span class="search-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg></span>
+          <input type="text" placeholder="Search employees by name, ID, department…">
+        </div>
+        <div class="topbar-right">
+          <button class="icon-btn"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg><span class="notif-dot"></span></button>
+          <button class="theme-toggle" onclick="toggleTheme()">
+            <svg id="sun-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+            <svg id="moon-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+              style="display:none">
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div class="page-header">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h1 class="page-title">Employees</h1>
+              <p class="page-subtitle">247 total &nbsp;·&nbsp; 238 active &nbsp;·&nbsp; 6 on leave &nbsp;·&nbsp; 3
+                terminated</p>
+            </div>
+            <div class="flex gap-3">
+              <button class="btn btn-secondary btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" x2="12" y1="15" y2="3" />
+                </svg>
+                Export
+              </button>
+              <button class="btn btn-primary btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2">
+                  <line x1="12" x2="12" y1="5" y2="19" />
+                  <line x1="5" x2="19" y1="12" y2="12" />
+                </svg>
+                Add Employee
+              </button>
+            </div>
+          </div>
+
+          <div class="chip-group">
+            <div class="chip active">All employees</div>
+            <div class="chip">Active</div>
+            <div class="chip">On Leave</div>
+            <div class="chip">Terminated</div>
+            <div class="chip">Contractors</div>
+          </div>
+        </div>
+
+        <div class="employees-layout">
+          <!-- Employee Table -->
+          <div class="employees-main">
+            <div class="card" style="padding: 0; overflow: hidden;">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:40px;"><input type="checkbox" style="accent-color:var(--brand-primary);"></th>
+                      <th>Employee</th>
+                      <th>Job Title</th>
+                      <th>Department</th>
+                      <th>Start Date</th>
+                      <th>Contract</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="selected"
+                      onclick="selectEmployee('Lerato Dlamini','LD','Senior Developer','Engineering','Permanent','2022-03-01',238,14,4)">
+                      <td><input type="checkbox" checked style="accent-color:var(--brand-primary);"></td>
+                      <td>
+                        <div class="person-cell">
+                          <div class="avatar av-4">LD</div>
+                          <div>
+                            <div class="person-name">Lerato Dlamini</div>
+                            <div class="person-sub">lerato@zenowethu.co.za</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="td-muted">Senior Developer</td>
+                      <td class="td-muted">Engineering</td>
+                      <td class="td-mono td-muted">2022-03-01</td>
+                      <td><span class="badge badge-primary badge-nodot">Permanent</span></td>
+                      <td><span class="badge badge-success">Active</span></td>
+                    </tr>
+                    <tr
+                      onclick="selectEmployee('Thabo Molefe','TM','Operations Manager','Operations','Permanent','2020-08-15',38,9,2)">
+                      <td><input type="checkbox" style="accent-color:var(--brand-primary);"></td>
+                      <td>
+                        <div class="person-cell">
+                          <div class="avatar av-7">TM</div>
+                          <div>
+                            <div class="person-name">Thabo Molefe</div>
+                            <div class="person-sub">thabo@zenowethu.co.za</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="td-muted">Operations Manager</td>
+                      <td class="td-muted">Operations</td>
+                      <td class="td-mono td-muted">2020-08-15</td>
+                      <td><span class="badge badge-primary badge-nodot">Permanent</span></td>
+                      <td><span class="badge badge-warning">On Leave</span></td>
+                    </tr>
+                    <tr
+                      onclick="selectEmployee('Nandi Zulu','NZ','HR Officer','Human Resources','Permanent','2021-01-10',21,6,3)">
+                      <td><input type="checkbox" style="accent-color:var(--brand-primary);"></td>
+                      <td>
+                        <div class="person-cell">
+                          <div class="avatar av-5">NZ</div>
+                          <div>
+                            <div class="person-name">Nandi Zulu</div>
+                            <div class="person-sub">nandi@zenowethu.co.za</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="td-muted">HR Officer</td>
+                      <td class="td-muted">Human Resources</td>
+                      <td class="td-mono td-muted">2021-01-10</td>
+                      <td><span class="badge badge-primary badge-nodot">Permanent</span></td>
+                      <td><span class="badge badge-warning">On Leave</span></td>
+                    </tr>
+                    <tr
+                      onclick="selectEmployee('Kobus de Bruyn','KD','Junior Developer','Engineering','Fixed-term','2026-02-18',0,0,0)">
+                      <td><input type="checkbox" style="accent-color:var(--brand-primary);"></td>
+                      <td>
+                        <div class="person-cell">
+                          <div class="avatar av-4">KD</div>
+                          <div>
+                            <div class="person-name">Kobus de Bruyn</div>
+                            <div class="person-sub">kobus@zenowethu.co.za</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="td-muted">Junior Developer</td>
+                      <td class="td-muted">Engineering</td>
+                      <td class="td-mono td-muted">2026-02-18</td>
+                      <td><span class="badge badge-info badge-nodot">Fixed-term</span></td>
+                      <td><span class="badge badge-success">Active</span></td>
+                    </tr>
+                    <tr
+                      onclick="selectEmployee('Priya Naidoo','PN','Financial Analyst','Finance','Permanent','2019-06-01',21,15,2)">
+                      <td><input type="checkbox" style="accent-color:var(--brand-primary);"></td>
+                      <td>
+                        <div class="person-cell">
+                          <div class="avatar av-6">PN</div>
+                          <div>
+                            <div class="person-name">Priya Naidoo</div>
+                            <div class="person-sub">priya@zenowethu.co.za</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="td-muted">Financial Analyst</td>
+                      <td class="td-muted">Finance</td>
+                      <td class="td-mono td-muted">2019-06-01</td>
+                      <td><span class="badge badge-primary badge-nodot">Permanent</span></td>
+                      <td><span class="badge badge-success">Active</span></td>
+                    </tr>
+                    <tr
+                      onclick="selectEmployee('Sipho Khumalo','SK','Sales Representative','Sales','Contract','2023-09-01',14,3,0)">
+                      <td><input type="checkbox" style="accent-color:var(--brand-primary);"></td>
+                      <td>
+                        <div class="person-cell">
+                          <div class="avatar av-7">SK</div>
+                          <div>
+                            <div class="person-name">Sipho Khumalo</div>
+                            <div class="person-sub">sipho@zenowethu.co.za</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="td-muted">Sales Representative</td>
+                      <td class="td-muted">Sales</td>
+                      <td class="td-mono td-muted">2023-09-01</td>
+                      <td><span class="badge badge-accent badge-nodot">Contract</span></td>
+                      <td><span class="badge badge-success">Active</span></td>
+                    </tr>
+                    <tr
+                      onclick="selectEmployee('Fatima Osman','FO','Compliance Officer','Legal','Permanent','2018-04-15',21,18,3)">
+                      <td><input type="checkbox" style="accent-color:var(--brand-primary);"></td>
+                      <td>
+                        <div class="person-cell">
+                          <div class="avatar av-2">FO</div>
+                          <div>
+                            <div class="person-name">Fatima Osman</div>
+                            <div class="person-sub">fatima@zenowethu.co.za</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="td-muted">Compliance Officer</td>
+                      <td class="td-muted">Legal</td>
+                      <td class="td-mono td-muted">2018-04-15</td>
+                      <td><span class="badge badge-primary badge-nodot">Permanent</span></td>
+                      <td><span class="badge badge-success">Active</span></td>
+                    </tr>
+                    <tr
+                      onclick="selectEmployee('Andre van Wyk','AV','Driver','Logistics','Permanent','2017-11-20',21,21,3)">
+                      <td><input type="checkbox" style="accent-color:var(--brand-primary);"></td>
+                      <td>
+                        <div class="person-cell">
+                          <div class="avatar av-1">AV</div>
+                          <div>
+                            <div class="person-name">Andre van Wyk</div>
+                            <div class="person-sub">andre@zenowethu.co.za</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="td-muted">Driver</td>
+                      <td class="td-muted">Logistics</td>
+                      <td class="td-mono td-muted">2017-11-20</td>
+                      <td><span class="badge badge-primary badge-nodot">Permanent</span></td>
+                      <td><span class="badge badge-danger">Terminated</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div
+                style="padding: 12px 16px; border-top: 1px solid var(--border-default); display:flex; align-items:center; justify-content:space-between;">
+                <span style="font-size:12px; color:var(--text-muted);">Showing 8 of 247 employees</span>
+                <div class="flex gap-2">
+                  <button class="btn btn-ghost btn-sm">← Prev</button>
+                  <button class="btn btn-secondary btn-sm"
+                    style="background:var(--brand-primary-subtle);border-color:var(--brand-primary);color:var(--brand-primary);">1</button>
+                  <button class="btn btn-ghost btn-sm">2</button>
+                  <button class="btn btn-ghost btn-sm">3</button>
+                  <button class="btn btn-ghost btn-sm">Next →</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Profile Panel -->
+          <div class="card profile-panel visible" id="profilePanel">
+            <div class="profile-header">
+              <div class="profile-avatar-lg" id="profileAvatar">LD</div>
+              <div class="profile-name" id="profileName">Lerato Dlamini</div>
+              <div class="profile-title" id="profileTitle">Senior Developer &nbsp;·&nbsp; Engineering</div>
+              <div style="margin-top: var(--space-3);">
+                <span class="badge badge-success">Active</span>
+                <span class="badge badge-primary badge-nodot" style="margin-left:4px;">Permanent</span>
+              </div>
+            </div>
+
+            <div style="margin-bottom: var(--space-5);">
+              <div class="card-label mb-3">Employment Details</div>
+              <div class="profile-row">
+                <span class="profile-row-label">Start Date</span>
+                <span class="profile-row-val td-mono" id="profileStart">2022-03-01</span>
+              </div>
+              <div class="profile-row">
+                <span class="profile-row-label">Department</span>
+                <span class="profile-row-val" id="profileDept">Engineering</span>
+              </div>
+              <div class="profile-row">
+                <span class="profile-row-label">Occupational Level</span>
+                <span class="profile-row-val">Senior</span>
+              </div>
+              <div class="profile-row">
+                <span class="profile-row-label">Reports to</span>
+                <span class="profile-row-val">Sarah Nkosi</span>
+              </div>
+              <div class="profile-row">
+                <span class="profile-row-label">Employee ID</span>
+                <span class="profile-row-val td-mono">EMP-0182</span>
+              </div>
+            </div>
+
+            <!-- Personal Details (collapsible) -->
+            <div style="margin-bottom: var(--space-4);">
+              <button
+                onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display==='none'?'block':'none'; this.querySelector('.toggle-caret').textContent = this.querySelector('.toggle-caret').textContent==='▸'?'▾':'▸';"
+                style="width:100%;display:flex;align-items:center;justify-content:space-between;background:none;border:none;padding:0 0 8px 0;cursor:pointer;color:var(--text-primary);">
+                <span class="card-label" style="margin:0;">Personal Details</span>
+                <span class="toggle-caret" style="font-size:10px;color:var(--text-muted);">▾</span>
+              </button>
+              <div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Phone</span>
+                  <span class="profile-row-val td-mono">+27 82 345 6789</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Personal Email</span>
+                  <span class="profile-row-val">lerato.d@gmail.com</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Nationality</span>
+                  <span class="profile-row-val">ZA</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Gender</span>
+                  <span class="profile-row-val">Female</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Race / EE</span>
+                  <span class="profile-row-val">African</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Marital Status</span>
+                  <span class="profile-row-val">Married</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Disability</span>
+                  <span class="profile-row-val">None declared</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Banking (HR Manager / Director only) -->
+            <div style="margin-bottom: var(--space-4);">
+              <button
+                onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display==='none'?'block':'none'; this.querySelector('.toggle-caret').textContent = this.querySelector('.toggle-caret').textContent==='▸'?'▾':'▸';"
+                style="width:100%;display:flex;align-items:center;justify-content:space-between;background:none;border:none;padding:0 0 8px 0;cursor:pointer;color:var(--text-primary);">
+                <span class="card-label" style="margin:0;">Banking <span
+                    style="font-size:10px;font-weight:500;color:var(--text-muted);text-transform:none;letter-spacing:0;">(HR
+                    Manager · Director only)</span></span>
+                <span class="toggle-caret" style="font-size:10px;color:var(--text-muted);">▸</span>
+              </button>
+              <div style="display:none;">
+                <div class="profile-row">
+                  <span class="profile-row-label">Bank</span>
+                  <span class="profile-row-val">FNB</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Account Type</span>
+                  <span class="profile-row-val">Cheque</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Account No.</span>
+                  <span class="profile-row-val td-mono"
+                    style="display:flex;align-items:center;gap:6px;">****&thinsp;1247 <span
+                      style="font-size:10px;color:var(--success);background:var(--success-subtle);padding:1px 5px;border-radius:3px;">Primary</span></span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Branch Code</span>
+                  <span class="profile-row-val td-mono">250655</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Benefits -->
+            <div style="margin-bottom: var(--space-4);">
+              <button
+                onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display==='none'?'block':'none'; this.querySelector('.toggle-caret').textContent = this.querySelector('.toggle-caret').textContent==='▸'?'▾':'▸';"
+                style="width:100%;display:flex;align-items:center;justify-content:space-between;background:none;border:none;padding:0 0 8px 0;cursor:pointer;color:var(--text-primary);">
+                <span class="card-label" style="margin:0;">Benefits</span>
+                <span class="toggle-caret" style="font-size:10px;color:var(--text-muted);">▸</span>
+              </button>
+              <div style="display:none;">
+                <div
+                  style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">
+                  Medical Aid</div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Provider</span>
+                  <span class="profile-row-val">Discovery Health</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Plan</span>
+                  <span class="profile-row-val">Comprehensive</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Member No.</span>
+                  <span class="profile-row-val td-mono">****9021</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Employee %</span>
+                  <span class="profile-row-val td-mono">7.5%</span>
+                </div>
+                <div
+                  style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 4px;">
+                  Pension Fund</div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Provider</span>
+                  <span class="profile-row-val">Old Mutual Superfund</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Plan</span>
+                  <span class="profile-row-val">Retirement Annuity</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Employee %</span>
+                  <span class="profile-row-val td-mono">7.5%</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Employer %</span>
+                  <span class="profile-row-val td-mono">7.5%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Next of Kin -->
+            <div style="margin-bottom: var(--space-5);">
+              <button
+                onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display==='none'?'block':'none'; this.querySelector('.toggle-caret').textContent = this.querySelector('.toggle-caret').textContent==='▸'?'▾':'▸';"
+                style="width:100%;display:flex;align-items:center;justify-content:space-between;background:none;border:none;padding:0 0 8px 0;cursor:pointer;color:var(--text-primary);">
+                <span class="card-label" style="margin:0;">Next of Kin</span>
+                <span class="toggle-caret" style="font-size:10px;color:var(--text-muted);">▸</span>
+              </button>
+              <div style="display:none;">
+                <div class="profile-row">
+                  <span class="profile-row-label">Name</span>
+                  <span class="profile-row-val">Sipho Dlamini</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Relationship</span>
+                  <span class="profile-row-val">Spouse</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Phone</span>
+                  <span class="profile-row-val td-mono">+27 83 456 7890</span>
+                </div>
+                <div class="profile-row">
+                  <span class="profile-row-label">Beneficiary</span>
+                  <span class="profile-row-val" style="color:var(--success);">Primary ✓</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-bottom: var(--space-5);">
+              <div class="card-label mb-3">Leave Balances 2026</div>
+
+              <div class="leave-balance-item">
+                <div class="leave-balance-header">
+                  <span class="leave-balance-label">Annual Leave</span>
+                  <span class="leave-balance-val" id="annualVal">14 / 21 days</span>
+                </div>
+                <div class="progress progress-md">
+                  <div class="progress-fill primary" id="annualBar" style="width:66%;"></div>
+                </div>
+              </div>
+
+              <div class="leave-balance-item">
+                <div class="leave-balance-header">
+                  <span class="leave-balance-label">Sick Leave</span>
+                  <span class="leave-balance-val" id="sickVal">4 / 30 days</span>
+                </div>
+                <div class="progress progress-md">
+                  <div class="progress-fill success" id="sickBar" style="width:13%;"></div>
+                </div>
+              </div>
+
+              <div class="leave-balance-item">
+                <div class="leave-balance-header">
+                  <span class="leave-balance-label">Family Responsibility</span>
+                  <span class="leave-balance-val" id="familyVal">2 / 3 days</span>
+                </div>
+                <div class="progress progress-md">
+                  <div class="progress-fill" style="width:66%; background:var(--brand-accent);" id="familyBar"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-3">
+              <button class="btn btn-secondary btn-sm flex-1">Edit Profile</button>
+              <button class="btn btn-primary btn-sm flex-1">Full Profile</button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       My Profile — Self-View Overlay (/profile route in Blazor)
+       Rendered when employee_id == firebase_uid (own record)
+       REQ-SEC-002: All roles access own profile at /profile
+       Demo: click "My Profile" in the sidebar nav to open
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div id="myProfileView"
+    style="display:none;position:fixed;inset:0;background:var(--bg-page);z-index:250;overflow-y:auto;">
+    <div style="max-width:860px;margin:0 auto;padding:24px var(--content-padding) 80px;">
+
+      <!-- Back button -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
+        <button onclick="document.getElementById('myProfileView').style.display='none';"
+          class="btn btn-ghost btn-sm" style="gap:6px;">
+          <i data-lucide="arrow-left" style="width:15px;height:15px;"></i> Back to Employees
+        </button>
+        <span style="font-size:.74rem;color:var(--text-muted);">Route: /profile</span>
+      </div>
+
+      <!-- Section 1: Profile Header -->
+      <div class="card" style="margin-bottom:16px;padding:28px;">
+        <div style="display:flex;align-items:flex-start;gap:24px;flex-wrap:wrap;">
+          <!-- Avatar with upload overlay -->
+          <div style="position:relative;flex-shrink:0;">
+            <div
+              style="width:96px;height:96px;border-radius:50%;background:linear-gradient(135deg,var(--brand-primary),#2563a8);display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:700;color:#fff;letter-spacing:-1px;">
+              SN</div>
+            <button title="Upload photo"
+              style="position:absolute;bottom:0;right:0;width:28px;height:28px;border-radius:50%;background:var(--brand-primary);border:2px solid var(--bg-surface);display:flex;align-items:center;justify-content:center;cursor:pointer;">
+              <i data-lucide="camera" style="width:13px;height:13px;color:#fff;"></i>
+            </button>
+          </div>
+          <!-- Name + role info -->
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:1.4rem;font-weight:700;color:var(--text-primary);margin-bottom:4px;">Sarah Nkosi</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+              <span class="badge badge-primary badge-nodot"
+                style="font-size:11px;padding:2px 8px;">HR Manager</span>
+              <span class="badge"
+                style="font-size:11px;padding:2px 8px;background:var(--bg-subtle);color:var(--text-secondary);">Human
+                Resources</span>
+            </div>
+            <div style="font-size:.82rem;color:var(--text-muted);">EMP-0001 &nbsp;·&nbsp; sarah@zenowethu.co.za</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" style="flex-shrink:0;">
+            <i data-lucide="upload" style="width:13px;height:13px;"></i> Edit Photo
+          </button>
+        </div>
+      </div>
+
+      <!-- Section 2: My Details (read-only for employee — HR-managed fields) -->
+      <div class="card" style="margin-bottom:16px;padding:24px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <div class="card-label" style="margin:0;">My Details</div>
+          <span
+            style="font-size:11px;color:var(--text-muted);background:var(--bg-subtle);padding:3px 8px;border-radius:4px;">
+            <i data-lucide="lock" style="width:10px;height:10px;vertical-align:middle;"></i>
+            To update, contact HR</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 32px;">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Personal</div>
+            <div class="profile-row"><span class="profile-row-label">Full Name</span><span class="profile-row-val">Sarah Nkosi</span></div>
+            <div class="profile-row"><span class="profile-row-label">ID Number</span><span class="profile-row-val td-mono">8901••••••••</span></div>
+            <div class="profile-row"><span class="profile-row-label">Date of Birth</span><span class="profile-row-val">1989-01-15</span></div>
+            <div class="profile-row"><span class="profile-row-label">Nationality</span><span class="profile-row-val">ZA</span></div>
+            <div class="profile-row"><span class="profile-row-label">Gender</span><span class="profile-row-val">Female</span></div>
+            <div class="profile-row"><span class="profile-row-label">Marital Status</span><span class="profile-row-val">Married</span></div>
+            <div class="profile-row"><span class="profile-row-label">Phone</span><span class="profile-row-val td-mono">+27 82 111 2233</span></div>
+            <div class="profile-row"><span class="profile-row-label">Personal Email</span><span class="profile-row-val">sarah.n@gmail.com</span></div>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Employment</div>
+            <div class="profile-row"><span class="profile-row-label">Hire Date</span><span class="profile-row-val">2019-03-01</span></div>
+            <div class="profile-row"><span class="profile-row-label">Job Title</span><span class="profile-row-val">HR Manager</span></div>
+            <div class="profile-row"><span class="profile-row-label">Department</span><span class="profile-row-val">Human Resources</span></div>
+            <div class="profile-row"><span class="profile-row-label">Reports To</span><span class="profile-row-val">Michael Theron (Director)</span></div>
+            <div class="profile-row"><span class="profile-row-label">Employment Type</span><span class="profile-row-val">Permanent</span></div>
+            <div class="profile-row"><span class="profile-row-label">Occupational Level</span><span class="profile-row-val">Management</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: My Banking & Benefits (read-only, masked) -->
+      <div class="card" style="margin-bottom:16px;padding:24px;">
+        <div class="card-label" style="margin-bottom:16px;">My Banking &amp; Benefits</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 32px;">
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Primary Bank Account</div>
+            <div class="profile-row"><span class="profile-row-label">Bank</span><span class="profile-row-val">Standard Bank</span></div>
+            <div class="profile-row"><span class="profile-row-label">Account No.</span><span class="profile-row-val td-mono">****&thinsp;4492 <span style="font-size:10px;color:var(--success);background:var(--success-subtle);padding:1px 5px;border-radius:3px;">Primary</span></span></div>
+            <div class="profile-row"><span class="profile-row-label">Account Type</span><span class="profile-row-val">Cheque</span></div>
+          </div>
+          <div>
+            <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Benefits</div>
+            <div class="profile-row"><span class="profile-row-label">Medical Aid</span><span class="profile-row-val">Discovery — Executive Plan</span></div>
+            <div class="profile-row"><span class="profile-row-label">Member No.</span><span class="profile-row-val td-mono">****8812</span></div>
+            <div class="profile-row"><span class="profile-row-label">Pension Fund</span><span class="profile-row-val">Old Mutual Superfund</span></div>
+            <div class="profile-row"><span class="profile-row-label">Contribution</span><span class="profile-row-val td-mono">7.5% employee / 7.5% employer</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Account Settings (editable by user) -->
+      <div class="card" style="padding:24px;">
+        <div class="card-label" style="margin-bottom:20px;">Account Settings</div>
+
+        <!-- Display Name -->
+        <div style="margin-bottom:20px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">Display Name</label>
+          <input type="text" value="Sarah Nkosi"
+            style="width:100%;max-width:320px;padding:8px 12px;border:1px solid var(--border-default);border-radius:6px;font-size:14px;color:var(--text-primary);background:var(--bg-surface);">
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">This name is shown in the app UI. Legal name above is used for payroll.</div>
+        </div>
+
+        <!-- Email (read-only) -->
+        <div style="margin-bottom:20px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">Email Address</label>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input type="email" value="sarah@zenowethu.co.za" disabled
+              style="width:100%;max-width:320px;padding:8px 12px;border:1px solid var(--border-default);border-radius:6px;font-size:14px;color:var(--text-muted);background:var(--bg-subtle);">
+            <span style="font-size:11px;color:var(--text-muted);">Managed via Firebase Auth</span>
+          </div>
+        </div>
+
+        <!-- Theme -->
+        <div style="margin-bottom:20px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;">Theme</label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <label
+              style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 18px;border:2px solid var(--brand-primary);border-radius:8px;cursor:pointer;background:var(--brand-primary-subtle);">
+              <i data-lucide="sun" style="width:20px;height:20px;color:var(--brand-primary);"></i>
+              <span style="font-size:12px;font-weight:600;color:var(--brand-primary);">Light</span>
+            </label>
+            <label
+              style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 18px;border:1px solid var(--border-default);border-radius:8px;cursor:pointer;">
+              <i data-lucide="moon" style="width:20px;height:20px;color:var(--text-muted);"></i>
+              <span style="font-size:12px;color:var(--text-secondary);">Dark</span>
+            </label>
+            <label
+              style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 18px;border:1px solid var(--border-default);border-radius:8px;cursor:pointer;">
+              <i data-lucide="monitor" style="width:20px;height:20px;color:var(--text-muted);"></i>
+              <span style="font-size:12px;color:var(--text-secondary);">System</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Notifications -->
+        <div style="margin-bottom:20px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;">Notifications</label>
+          <div style="display:flex;flex-direction:column;gap:10px;max-width:400px;">
+            <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+              <span style="font-size:13px;color:var(--text-primary);">Payslip available</span>
+              <input type="checkbox" checked style="width:16px;height:16px;accent-color:var(--brand-primary);">
+            </label>
+            <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+              <span style="font-size:13px;color:var(--text-primary);">Leave request outcome</span>
+              <input type="checkbox" checked style="width:16px;height:16px;accent-color:var(--brand-primary);">
+            </label>
+            <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;">
+              <span style="font-size:13px;color:var(--text-primary);">Compliance deadlines</span>
+              <input type="checkbox" checked style="width:16px;height:16px;accent-color:var(--brand-primary);">
+            </label>
+          </div>
+        </div>
+
+        <!-- MFA -->
+        <div style="margin-bottom:20px;">
+          <label style="display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;">Multi-Factor Authentication</label>
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span class="badge badge-success" style="font-size:12px;padding:4px 10px;">
+              <i data-lucide="shield-check" style="width:11px;height:11px;vertical-align:middle;"></i>
+              MFA Enabled — TOTP Authenticator</span>
+            <button class="btn btn-secondary btn-sm">Manage MFA</button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;padding-top:8px;border-top:1px solid var(--border-default);">
+          <button class="btn btn-primary btn-sm">Save Changes</button>
+          <button class="btn btn-ghost btn-sm">Cancel</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <!-- End My Profile Self-View -->
+
+  <!-- Admin Bottom Navigation (≤640px) -->
+  <nav class="bottom-nav">
+    <a href="02-dashboard.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="7" height="9" x="3" y="3" rx="1" />
+        <rect width="7" height="5" x="14" y="3" rx="1" />
+        <rect width="7" height="9" x="14" y="12" rx="1" />
+        <rect width="7" height="5" x="3" y="16" rx="1" />
+      </svg>
+      <span class="bottom-nav-label">Dashboard</span>
+    </a>
+    <a href="03-employees.html" class="bottom-nav-item active">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+      <span class="bottom-nav-label">Employees</span>
+    </a>
+    <a href="07-timesheet.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+      <span class="bottom-nav-label">Timesheets</span>
+    </a>
+    <button class="bottom-nav-item" onclick="openAdminMore()">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="5" cy="12" r="1" />
+        <circle cx="12" cy="12" r="1" />
+        <circle cx="19" cy="12" r="1" />
+      </svg>
+      <span class="bottom-nav-label">More</span>
+    </button>
+  </nav>
+
+  <!-- Admin More Sheet -->
+  <div class="admin-more-overlay" id="adminMoreOverlay" onclick="closeAdminMore()"></div>
+  <div class="admin-more-sheet" id="adminMoreSheet" style="display:none;">
+    <div class="admin-more-title">More</div>
+    <div class="admin-more-grid">
+      <a href="05-leave.html" class="admin-more-item">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="4" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+        Leave
+      </a>
+      <a href="04-payroll.html" class="admin-more-item">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <rect width="20" height="14" x="2" y="5" rx="2" />
+          <line x1="2" y1="10" x2="22" y2="10" />
+        </svg>
+        Payroll
+      </a>
+      <a href="06-compliance.html" class="admin-more-item">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+        Compliance
+      </a>
+      <a href="08-audit.html" class="admin-more-item">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>
+        Audit Trail
+      </a>
+      <a href="10-settings.html" class="admin-more-item">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+        Settings
+      </a>
+      <a href="12-analytics.html" class="admin-more-item">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>
+        Analytics
+      </a>
+    </div>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('collapsed');
+      const icon = document.getElementById('toggle-icon');
+      icon.innerHTML = sidebar.classList.contains('collapsed')
+        ? '<polyline points="9 18 15 12 9 6"/>'
+        : '<polyline points="15 18 9 12 15 6"/>';
+    }
+    function openAdminMore() {
+      document.getElementById('adminMoreOverlay').classList.add('visible');
+      document.getElementById('adminMoreSheet').style.display = 'block';
+    }
+    function closeAdminMore() {
+      document.getElementById('adminMoreOverlay').classList.remove('visible');
+      document.getElementById('adminMoreSheet').style.display = 'none';
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('sun-icon').style.display = isDark ? 'block' : 'none';
+      document.getElementById('moon-icon').style.display = isDark ? 'none' : 'block';
+    }
+
+    function selectEmployee(name, initials, title, dept, contract, startDate, annualUsed, annualTotal, sickUsed) {
+      document.querySelectorAll('tbody tr').forEach(r => r.classList.remove('selected'));
+      event.currentTarget.classList.add('selected');
+      const panel = document.getElementById('profilePanel');
+      panel.classList.add('visible');
+      document.getElementById('profileAvatar').textContent = initials;
+      document.getElementById('profileName').textContent = name;
+      document.getElementById('profileTitle').textContent = `${title} · ${dept}`;
+      document.getElementById('profileStart').textContent = startDate;
+      document.getElementById('profileDept').textContent = dept;
+      if (annualTotal > 0) {
+        document.getElementById('annualVal').textContent = `${annualUsed} / ${annualTotal} days`;
+        document.getElementById('annualBar').style.width = `${Math.round(annualUsed / annualTotal * 100)}%`;
+        document.getElementById('sickVal').textContent = `${sickUsed} / 30 days`;
+        document.getElementById('sickBar').style.width = `${Math.round(sickUsed / 30 * 100)}%`;
+      }
+    }
+  </script>
+</body>
+
+</html>

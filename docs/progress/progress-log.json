@@ -1,0 +1,1742 @@
+{
+  "project": "ZenoHR",
+  "current_phase": "Phase 0 — Foundation",
+  "last_updated": "2026-02-27T08:54:59.114164+00:00",
+  "last_session_summary": "Completed Analytics feature design (TASK-042). Created 12-analytics.html (company analytics: 5 sections — KPI row, workforce headcount+dept doughnut, payroll trend+tax+ETI, leave intelligence tabbed, compliance scorecard rings+trend; 8 Chart.js charts). Created 13-my-analytics.html (personal analytics: 5 sections — KPI row, earnings bar+line chart+payslip table, deductions stacked+doughnut, 5 SVG leave rings, IRP5 dark card with code annotations; 3 charts). Added analytics_snapshots Firestore collection (Section 17): pre-aggregated company/dept-scope snapshots with payroll/workforce/leave/compliance sub-maps. PRD-15 updated: /analytics + /my-analytics routes in access matrix, nav items per role (Insights group), Blazor route authorization. CLAUDE.md mockup table updated (01-13). DEC-023 (pre-aggregated snapshots) and DEC-024 (personal reads directly) logged. All 24 decisions logged.",
+  "phases": [
+    {
+      "id": "phase-0",
+      "name": "Foundation",
+      "status": "in_progress"
+    },
+    {
+      "id": "phase-1",
+      "name": "Domain Core (Shared Kernel + Payroll Engine)",
+      "status": "pending"
+    },
+    {
+      "id": "phase-2",
+      "name": "Employee & Leave Modules",
+      "status": "pending"
+    },
+    {
+      "id": "phase-3",
+      "name": "Compliance & Audit Modules",
+      "status": "pending"
+    },
+    {
+      "id": "phase-4",
+      "name": "UI (Blazor Server)",
+      "status": "pending"
+    },
+    {
+      "id": "phase-5",
+      "name": "Integration, Filing, Reporting",
+      "status": "pending"
+    },
+    {
+      "id": "phase-6",
+      "name": "Hardening, Performance, Launch",
+      "status": "pending"
+    }
+  ],
+  "active_tasks": [
+    {
+      "id": "TASK-001",
+      "title": "Initialize git repo and .gitignore",
+      "phase": "phase-0",
+      "batch": 1,
+      "status": "completed",
+      "priority": 1,
+      "depends_on": [],
+      "blockers": [],
+      "requirements": [],
+      "completed_at": "2026-02-19"
+    },
+    {
+      "id": "TASK-002",
+      "title": "Create CLAUDE.md (master agent context)",
+      "phase": "phase-0",
+      "batch": 1,
+      "status": "completed",
+      "priority": 1,
+      "depends_on": [],
+      "blockers": [],
+      "requirements": [],
+      "completed_at": "2026-02-19"
+    },
+    {
+      "id": "TASK-003",
+      "title": "Create progress log system",
+      "phase": "phase-0",
+      "batch": 1,
+      "status": "completed",
+      "priority": 1,
+      "depends_on": [],
+      "blockers": [],
+      "requirements": [],
+      "completed_at": "2026-02-19"
+    },
+    {
+      "id": "TASK-007",
+      "title": "Build ZenoHR Context MCP server (FastMCP/Python via uv)",
+      "phase": "phase-0",
+      "batch": 1,
+      "status": "completed",
+      "priority": 1,
+      "depends_on": [
+        "TASK-001"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-OPS-001"
+      ],
+      "completed_at": "2026-02-19",
+      "notes": "FastMCP 3.0.0 server at .mcp/server.py. Runs via uv run. Config in .mcp.json. 11 tools: get_context, get_progress, get_next_tasks, update_task_status, log_decision, get_prd, get_schema, get_seed_data, get_mockup, get_design_tokens, validate_traceability."
+    },
+    {
+      "id": "TASK-008",
+      "title": "Update CLAUDE.md (skill matrix, auto-behaviors, MCP section, UI source of truth)",
+      "phase": "phase-0",
+      "batch": 1,
+      "status": "completed",
+      "priority": 1,
+      "depends_on": [
+        "TASK-007"
+      ],
+      "blockers": [],
+      "requirements": [],
+      "completed_at": "2026-02-19",
+      "notes": "Added 4 sections: MCP Context Server, Skill Invocation Rules, Autonomous Agent Behaviors, UI Design Source of Truth. Updated Solution Structure. Updated Key Reference Documents."
+    },
+    {
+      "id": "TASK-009",
+      "title": "Update skill files (zenohr-progress-tracker MCP tools + CDD ZenoHR security checklist)",
+      "phase": "phase-0",
+      "batch": 1,
+      "status": "completed",
+      "priority": 1,
+      "depends_on": [
+        "TASK-008"
+      ],
+      "blockers": [],
+      "requirements": [],
+      "completed_at": "2026-02-19",
+      "notes": "zenohr-progress-tracker: added MCP tool reference table, updated Complete Task and Log Decision to use MCP tools. constraint-driven-development: added ZenoHR-specific security checklist under Security Engineer persona."
+    },
+    {
+      "id": "TASK-034",
+      "title": "Create Firebase project (enable Firestore, configure Auth providers: Email+Google)",
+      "phase": "phase-0",
+      "batch": 3,
+      "status": "completed",
+      "priority": 4,
+      "depends_on": [],
+      "blockers": [],
+      "requirements": [
+        "REQ-SEC-001",
+        "REQ-OPS-001"
+      ],
+      "notes": "Firebase project zenohr-a7ccf created. Firestore (default) in Native mode, africa-south1, Standard edition. Auth enabled: Email/Password + Google. Service account key saved to C:\\Users\\manga\\secrets\\zenohr-a7ccf-service-account.json.",
+      "completed_at": "2026-02-26"
+    },
+    {
+      "id": "TASK-035",
+      "title": "Set up Firebase local emulator config (firebase.json, firestore.rules, .firebaserc)",
+      "phase": "phase-0",
+      "batch": 3,
+      "status": "completed",
+      "priority": 4,
+      "depends_on": [
+        "TASK-034"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-OPS-003"
+      ],
+      "notes": "Created firebase.json (Firestore + Auth emulators on ports 8080/9099, UI on 4000), firestore.rules (full tenant-isolation rules with write-once enforcement for audit_events and finalized payroll_runs), firestore.indexes.json (11 composite indexes), .firebaserc (project zenohr-a7ccf). Firebase CLI 15.8.0 installed. Emulator verified working via exec test.",
+      "completed_at": "2026-02-26"
+    },
+    {
+      "id": "TASK-036",
+      "title": "Configure .NET User Secrets for local dev (Firebase service account, connection strings, Azure env vars)",
+      "phase": "phase-0",
+      "batch": 3,
+      "status": "completed",
+      "priority": 4,
+      "depends_on": [
+        "TASK-034"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-SEC-009"
+      ],
+      "notes": "User secrets initialized for Api and Web projects. Firebase:ProjectId=zenohr-a7ccf set in both. GOOGLE_APPLICATION_CREDENTIALS set as permanent user env var pointing to service account JSON outside the repo.",
+      "completed_at": "2026-02-26"
+    },
+    {
+      "id": "TASK-004",
+      "title": "Create .NET 10 solution with modular monolith structure",
+      "phase": "phase-0",
+      "batch": 1,
+      "status": "completed",
+      "priority": 2,
+      "depends_on": [
+        "TASK-001"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-OPS-001"
+      ],
+      "notes": "Created .NET 10 solution (ZenoHR.slnx) with 11 src projects + 5 test projects. Installed .NET 10.0.103 SDK to user-local dir. All projects target net10.0. ZenoHR.Api (webapi), ZenoHR.Web (Blazor Web App + Server interactivity), ZenoHR.Domain (classlib), ZenoHR.Infrastructure (classlib), 7 module classlibs, 5 xunit test projects. All project references wired. Build: 0 warnings, 0 errors. Tests: 5/5 passed.",
+      "completed_at": "2026-02-24"
+    },
+    {
+      "id": "TASK-005",
+      "title": "Set up Directory.Build.props (nullable, implicit usings, warnings-as-errors)",
+      "phase": "phase-0",
+      "batch": 1,
+      "status": "completed",
+      "priority": 2,
+      "depends_on": [
+        "TASK-004"
+      ],
+      "blockers": [],
+      "requirements": [],
+      "notes": "Created Directory.Build.props (Nullable enable, ImplicitUsings, TreatWarningsAsErrors, NoWarn CA1716/CA1812/CA2007, assembly metadata), Directory.Build.targets (test projects relax TreatWarningsAsErrors), global.json (SDK 10.0.103, latestPatch rollForward), NuGet.config (nuget.org only, packageSourceMapping). Package versions centralized in Directory.Build.props.",
+      "completed_at": "2026-02-24"
+    },
+    {
+      "id": "TASK-006",
+      "title": "Create custom Claude skills (4 skills)",
+      "phase": "phase-0",
+      "batch": 1,
+      "status": "completed",
+      "priority": 1,
+      "depends_on": [],
+      "blockers": [],
+      "requirements": [],
+      "completed_at": "2026-02-19"
+    },
+    {
+      "id": "TASK-010",
+      "title": "Shared kernel: MoneyZAR, TaxYear, EffectivePeriod, RuleVersion, DataClassification",
+      "phase": "phase-0",
+      "batch": 2,
+      "status": "completed",
+      "priority": 3,
+      "depends_on": [
+        "TASK-004"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-HR-003",
+        "CTL-SARS-001"
+      ],
+      "notes": "MoneyZAR, TaxYear, EffectivePeriod, RuleVersion, DataClassification all implemented in ZenoHR.Domain/Common/. Full unit test coverage: 119/119 pass.",
+      "completed_at": "2026-02-24"
+    },
+    {
+      "id": "TASK-011",
+      "title": "Result<T> pattern and error taxonomy",
+      "phase": "phase-0",
+      "batch": 2,
+      "status": "completed",
+      "priority": 3,
+      "depends_on": [
+        "TASK-004"
+      ],
+      "blockers": [],
+      "requirements": [],
+      "notes": "Result<T>, ZenoHrError, ZenoHrErrorCode implemented in ZenoHR.Domain/Errors/. Full combinators (Map, Bind, BindAsync, OnSuccess, OnFailure), implicit conversions, non-generic Result. All test scenarios covered.",
+      "completed_at": "2026-02-24"
+    },
+    {
+      "id": "TASK-012",
+      "title": "Module boundary interfaces and contracts",
+      "phase": "phase-0",
+      "batch": 2,
+      "status": "completed",
+      "priority": 3,
+      "depends_on": [
+        "TASK-010",
+        "TASK-011"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-OPS-002"
+      ],
+      "notes": "Created ITenantScoped, ICommand, ICommand<TResult>, IQuery<TResult>, ICommandHandler<TCommand>, ICommandHandler<TCommand,TResult>, IQueryHandler<TQuery,TResult> in src/ZenoHR.Domain/Contracts/",
+      "completed_at": "2026-02-24"
+    },
+    {
+      "id": "TASK-013",
+      "title": "Domain event base types + MediatR configuration",
+      "phase": "phase-0",
+      "batch": 2,
+      "status": "completed",
+      "priority": 3,
+      "depends_on": [
+        "TASK-004"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-OPS-002"
+      ],
+      "notes": "DomainEvent abstract record, IDomainEventHandler<TEvent>, LoggingBehaviour (LoggerMessage source generator), ValidationBehaviour (returns Result<T> failure on FluentValidation errors), MediatRExtensions.AddZenoHrMediatR(). AssemblyMarker in all 7 modules.",
+      "completed_at": "2026-02-24"
+    },
+    {
+      "id": "TASK-014",
+      "title": "AuditEvent entity with hash-chain logic",
+      "phase": "phase-0",
+      "batch": 2,
+      "status": "completed",
+      "priority": 3,
+      "depends_on": [
+        "TASK-010"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-COMP-005",
+        "CTL-POPIA-012"
+      ],
+      "notes": "Created AuditAction enum, AuditResourceType enum, AuditEvent (immutable, SHA-256 hash-chain, Create/Reconstitute factories, VerifyHash, ToCanonicalJson, ComputeHash), AuditHashChain static verifier, AuditChainVerificationResult. Unit tests: 19 AuditEvent tests + 14 AuditHashChain tests = 33 new tests, all passing (156 total across all projects).",
+      "completed_at": "2026-02-24"
+    },
+    {
+      "id": "TASK-020",
+      "title": "Firestore connection + base repository pattern",
+      "phase": "phase-0",
+      "batch": 3,
+      "status": "completed",
+      "priority": 4,
+      "depends_on": [
+        "TASK-010"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-OPS-001"
+      ],
+      "notes": "BaseFirestoreRepository<T> with tenant isolation, Result<T> returns, write-once CreateDocumentAsync, TenantQuery, SetDocumentAsync. FirebaseOptions config record. FirestoreExtensions.AddZenoHrFirestore(). 156/156 tests green.",
+      "completed_at": "2026-02-24"
+    },
+    {
+      "id": "TASK-021",
+      "title": "Firestore collection initialization and seed data loader",
+      "phase": "phase-0",
+      "batch": 3,
+      "status": "completed",
+      "priority": 4,
+      "depends_on": [
+        "TASK-020"
+      ],
+      "blockers": [],
+      "requirements": [
+        "CTL-SARS-001"
+      ],
+      "notes": "Created StatutoryRuleSet domain record + RuleDomains constants (Domain layer). Created StatutoryRuleSetRepository (Infrastructure, extends BaseFirestoreRepository). Created StatutoryRuleSetLoader with 7 embedded JSON resources (sars-paye, sars-uif-sdl, sars-eti, bcea-leave, bcea-working-time, bcea-notice-severance, sa-public-holidays). Created FirestoreJsonConverter. Registered loader+repo in DI via FirestoreExtensions. Added EmbeddedResource items to Infrastructure.csproj. 5 integration tests: LoadAll(7 docs), DocumentIds, PAYE brackets, UIF ceiling R17712, BCEA 21 days, idempotency. All 9 integration tests passing.",
+      "completed_at": "2026-02-26"
+    },
+    {
+      "id": "TASK-022",
+      "title": "Firestore emulator test configuration",
+      "phase": "phase-0",
+      "batch": 3,
+      "status": "completed",
+      "priority": 4,
+      "depends_on": [
+        "TASK-020"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-OPS-003"
+      ],
+      "notes": "Created FirestoreEmulatorFixture (FirestoreDbBuilder + EmulatorDetection.EmulatorOrProduction — bypasses ADC for emulator), EmulatorCollection xUnit definition, IntegrationTestBase with per-test TenantId isolation, FirestoreEmulatorSmokeTests (3 tests: write+read round-trip TC-OPS-001, tenant isolation TC-OPS-002, server timestamp TC-OPS-003). Also created run-integration-only.ps1 and run-integration-tests2.ps1 helper scripts. Fixed run-tests.ps1 to propagate exit code. All 161 tests passing (119 domain + 37 compliance + 3 integration + 2 placeholder).",
+      "completed_at": "2026-02-26"
+    },
+    {
+      "id": "TASK-023",
+      "title": "Audit event writer (append-only, hash-chained)",
+      "phase": "phase-0",
+      "batch": 3,
+      "status": "completed",
+      "priority": 4,
+      "depends_on": [
+        "TASK-014",
+        "TASK-020"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-COMP-005",
+        "CTL-POPIA-012"
+      ],
+      "notes": "AuditEventWriter: Firestore transaction-based append with chain head pointer document (audit_chain_meta). AuditEventRepository: reads + internal transaction helpers. occurred_at stored as ISO 8601 string for hash integrity. AuditChainHead record. 9 integration tests passing: write, genesis null hash, 3-event chain, 5-event VerifyHash, tenant isolation, read-back by ID, chain head update, AuditHashChain.Verify, recent events order. 176/176 tests green.",
+      "completed_at": "2026-02-26"
+    },
+    {
+      "id": "TASK-024",
+      "title": "Authentication middleware skeleton (Firebase Auth / OIDC/JWT)",
+      "phase": "phase-0",
+      "batch": 3,
+      "status": "completed",
+      "priority": 4,
+      "depends_on": [
+        "TASK-004"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-SEC-001",
+        "REQ-SEC-002"
+      ],
+      "notes": "FirebaseAuthExtensions.AddZenoHrFirebaseAuth() — JWT Bearer with Firebase OIDC, issuer/audience validation, SaveToken=true. Microsoft.AspNetCore.Authentication.JwtBearer 10.0.0 added to Api.csproj. Program.cs wired: UseAuthentication + UseAuthorization.",
+      "completed_at": "2026-02-24"
+    },
+    {
+      "id": "TASK-025",
+      "title": "RBAC middleware with role model (5 personas)",
+      "phase": "phase-0",
+      "batch": 3,
+      "status": "completed",
+      "priority": 4,
+      "depends_on": [
+        "TASK-024"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-SEC-003"
+      ],
+      "notes": "RBAC middleware: SystemRole enum (PRD-15 §3), UserRoleAssignment domain record + UserRoleAssignmentResolver (pure domain logic), UserRoleAssignmentRepository (Firestore collection group query by firebase_uid+tenant_id), ZenoHrClaimsTransformation (IClaimsTransformation — fast path: JWT custom claims; slow path: Firestore fallback + 5-min IMemoryCache), ZenoHrPolicies (4 named authorization policies), ZenoHrClaimNames constants. Fixed firestore.rules: user_role_assignments moved from company_settings subcollection to root collection. Added 3 composite indexes. 22 new resolver unit tests. 199/199 tests green.",
+      "completed_at": "2026-02-27"
+    },
+    {
+      "id": "TASK-030",
+      "title": "GitHub Actions CI/CD pipeline (build, test, SAST, dependency scan)",
+      "phase": "phase-0",
+      "batch": 4,
+      "status": "completed",
+      "priority": 5,
+      "depends_on": [
+        "TASK-004"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-OPS-009"
+      ],
+      "notes": "Created .github/workflows/ci.yml: 5 jobs (build, unit-tests, integration-tests, dependency-scan, codeql). Uses global.json for SDK pinning, NuGet cache, Firebase emulator cache (JDK 21 + firebase-tools), nc -z health check, XPlat Code Coverage, CodeQL security-extended. DEC-025 logged.",
+      "completed_at": "2026-02-27"
+    },
+    {
+      "id": "TASK-031",
+      "title": "Code coverage enforcement (90% domain, 85% branch)",
+      "phase": "phase-0",
+      "batch": 4,
+      "status": "completed",
+      "priority": 5,
+      "depends_on": [
+        "TASK-030"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-OPS-003"
+      ],
+      "notes": "Created coverage.runsettings (90% line gate via coverlet ThresholdType=line,ThresholdStat=total). Updated ci.yml unit-tests job: uses --settings coverage.runsettings, installs dotnet-reportgenerator-globaltool, generates Html+JsonSummary+Badges, enforces 85% branch via jq+python3. DEC-026 logged.",
+      "completed_at": "2026-02-27"
+    },
+    {
+      "id": "TASK-032",
+      "title": "Structured logging with OpenTelemetry",
+      "phase": "phase-0",
+      "batch": 4,
+      "status": "completed",
+      "priority": 5,
+      "depends_on": [
+        "TASK-004"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-OPS-005",
+        "REQ-OPS-006"
+      ],
+      "notes": "Created ObservabilityExtensions.cs (AddZenoHrTelemetry): Azure.Monitor.OpenTelemetry.AspNetCore UseAzureMonitor() with custom ActivitySource (ZenoHR) + Meter registration, JSON console in non-Dev environments. Updated Program.cs (call AddZenoHrTelemetry before Build). Updated appsettings.json (AzureMonitor:ConnectionString placeholder, refined log levels). Connection string reads from APPLICATIONINSIGHTS_CONNECTION_STRING env var — disabled silently in dev.",
+      "completed_at": "2026-02-27"
+    },
+    {
+      "id": "TASK-033",
+      "title": "Traceability validation script (REQ/CTL/TC coverage check)",
+      "phase": "phase-0",
+      "batch": 4,
+      "status": "completed",
+      "priority": 5,
+      "depends_on": [
+        "TASK-004"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-OPS-008"
+      ],
+      "notes": "Created scripts/validate-traceability.py: scans src/ and tests/ for REQ-*/CTL-*/TC-* refs, excludes AssemblyMarker.cs/UnitTest1.cs/obj/bin. Exits 1 on violations. Fixed ZenoHR.Web/Program.cs (missing trace). Added 'traceability' job to ci.yml. Verified locally: 53 files checked, 0 violations.",
+      "completed_at": "2026-02-27"
+    }
+  ],
+  "completed_tasks": [
+    {
+      "id": "PRE-001",
+      "title": "Create all SARS seed data files (PAYE, UIF/SDL, ETI, travel rates, filing formats)",
+      "completed_at": "2026-02-19"
+    },
+    {
+      "id": "PRE-002",
+      "title": "Create all BCEA seed data files (working time, leave, notice/severance, Section 33 payslip)",
+      "completed_at": "2026-02-19"
+    },
+    {
+      "id": "PRE-003",
+      "title": "Create validation rules (SA ID, tax ref format)",
+      "completed_at": "2026-02-19"
+    },
+    {
+      "id": "PRE-004",
+      "title": "Create SA public holidays 2026 calendar",
+      "completed_at": "2026-02-19"
+    },
+    {
+      "id": "PRE-005",
+      "title": "Create PRD gap resolution document (docs/prd/14_gap_resolution.md)",
+      "completed_at": "2026-02-19"
+    },
+    {
+      "id": "PRE-006",
+      "title": "Create Firestore collection schema (docs/schemas/firestore-collections.md)",
+      "completed_at": "2026-02-19"
+    },
+    {
+      "id": "PRE-007",
+      "title": "Create monetary precision rules (docs/schemas/monetary-precision.md)",
+      "completed_at": "2026-02-19"
+    },
+    {
+      "id": "PRE-008",
+      "title": "Create design tokens (docs/design/design-tokens.md)",
+      "completed_at": "2026-02-19"
+    },
+    {
+      "id": "PRE-009",
+      "title": "Create Google Stitch prompt variations (docs/design/google-stitch-prompts.md)",
+      "completed_at": "2026-02-19"
+    },
+    {
+      "id": "TASK-037",
+      "title": "Create RBAC PRD (15_rbac_screen_access.md) and 3 new UI mockups (09-role-management, 10-settings, 11-admin)",
+      "completed_at": "2026-02-20",
+      "notes": "PRD-15 created (5-tier role model, screen access matrix, nav per role, dynamic RBAC, field-level masking). Mockups 09/10/11 created. CLAUDE.md RBAC section added. MCP get_rbac() tool added. DEC-013-016 logged."
+    },
+    {
+      "id": "TASK-038",
+      "title": "Update Firestore schema with 4 RBAC collections (roles, departments, role_permissions, user_role_assignments)",
+      "completed_at": "2026-02-20",
+      "notes": "Section 16 added to firestore-collections.md. All 4 collections defined with full field specs, Firestore security rules, and composite indexes."
+    },
+    {
+      "id": "TASK-039",
+      "title": "Update employees Firestore schema with department_id, role_id, system_role, employee_type, reports_to_employee_id fields",
+      "completed_at": "2026-02-20",
+      "notes": "5 RBAC fields added to employees collection schema."
+    },
+    {
+      "id": "TASK-040",
+      "title": "Extend RBAC model: employment/access separation, self-access guarantee, multi-role assignment",
+      "completed_at": "2026-02-20",
+      "notes": "PRD-15 v1.1.0: Sections 1.5-1.7 added. Access matrix updated (Manager payroll = Own payslips only). Manager nav adds My Payslips. user_role_assignments gets is_primary field. Firestore schema employees.department_id clarified as primary employment dept. DEC-017 and DEC-018 logged."
+    },
+    {
+      "id": "TASK-041",
+      "title": "RBAC gap resolution — 18-gap analysis, PRD-15 v1.2.0, schema hardening",
+      "completed_at": "2026-02-20",
+      "notes": "18 gaps identified across HIGH/MEDIUM/LOW categories. All HIGH gaps resolved. PRD-15 v1.2.0: self-approve leave, Executive dept, Manager self-view, Director/HRManager personal widgets, JWT claims strategy, SaasAdmin routing, expired-assignment fallback, co-approval exception note. Schema: employees.firebase_uid, user_role_assignments.is_active + 8 revised invariants, departments.is_system_dept, new composite index. MCP docstring fixed. DEC-019-022 logged."
+    },
+    {
+      "id": "TASK-042b",
+      "title": "Gap closure — nav security fix, My Profile, PRD-15/16/17, payslip template, onboarding wizard",
+      "phase": "phase-0",
+      "status": "completed",
+      "completed_at": "2026-02-23",
+      "notes": "Completed all A/B gap items from gap-closure plan. Fixes: 13-my-analytics nav security (removed /analytics Employee), 09+10 Director nav (Finance→Finance&Compliance + Settings/Insights/Account). 14-clock-in Manager nav replaced. PRD-15 updated (canonical nav + My Profile S16). My Profile self-view in 03-employees. Created PRD-16 (PAYE pseudocode, 12 sections), PRD-17 (Blazor architecture), 16-payslip-template.html (BCEA S.33 compliant A4). 11-admin.html tenant onboarding wizard (5 steps). Logged DEC-026."
+    },
+    {
+      "id": "TASK-042",
+      "title": "Analytics feature design — 2 mockups (12+13), analytics_snapshots schema, PRD-15 additions",
+      "completed_at": "2026-02-20",
+      "notes": "12-analytics.html: 5 sections (KPI, Workforce, Payroll, Leave, Compliance), 8 Chart.js charts, Manager team-filtered view. 13-my-analytics.html: 5 sections (KPI, Earnings, Deductions, Leave Rings, IRP5), 3 charts, all tenant roles. Firestore Section 17: analytics_snapshots with payroll/workforce/leave/compliance sub-maps, 2 new indexes. PRD-15: /analytics + /my-analytics access matrix rows, nav Insights group, Blazor route authorization. REQ-ANA-001 through REQ-ANA-004. DEC-023 and DEC-024 logged."
+    }
+  ],
+  "phase1_tasks": [
+    {
+      "id": "TASK-043",
+      "title": "Shared kernel: MoneyZAR value object + arithmetic operators",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-004"
+      ],
+      "requirements": [
+        "REQ-HR-003"
+      ]
+    },
+    {
+      "id": "TASK-044",
+      "title": "Shared kernel: TaxYear, EffectivePeriod, RuleVersion value objects",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-043"
+      ],
+      "requirements": [
+        "REQ-HR-003"
+      ]
+    },
+    {
+      "id": "TASK-045",
+      "title": "Shared kernel: DataClassification enum + field-level masking infrastructure",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-004"
+      ],
+      "requirements": [
+        "CTL-POPIA-001"
+      ]
+    },
+    {
+      "id": "TASK-046",
+      "title": "Result<T> type + error taxonomy enum",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-004"
+      ],
+      "requirements": [
+        "REQ-OPS-001"
+      ]
+    },
+    {
+      "id": "TASK-047",
+      "title": "Domain event base types (DomainEvent, IDomainEventHandler)",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-046"
+      ],
+      "requirements": [
+        "REQ-OPS-001"
+      ]
+    },
+    {
+      "id": "TASK-048",
+      "title": "MediatR registration + pipeline behaviours (logging, validation, error)",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-047"
+      ],
+      "requirements": [
+        "REQ-OPS-002"
+      ]
+    },
+    {
+      "id": "TASK-049",
+      "title": "AuditEvent entity + SHA-256 hash-chain logic",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-043"
+      ],
+      "requirements": [
+        "CTL-POPIA-008"
+      ]
+    },
+    {
+      "id": "TASK-050",
+      "title": "Employee aggregate + domain events",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-047"
+      ],
+      "requirements": [
+        "REQ-HR-001"
+      ]
+    },
+    {
+      "id": "TASK-051",
+      "title": "EmploymentContract aggregate",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-050"
+      ],
+      "requirements": [
+        "REQ-HR-001"
+      ]
+    },
+    {
+      "id": "TASK-052",
+      "title": "Leave domain: LeaveBalance, LeaveRequest aggregates + accrual logic",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-050"
+      ],
+      "requirements": [
+        "REQ-HR-002"
+      ]
+    },
+    {
+      "id": "TASK-053",
+      "title": "PAYE calculation engine: CalculatePAYE() — all 12 PRD-16 sections",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-043",
+        "TASK-044"
+      ],
+      "requirements": [
+        "REQ-HR-003",
+        "CTL-SARS-001"
+      ]
+    },
+    {
+      "id": "TASK-054",
+      "title": "UIF/SDL calculation engine",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-043"
+      ],
+      "requirements": [
+        "REQ-HR-003",
+        "CTL-SARS-002"
+      ]
+    },
+    {
+      "id": "TASK-055",
+      "title": "ETI calculation engine + 12-month tier tracking (PRD-16 Section 5)",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-053"
+      ],
+      "requirements": [
+        "REQ-HR-003",
+        "CTL-SARS-003"
+      ]
+    },
+    {
+      "id": "TASK-056",
+      "title": "PayrollRun aggregate + state machine (Draft→Processing→Finalizing→Filed)",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-047",
+        "TASK-053"
+      ],
+      "requirements": [
+        "REQ-HR-003"
+      ]
+    },
+    {
+      "id": "TASK-057",
+      "title": "PayrollResult entity + payslip invariant verifier (PRD-16 Section 9)",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-056"
+      ],
+      "requirements": [
+        "REQ-HR-003"
+      ]
+    },
+    {
+      "id": "TASK-058",
+      "title": "TerminationSettlement calculation (PRD-16 Section 12)",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 3,
+      "depends_on": [
+        "TASK-057"
+      ],
+      "requirements": [
+        "REQ-HR-003"
+      ]
+    },
+    {
+      "id": "TASK-059",
+      "title": "Unit tests: PAYE engine (FsCheck property-based, 90%+ coverage)",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-053"
+      ],
+      "requirements": [
+        "TC-PAY-001"
+      ]
+    },
+    {
+      "id": "TASK-060",
+      "title": "Unit tests: UIF/SDL/ETI engines",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-054",
+        "TASK-055"
+      ],
+      "requirements": [
+        "TC-PAY-002"
+      ]
+    },
+    {
+      "id": "TASK-061",
+      "title": "Unit tests: PayrollRun state machine",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-056"
+      ],
+      "requirements": [
+        "TC-PAY-003"
+      ]
+    },
+    {
+      "id": "TASK-062",
+      "title": "Unit tests: AuditEvent hash-chain",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-049"
+      ],
+      "requirements": [
+        "TC-COMP-001"
+      ]
+    },
+    {
+      "id": "TASK-063",
+      "title": "Architecture boundary tests (ArchUnit-style, module isolation)",
+      "phase": "phase-1",
+      "status": "pending",
+      "priority": 3,
+      "depends_on": [
+        "TASK-048"
+      ],
+      "requirements": [
+        "REQ-OPS-005"
+      ]
+    }
+  ],
+  "phase2_tasks": [
+    {
+      "id": "TASK-064",
+      "title": "Employee Firestore repository (CRUD + tenant-scoped queries)",
+      "phase": "phase-2",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-050"
+      ],
+      "requirements": [
+        "REQ-HR-001"
+      ]
+    },
+    {
+      "id": "TASK-065",
+      "title": "EmploymentContract repository",
+      "phase": "phase-2",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-051"
+      ],
+      "requirements": [
+        "REQ-HR-001"
+      ]
+    },
+    {
+      "id": "TASK-066",
+      "title": "BankAccount/Benefits/NextOfKin subcollection repositories",
+      "phase": "phase-2",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-064"
+      ],
+      "requirements": [
+        "REQ-HR-001"
+      ]
+    },
+    {
+      "id": "TASK-067",
+      "title": "Employee API endpoints (GET list, GET by ID, POST, PUT, PATCH section)",
+      "phase": "phase-2",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-064",
+        "TASK-065"
+      ],
+      "requirements": [
+        "REQ-HR-001"
+      ]
+    },
+    {
+      "id": "TASK-068",
+      "title": "Leave balance repository + accrual service",
+      "phase": "phase-2",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-052",
+        "TASK-064"
+      ],
+      "requirements": [
+        "REQ-HR-002"
+      ]
+    },
+    {
+      "id": "TASK-069",
+      "title": "Leave request repository + approval workflow",
+      "phase": "phase-2",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-068"
+      ],
+      "requirements": [
+        "REQ-HR-002"
+      ]
+    },
+    {
+      "id": "TASK-070",
+      "title": "Leave API endpoints",
+      "phase": "phase-2",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-069"
+      ],
+      "requirements": [
+        "REQ-HR-002"
+      ]
+    },
+    {
+      "id": "TASK-071",
+      "title": "ClockEntry repository + self-service clock-in API",
+      "phase": "phase-2",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-064"
+      ],
+      "requirements": [
+        "REQ-HR-001"
+      ]
+    },
+    {
+      "id": "TASK-072",
+      "title": "TimesheetFlag repository",
+      "phase": "phase-2",
+      "status": "pending",
+      "priority": 3,
+      "depends_on": [
+        "TASK-071"
+      ],
+      "requirements": [
+        "REQ-HR-001"
+      ]
+    },
+    {
+      "id": "TASK-073",
+      "title": "Integration tests: Employee + Leave modules (Firestore emulator)",
+      "phase": "phase-2",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-067",
+        "TASK-070"
+      ],
+      "requirements": [
+        "TC-HR-001"
+      ]
+    }
+  ],
+  "phase3_tasks": [
+    {
+      "id": "TASK-081",
+      "title": "StatutoryRuleSet repository + seeding service",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-053"
+      ],
+      "requirements": [
+        "CTL-SARS-001"
+      ]
+    },
+    {
+      "id": "TASK-082",
+      "title": "PayrollRun repository",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-056"
+      ],
+      "requirements": [
+        "REQ-HR-003"
+      ]
+    },
+    {
+      "id": "TASK-083",
+      "title": "PayrollResult repository",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-057"
+      ],
+      "requirements": [
+        "REQ-HR-003"
+      ]
+    },
+    {
+      "id": "TASK-084",
+      "title": "PayrollAdjustment repository",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-082"
+      ],
+      "requirements": [
+        "REQ-HR-003"
+      ]
+    },
+    {
+      "id": "TASK-085",
+      "title": "PayrollOrchestrationService (coordinates calculation → validation → finalization)",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-081",
+        "TASK-082",
+        "TASK-083"
+      ],
+      "requirements": [
+        "REQ-HR-003"
+      ]
+    },
+    {
+      "id": "TASK-086",
+      "title": "Payroll API endpoints",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-085"
+      ],
+      "requirements": [
+        "REQ-HR-003"
+      ]
+    },
+    {
+      "id": "TASK-087",
+      "title": "QuestPDF payslip generator (implements 16-payslip-template.html)",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-083"
+      ],
+      "requirements": [
+        "REQ-HR-004",
+        "CTL-SARS-005"
+      ]
+    },
+    {
+      "id": "TASK-088",
+      "title": "EMP201 CSV package generator (Phase 1: manual upload format)",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-085"
+      ],
+      "requirements": [
+        "CTL-SARS-006"
+      ]
+    },
+    {
+      "id": "TASK-089",
+      "title": "EMP501 reconciliation service",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-088"
+      ],
+      "requirements": [
+        "CTL-SARS-007"
+      ]
+    },
+    {
+      "id": "TASK-090",
+      "title": "IRP5/IT3a certificate generator",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-089"
+      ],
+      "requirements": [
+        "CTL-SARS-008"
+      ]
+    },
+    {
+      "id": "TASK-091",
+      "title": "ComplianceSubmission repository + filing workflow",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-088"
+      ],
+      "requirements": [
+        "REQ-COMP-001"
+      ]
+    },
+    {
+      "id": "TASK-092",
+      "title": "SARS eFiling API client stub (Phase 2 — requires ISV accreditation)",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 3,
+      "depends_on": [
+        "TASK-091"
+      ],
+      "requirements": [
+        "CTL-SARS-010"
+      ]
+    },
+    {
+      "id": "TASK-093",
+      "title": "TaxDirective repository",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 3,
+      "depends_on": [
+        "TASK-082"
+      ],
+      "requirements": [
+        "CTL-SARS-004"
+      ]
+    },
+    {
+      "id": "TASK-094",
+      "title": "Integration tests: Payroll + Compliance modules (Firestore emulator)",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-086",
+        "TASK-088"
+      ],
+      "requirements": [
+        "TC-PAY-010"
+      ]
+    }
+  ],
+  "phase4_tasks": [
+    {
+      "id": "TASK-101",
+      "title": "MainLayout + NavMenu (role-conditional nav, PRD-17 patterns)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-048"
+      ],
+      "requirements": [
+        "REQ-SEC-002"
+      ]
+    },
+    {
+      "id": "TASK-102",
+      "title": "Firebase Auth middleware + JWT validation",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-101"
+      ],
+      "requirements": [
+        "REQ-SEC-001"
+      ]
+    },
+    {
+      "id": "TASK-103",
+      "title": "RBAC middleware + custom claims enrichment (tenant_id, dept_ids)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-102"
+      ],
+      "requirements": [
+        "REQ-SEC-002"
+      ]
+    },
+    {
+      "id": "TASK-104",
+      "title": "Login page (01-login.html) — Firebase Auth UI",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-102"
+      ],
+      "requirements": [
+        "REQ-SEC-001"
+      ]
+    },
+    {
+      "id": "TASK-105",
+      "title": "Dashboard page (02-dashboard.html) with role-specific widgets",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-103"
+      ],
+      "requirements": [
+        "REQ-HR-001"
+      ]
+    },
+    {
+      "id": "TASK-106",
+      "title": "Employee list + detail + form pages (03-employees.html + My Profile /profile)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-067",
+        "TASK-103"
+      ],
+      "requirements": [
+        "REQ-HR-001",
+        "REQ-SEC-002"
+      ]
+    },
+    {
+      "id": "TASK-107",
+      "title": "Payroll runs page + payroll run detail (04-payroll.html)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-086"
+      ],
+      "requirements": [
+        "REQ-HR-003"
+      ]
+    },
+    {
+      "id": "TASK-108",
+      "title": "Leave calendar page (05-leave.html)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-070"
+      ],
+      "requirements": [
+        "REQ-HR-002"
+      ]
+    },
+    {
+      "id": "TASK-109",
+      "title": "Compliance scoring page (06-compliance.html)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-091"
+      ],
+      "requirements": [
+        "REQ-COMP-001"
+      ]
+    },
+    {
+      "id": "TASK-110",
+      "title": "Timesheet page (07-timesheet.html)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-072"
+      ],
+      "requirements": [
+        "REQ-HR-001"
+      ]
+    },
+    {
+      "id": "TASK-111",
+      "title": "Audit trail page (08-audit.html)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-049"
+      ],
+      "requirements": [
+        "CTL-POPIA-008"
+      ]
+    },
+    {
+      "id": "TASK-112",
+      "title": "Role management page (09-role-management.html)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 3,
+      "depends_on": [
+        "TASK-103"
+      ],
+      "requirements": [
+        "REQ-SEC-002"
+      ]
+    },
+    {
+      "id": "TASK-113",
+      "title": "Settings page — all 5 admin tabs (10-settings.html)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-103"
+      ],
+      "requirements": [
+        "REQ-HR-001"
+      ]
+    },
+    {
+      "id": "TASK-114",
+      "title": "Admin dashboard (11-admin.html) + tenant onboarding wizard Blazor implementation",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-103"
+      ],
+      "requirements": [
+        "REQ-OPS-001"
+      ]
+    },
+    {
+      "id": "TASK-115",
+      "title": "Company analytics page (12-analytics.html)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 3,
+      "depends_on": [
+        "TASK-105"
+      ],
+      "requirements": [
+        "REQ-OPS-006"
+      ]
+    },
+    {
+      "id": "TASK-116",
+      "title": "My analytics page (13-my-analytics.html)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 3,
+      "depends_on": [
+        "TASK-105"
+      ],
+      "requirements": [
+        "REQ-OPS-006"
+      ]
+    },
+    {
+      "id": "TASK-117",
+      "title": "Clock-in page (14-clock-in.html) — Employee self + Manager team view",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-071"
+      ],
+      "requirements": [
+        "REQ-HR-001"
+      ]
+    },
+    {
+      "id": "TASK-118",
+      "title": "Security ops page (15-security-ops.html — SaasAdmin only)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 3,
+      "depends_on": [
+        "TASK-103"
+      ],
+      "requirements": [
+        "REQ-SEC-005"
+      ]
+    },
+    {
+      "id": "TASK-119",
+      "title": "Payslip PDF download (client-side trigger, BCEA S.33 invariant check)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-087",
+        "TASK-107"
+      ],
+      "requirements": [
+        "REQ-HR-004"
+      ]
+    },
+    {
+      "id": "TASK-120",
+      "title": "Dark/light mode toggle (CSS custom property swap, ThemeService)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 3,
+      "depends_on": [
+        "TASK-101"
+      ],
+      "requirements": [
+        "REQ-OPS-008"
+      ]
+    },
+    {
+      "id": "TASK-121",
+      "title": "Mobile responsive: bottom nav (≤640px, 5 items per role)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 3,
+      "depends_on": [
+        "TASK-101"
+      ],
+      "requirements": [
+        "REQ-OPS-007"
+      ]
+    },
+    {
+      "id": "TASK-122",
+      "title": "Mobile responsive: icon-only drawer nav (641–1024px)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 3,
+      "depends_on": [
+        "TASK-121"
+      ],
+      "requirements": [
+        "REQ-OPS-007"
+      ]
+    },
+    {
+      "id": "TASK-123",
+      "title": "Mobile responsive: table → card list transformation (≤640px)",
+      "phase": "phase-4",
+      "status": "pending",
+      "priority": 3,
+      "depends_on": [
+        "TASK-121"
+      ],
+      "requirements": [
+        "REQ-OPS-007"
+      ]
+    }
+  ],
+  "phase5_tasks": [
+    {
+      "id": "TASK-131",
+      "title": "EMP201 eFiling integration (SARS ISV API — Phase 2, requires ISV accreditation)",
+      "phase": "phase-5",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-092"
+      ],
+      "requirements": [
+        "CTL-SARS-010"
+      ]
+    },
+    {
+      "id": "TASK-132",
+      "title": "POPIA breach notification workflow",
+      "phase": "phase-5",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-049"
+      ],
+      "requirements": [
+        "CTL-POPIA-010"
+      ]
+    },
+    {
+      "id": "TASK-133",
+      "title": "Evidence pack PDF generator (audit + compliance bundle)",
+      "phase": "phase-5",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-087",
+        "TASK-091"
+      ],
+      "requirements": [
+        "REQ-COMP-005"
+      ]
+    },
+    {
+      "id": "TASK-134",
+      "title": "Scheduled background services (nightly analytics, EMP201 reminders, ETI expiry alerts)",
+      "phase": "phase-5",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-085"
+      ],
+      "requirements": [
+        "REQ-OPS-003"
+      ]
+    },
+    {
+      "id": "TASK-135",
+      "title": "Email/notification service (payslip ready, leave approved, compliance deadline)",
+      "phase": "phase-5",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-107",
+        "TASK-108"
+      ],
+      "requirements": [
+        "REQ-OPS-004"
+      ]
+    },
+    {
+      "id": "TASK-136",
+      "title": "Data archival background job (5-year retention → archive status)",
+      "phase": "phase-5",
+      "status": "pending",
+      "priority": 3,
+      "depends_on": [
+        "TASK-064"
+      ],
+      "requirements": [
+        "CTL-POPIA-009"
+      ]
+    },
+    {
+      "id": "TASK-137",
+      "title": "End-to-end integration tests (full payroll run → payslip → EMP201 CSV)",
+      "phase": "phase-5",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-119",
+        "TASK-088"
+      ],
+      "requirements": [
+        "TC-PAY-020"
+      ]
+    }
+  ],
+  "phase6_tasks": [
+    {
+      "id": "TASK-146",
+      "title": "OWASP security scan + remediation",
+      "phase": "phase-6",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-137"
+      ],
+      "requirements": [
+        "REQ-SEC-007"
+      ]
+    },
+    {
+      "id": "TASK-147",
+      "title": "Load testing (500-employee payroll run, 15-min SLA validation)",
+      "phase": "phase-6",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-085"
+      ],
+      "requirements": [
+        "REQ-OPS-001"
+      ]
+    },
+    {
+      "id": "TASK-148",
+      "title": "Azure Container Apps deployment config (SA North region)",
+      "phase": "phase-6",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-137"
+      ],
+      "requirements": [
+        "REQ-OPS-009"
+      ]
+    },
+    {
+      "id": "TASK-149",
+      "title": "GitHub Actions CI/CD pipeline (build → test → SAST → deploy)",
+      "phase": "phase-6",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-148"
+      ],
+      "requirements": [
+        "REQ-OPS-002"
+      ]
+    },
+    {
+      "id": "TASK-150",
+      "title": "Code coverage enforcement (90% domain, 85% branch) in CI",
+      "phase": "phase-6",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-149"
+      ],
+      "requirements": [
+        "REQ-OPS-005"
+      ]
+    },
+    {
+      "id": "TASK-151",
+      "title": "OpenTelemetry + Azure Monitor setup (Application Insights)",
+      "phase": "phase-6",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-148"
+      ],
+      "requirements": [
+        "REQ-OPS-003"
+      ]
+    },
+    {
+      "id": "TASK-152",
+      "title": "Firestore security rules hardening + audit",
+      "phase": "phase-6",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-103"
+      ],
+      "requirements": [
+        "REQ-SEC-005"
+      ]
+    },
+    {
+      "id": "TASK-153",
+      "title": "External penetration test + remediation",
+      "phase": "phase-6",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-146"
+      ],
+      "requirements": [
+        "REQ-SEC-007"
+      ]
+    },
+    {
+      "id": "TASK-154",
+      "title": "POPIA readiness audit (CTL-POPIA-001 to CTL-POPIA-015 verification)",
+      "phase": "phase-6",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-132"
+      ],
+      "requirements": [
+        "REQ-COMP-006"
+      ]
+    },
+    {
+      "id": "TASK-155",
+      "title": "SARS ISV accreditation submission (IBIR-006)",
+      "phase": "phase-6",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-092"
+      ],
+      "requirements": [
+        "CTL-SARS-010"
+      ]
+    },
+    {
+      "id": "TASK-156",
+      "title": "UAT with pilot tenant (real payroll run, leave requests, compliance filing)",
+      "phase": "phase-6",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-153"
+      ],
+      "requirements": [
+        "REQ-OPS-001"
+      ]
+    },
+    {
+      "id": "TASK-157",
+      "title": "Production launch — Azure Container Apps go-live",
+      "phase": "phase-6",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-156"
+      ],
+      "requirements": [
+        "REQ-OPS-009"
+      ]
+    }
+  ],
+  "blockers": [],
+  "next_actions": [
+    "TASK-034: Create Firebase project (Firestore + Auth providers: Email + Google)",
+    "TASK-004: Create .NET 10 solution with modular monolith structure (9 projects)",
+    "TASK-005: Set up Directory.Build.props (nullable, implicit usings, warnings-as-errors)",
+    "TASK-043: Shared kernel — MoneyZAR value object (first Phase 1 task)"
+  ]
+}

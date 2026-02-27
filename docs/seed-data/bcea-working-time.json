@@ -1,0 +1,60 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "BCEA_WORKING_TIME",
+  "version": "2026.1.0",
+  "effective_from": "2025-03-01",
+  "source": "Basic Conditions of Employment Act 75 of 1997 - Sections 9, 10, 11, 12, 15, 16, 17, 18",
+
+  "ordinary_hours": {
+    "ctl_id": "CTL-BCEA-001",
+    "weekly_maximum": 45,
+    "daily_maximum_5_day_week": 9,
+    "daily_maximum_6_plus_day_week": 8,
+    "compressed_week_agreement": {
+      "allowed": true,
+      "max_daily_hours": 12,
+      "max_weekly_hours": 45,
+      "requires": "Written agreement with employee"
+    },
+    "averaging_agreement": {
+      "allowed": true,
+      "max_period_weeks": 4,
+      "max_average_weekly": 45,
+      "max_daily_ordinary": 12,
+      "requires": "Collective agreement"
+    }
+  },
+
+  "overtime": {
+    "ctl_id": "CTL-BCEA-002",
+    "consent_required": true,
+    "max_overtime_hours_per_day": 3,
+    "max_overtime_hours_per_week": 10,
+    "multipliers": {
+      "normal_overtime": 1.5,
+      "sunday_work": 2.0,
+      "public_holiday_work": 2.0,
+      "sunday_work_if_ordinary_day": 1.5,
+      "night_work_allowance": "Agreed-upon allowance or reduced working hours"
+    },
+    "notes": {
+      "sunday_ordinary": "If an employee ordinarily works on Sundays, the employer must pay at least 1.5x for Sunday work",
+      "sunday_not_ordinary": "If not ordinarily working Sundays, employer must pay 2x",
+      "public_holiday_not_worked": "Employee entitled to normal pay if public holiday falls on a day they would ordinarily work"
+    }
+  },
+
+  "meal_intervals": {
+    "max_continuous_work_hours": 5,
+    "minimum_break_minutes": 60,
+    "agreement_reduction_to_minutes": 30,
+    "break_is_unpaid": true,
+    "break_is_paid_if": "Employee required to remain available or perform duties during break"
+  },
+
+  "night_work": {
+    "definition": "Work between 18:00 and 06:00",
+    "requires": "Agreement, transport availability, compensation (allowance or reduced hours)",
+    "health_assessment": "Required at employer cost if regular night work"
+  }
+}

@@ -1,0 +1,114 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.userprefs
+.vs/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+TestResults/
+coverage/
+
+# NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+
+# Build results
+[Dd]ebugPublic/
+[Rr]eleases/
+[Aa]rtifacts/
+publish/
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Secrets and credentials
+*.pfx
+*.p12
+*.key
+*.pem
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json
+secrets.json
+.env
+.env.*
+!.env.example
+
+# Firebase / Firestore emulator
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.firebase/
+firestore_export/
+emulator-data/
+
+# Azure
+.azure/
+
+# User-specific
+*.rsuser
+
+# Claude Code local settings (machine-specific, not project config)
+.claude/settings.json
+.claude/settings.local.json
+
+# Temporary build output files
+build_output.txt
+launchSettings.json
+
+# Coverage
+coverage*.xml
+coverage*.json
+*.coveragexml
+lcov.info
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# Windows
+*.lnk
+
+# Misc
+*.bak
+*.tmp
+*.temp
+*.log
+node_modules/
+
+# uv / Python
+.venv/
+__pycache__/
+*.pyc
+.uv/
+uv.lock

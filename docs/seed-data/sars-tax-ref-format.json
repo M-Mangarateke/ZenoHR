@@ -1,0 +1,46 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "SARS_TAX_REF_VALIDATION",
+  "version": "2026.1.0",
+  "source": "SARS - Tax Reference Number format and validation",
+  "ctl_id": "CTL-SARS-006",
+
+  "individual_tax_reference": {
+    "format": "10-digit numeric",
+    "regex": "^\\d{10}$",
+    "prefix_rules": {
+      "0": "Individual taxpayer (most common for employees)",
+      "1": "Individual taxpayer (alternate series)",
+      "2": "Individual taxpayer (alternate series)",
+      "3": "Company / Trust / CC",
+      "9": "Temporary or provisional number"
+    },
+    "validation_steps": [
+      "Must be exactly 10 digits",
+      "Must not be all zeros",
+      "Must not be a known test/dummy number (e.g., 0000000000, 9999999999)",
+      "First digit indicates taxpayer type (0, 1, or 2 for individuals)"
+    ],
+    "notes": {
+      "income_tax_enforcement_2026": "From February 2026, SARS strictly enforces valid Income Tax numbers in e@syFile Employer. Reconciliations will be rejected if any employee lacks a valid tax reference.",
+      "blocking_rule": "ZenoHR must block payroll finalization and SARS submission if any employee in the payroll run has an invalid or missing tax reference (CTL-SARS-006)"
+    }
+  },
+
+  "paye_reference_number": {
+    "format": "7-digit numeric followed by 3 digits",
+    "description": "Employer's PAYE reference number used for EMP201/EMP501 submissions",
+    "regex": "^\\d{10}$",
+    "notes": "Issued by SARS when employer registers for PAYE. Required on all employer submissions."
+  },
+
+  "uif_reference_number": {
+    "format": "Employer UIF reference",
+    "description": "Separate from PAYE reference. Required for UIF contribution reporting."
+  },
+
+  "sdl_reference_number": {
+    "format": "Same as PAYE reference in most cases",
+    "description": "SDL is reported under the employer's PAYE reference number."
+  }
+}

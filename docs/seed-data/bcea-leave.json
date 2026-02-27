@@ -1,0 +1,76 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "BCEA_LEAVE",
+  "version": "2026.1.0",
+  "effective_from": "2025-03-01",
+  "source": "Basic Conditions of Employment Act 75 of 1997 - Sections 20, 21, 22, 23, 24, 25, 26, 27",
+
+  "annual_leave": {
+    "ctl_id": "CTL-BCEA-003",
+    "entitlement_consecutive_days": 21,
+    "entitlement_working_days": 15,
+    "accrual_method": "1 day for every 17 days worked, OR 1.25 working days per month",
+    "accrual_per_month_working_days": 1.25,
+    "grant_timing": "Must be granted within 6 months after end of annual leave cycle",
+    "annual_leave_cycle": "12 months from start of employment or anniversary",
+    "pay_in_lieu_prohibition": "Employer may not pay employee instead of granting leave, except on termination",
+    "carry_over": "By agreement, unused leave may be carried over but must be used within 6 months",
+    "payment_on_termination": "Pro-rated accrued leave must be paid out on termination",
+    "public_holidays_excluded": "Public holidays falling within annual leave do not count as leave days"
+  },
+
+  "sick_leave": {
+    "cycle_months": 36,
+    "entitlement_days_per_cycle": 30,
+    "working_days_equivalent": "Equivalent to the number of days the employee would normally work in a 6-week period",
+    "first_6_months": {
+      "entitlement_per_26_days_worked": 1,
+      "description": "During first 6 months of employment: 1 day for every 26 days worked"
+    },
+    "medical_certificate_required_after_days": 2,
+    "medical_certificate_required_if": "Absent for more than 2 consecutive days, or absent more than twice in 8 weeks",
+    "notes": "Sick leave cycle runs for 36 months from start of employment. At start of new cycle, balance resets to 30 days."
+  },
+
+  "family_responsibility_leave": {
+    "entitlement_days_per_year": 3,
+    "applies_to_employees_working_at_least_days_per_week": 4,
+    "qualifying_events": [
+      "Birth of employee's child",
+      "Illness of employee's child",
+      "Death of employee's spouse or life partner",
+      "Death of employee's parent, adoptive parent, grandparent, child, adopted child, grandchild, or sibling"
+    ],
+    "proof_required": "Employer may require reasonable proof",
+    "unused_leave": "Lapses at end of annual leave cycle; does not carry over"
+  },
+
+  "maternity_leave": {
+    "entitlement_months": 4,
+    "entitlement_consecutive_days": 120,
+    "earliest_start_weeks_before_due": 4,
+    "latest_start": "Date of birth if not already on leave",
+    "no_work_period_weeks_after_birth": 6,
+    "unpaid_by_employer": "BCEA does not require employer to pay during maternity leave; employee claims from UIF",
+    "dismissal_protection": "Employer may not dismiss during or on account of maternity leave"
+  },
+
+  "parental_leave": {
+    "entitlement_consecutive_days": 10,
+    "applies_to": "Any parent (not on maternity leave) on birth of child or adoption/commissioning parent",
+    "effective_from": "2020-01-01",
+    "source": "Labour Laws Amendment Act, 2018"
+  },
+
+  "adoption_leave": {
+    "entitlement_consecutive_days": 10,
+    "applies_to": "Adoptive parent of child under age 2",
+    "effective_from": "2020-01-01"
+  },
+
+  "commissioning_parental_leave": {
+    "entitlement_consecutive_days": 10,
+    "applies_to": "Commissioning parent in surrogacy arrangement",
+    "effective_from": "2020-01-01"
+  }
+}

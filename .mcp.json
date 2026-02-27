@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "zenohr-context": {
+      "command": "C:\\Users\\manga\\.local\\bin\\uv.exe",
+      "args": ["run", ".mcp/server.py"],
+      "cwd": "c:\\Users\\manga\\ZenoHR"
+    }
+  }
+}

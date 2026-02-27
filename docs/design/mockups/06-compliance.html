@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Compliance - ZenoHR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    /* ── Score rings ──────────────────────────────────────────────── */
+    .score-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .score-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .score-card {
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      padding: 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .score-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+    }
+
+    .score-card.sars::before {
+      background: var(--brand-primary);
+    }
+
+    .score-card.bcea::before {
+      background: #27ae60;
+    }
+
+    .score-card.popia::before {
+      background: var(--brand-accent);
+    }
+
+    .score-ring-wrap {
+      position: relative;
+      width: 110px;
+      height: 110px;
+      margin: 0 auto 14px;
+    }
+
+    .score-ring-svg {
+      transform: rotate(-90deg);
+    }
+
+    .score-ring-track {
+      fill: none;
+      stroke: var(--surface-hover);
+      stroke-width: 10;
+    }
+
+    .score-ring-fill {
+      fill: none;
+      stroke-width: 10;
+      stroke-linecap: round;
+      transition: stroke-dashoffset .6s ease;
+    }
+
+    .score-ring-fill.sars-fill {
+      stroke: var(--brand-primary);
+    }
+
+    .score-ring-fill.bcea-fill {
+      stroke: #27ae60;
+    }
+
+    .score-ring-fill.popia-fill {
+      stroke: var(--brand-accent);
+    }
+
+    .score-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .score-pct {
+      font-size: 1.6rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      line-height: 1;
+    }
+
+    .score-pct.sars-col {
+      color: var(--brand-primary);
+    }
+
+    .score-pct.bcea-col {
+      color: #27ae60;
+    }
+
+    .score-pct.popia-col {
+      color: var(--brand-accent);
+    }
+
+    .score-label-sm {
+      font-size: .62rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-top: 2px;
+    }
+
+    .score-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .score-subtitle {
+      font-size: .78rem;
+      color: var(--text-secondary);
+      margin-bottom: 14px;
+    }
+
+    .score-items {
+      text-align: left;
+    }
+
+    .score-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .78rem;
+      color: var(--text-secondary);
+      padding: 4px 0;
+    }
+
+    .score-item-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .score-item-dot.pass {
+      background: #27ae60;
+    }
+
+    .score-item-dot.warn {
+      background: var(--brand-accent);
+    }
+
+    .score-item-dot.fail {
+      background: #e74c3c;
+    }
+
+    /* ── Filing schedule ──────────────────────────────────────────── */
+    .filing-status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: .75rem;
+      font-weight: 600;
+    }
+
+    .chip-submitted {
+      background: #e8f7ef;
+      color: #1a7a44;
+    }
+
+    .chip-upcoming {
+      background: var(--surface-hover);
+      color: var(--text-secondary);
+    }
+
+    .chip-overdue {
+      background: #fdecea;
+      color: #c0392b;
+    }
+
+    .chip-draft {
+      background: #fef3e2;
+      color: #b86b00;
+    }
+
+    [data-theme="dark"] .chip-submitted {
+      background: rgba(26, 122, 68, .25);
+      color: #3ddc82;
+    }
+
+    [data-theme="dark"] .chip-upcoming {
+      background: rgba(255, 255, 255, .08);
+      color: var(--text-muted);
+    }
+
+    [data-theme="dark"] .chip-overdue {
+      background: rgba(192, 57, 43, .25);
+      color: #ff6b6b;
+    }
+
+    [data-theme="dark"] .chip-draft {
+      background: rgba(212, 137, 14, .2);
+      color: #f0a83a;
+    }
+
+    .due-badge {
+      font-size: .72rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+    }
+
+    /* ── Risk items ───────────────────────────────────────────────── */
+    .risk-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .risk-item:last-child {
+      border-bottom: none;
+    }
+
+    .risk-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .risk-icon.high {
+      background: #fdecea;
+      color: #c0392b;
+    }
+
+    .risk-icon.medium {
+      background: #fef3e2;
+      color: #b86b00;
+    }
+
+    .risk-icon.low {
+      background: #e8f7ef;
+      color: #1a7a44;
+    }
+
+    [data-theme="dark"] .risk-icon.high {
+      background: rgba(192, 57, 43, .25);
+      color: #ff6b6b;
+    }
+
+    [data-theme="dark"] .risk-icon.medium {
+      background: rgba(212, 137, 14, .2);
+      color: #f0a83a;
+    }
+
+    [data-theme="dark"] .risk-icon.low {
+      background: rgba(26, 122, 68, .25);
+      color: #3ddc82;
+    }
+
+    .risk-meta {
+      flex: 1;
+    }
+
+    .risk-title {
+      font-size: .88rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+    }
+
+    .risk-desc {
+      font-size: .78rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+
+    .risk-action {
+      padding: 5px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface);
+      color: var(--text-primary);
+      font-size: .78rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s;
+    }
+
+    .risk-action:hover {
+      background: var(--surface-hover);
+    }
+
+    .risk-severity {
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+
+    .sev-high {
+      background: #fdecea;
+      color: #c0392b;
+    }
+
+    .sev-medium {
+      background: #fef3e2;
+      color: #b86b00;
+    }
+
+    .sev-low {
+      background: #e8f7ef;
+      color: #1a7a44;
+    }
+
+    [data-theme="dark"] .sev-high {
+      background: rgba(192, 57, 43, .25);
+      color: #ff6b6b;
+    }
+
+    [data-theme="dark"] .sev-medium {
+      background: rgba(212, 137, 14, .2);
+      color: #f0a83a;
+    }
+
+    [data-theme="dark"] .sev-low {
+      background: rgba(26, 122, 68, .25);
+      color: #3ddc82;
+    }
+
+    /* ── BCEA breakdown ───────────────────────────────────────────── */
+    .bcea-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .bcea-item {
+      background: var(--surface-hover);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    .bcea-item-label {
+      font-size: .72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 4px;
+    }
+
+    .bcea-item-value {
+      font-size: .9rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+    }
+
+    .bcea-item-sub {
+      font-size: .72rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* Dark accent compliance card */
+    .dark-accent-card {
+      background: var(--sidebar-bg);
+      color: #fff;
+      border-radius: 18px;
+      padding: 22px 24px;
+    }
+
+    .dark-accent-card .score-ring-track {
+      stroke: rgba(255, 255, 255, .12);
+    }
+
+    /* ── Mobile responsive ───────────────────────────── */
+    @media (max-width: 768px) {
+      .score-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      [style*="grid-template-columns:1fr 360px"] {
+        grid-template-columns: 1fr !important;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .score-grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      /* Filing table: hide Period & Submitted columns */
+      table th:nth-child(2),
+      table td:nth-child(2),
+      table th:nth-child(4),
+      table td:nth-child(4) {
+        display: none;
+      }
+
+      /* Year end banner buttons stack */
+      #yearEndBanner .flex {
+        flex-direction: column;
+      }
+
+      input,
+      select {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-layout">
+    <!-- ── Sidebar ─────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="../Zenologo2.png" alt="ZenoHR" class="sidebar-logo" id="sidebarLogo" />
+        <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Collapse sidebar">
+          <i data-lucide="panel-left-close" style="width:18px;height:18px;"></i>
+        </button>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Main</div>
+          <a href="02-dashboard.html" class="nav-item">
+            <i data-lucide="layout-dashboard" class="nav-icon"></i><span class="nav-label">Dashboard</span>
+          </a>
+          <a href="03-employees.html" class="nav-item">
+            <i data-lucide="users" class="nav-icon"></i><span class="nav-label">Employees</span>
+          </a>
+          <a href="07-timesheet.html" class="nav-item">
+            <i data-lucide="clock" class="nav-icon"></i><span class="nav-label">Timesheets</span>
+          </a>
+          <a href="05-leave.html" class="nav-item">
+            <i data-lucide="calendar-days" class="nav-icon"></i><span class="nav-label">Leave</span>
+            <span class="nav-badge">8</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Finance &amp; Compliance</div>
+          <a href="04-payroll.html" class="nav-item">
+            <i data-lucide="banknote" class="nav-icon"></i><span class="nav-label">Payroll</span>
+          </a>
+          <a href="06-compliance.html" class="nav-item active">
+            <i data-lucide="shield-check" class="nav-icon"></i><span class="nav-label">Compliance</span>
+            <span class="nav-badge">3</span>
+          </a>
+          <a href="08-audit.html" class="nav-item">
+            <i data-lucide="scroll-text" class="nav-icon"></i><span class="nav-label">Audit Trail</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Settings</div>
+          <a href="09-role-management.html" class="nav-item">
+            <i data-lucide="shield-check" class="nav-icon"></i><span class="nav-label">Role Management</span>
+          </a>
+          <a href="10-settings.html" class="nav-item">
+            <i data-lucide="building-2" class="nav-icon"></i><span class="nav-label">Departments</span>
+          </a>
+          <a href="10-settings.html" class="nav-item">
+            <i data-lucide="users" class="nav-icon"></i><span class="nav-label">Users</span>
+          </a>
+          <a href="10-settings.html" class="nav-item">
+            <i data-lucide="sliders-horizontal" class="nav-icon"></i><span class="nav-label">Company Settings</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Insights</div>
+          <a href="12-analytics.html" class="nav-item">
+            <i data-lucide="bar-chart-3" class="nav-icon"></i><span class="nav-label">Analytics</span>
+          </a>
+          <a href="13-my-analytics.html" class="nav-item">
+            <i data-lucide="activity" class="nav-icon"></i><span class="nav-label">My Analytics</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Account</div>
+          <a href="03-employees.html" class="nav-item">
+            <!-- /profile in Blazor — merged employee record + account prefs (REQ-SEC-002) -->
+            <i data-lucide="circle-user" class="nav-icon"></i><span class="nav-label">My Profile</span>
+          </a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-profile-card">
+          <img class="sidebar-profile-img" src="sarah.jpg" alt="Sarah Nkosi">
+          <div class="sidebar-profile-label">
+            <div class="sidebar-profile-name">Sarah Nkosi</div>
+            <div class="sidebar-profile-role">HR Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Main ───────────────────────────────────────────────────── -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+            <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+        </div>
+        <div class="header-search">
+          <span class="search-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </span>
+          <input type="text" placeholder="Search filings, alerts, BCEA checks…">
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-outline" style="font-size:.85rem;">
+            <i data-lucide="download" style="width:15px;height:15px;"></i> Export Report
+          </button>
+          <button class="icon-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+            <span class="notif-dot"></span>
+          </button>
+          <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
+            <i data-lucide="sun" style="width:18px;height:18px;" id="themeIcon"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="content-body">
+
+        <!-- Page header -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;">
+          <div>
+            <h1 style="font-size:1.5rem;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;margin:0 0 4px;">
+              Compliance</h1>
+            <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">SARS · BCEA · POPIA | Tax year 2025/2026
+            </p>
+          </div>
+        </div>
+
+        <!-- Year-end backup prompt banner (GAP-FEAT-003 — shown after EMP501/IRP5 submission complete) -->
+        <div id="yearEndBanner"
+          style="display:flex;align-items:flex-start;gap:12px;padding:14px 18px;margin-bottom:20px;background:#e8f0fb;border:1px solid rgba(29,71,119,.2);border-radius:12px;color:#1d4777;">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="1.8" style="flex-shrink:0;margin-top:1px;">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:.86rem;font-weight:600;margin-bottom:6px;">Tax year 2025/2026 filing complete.
+              Download your evidence pack for offline storage.</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              <button class="btn btn-primary btn-sm" style="font-size:.78rem;"
+                onclick="alert('Generating Evidence Pack PDF…')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" x2="12" y1="15" y2="3" />
+                </svg>
+                Download Evidence Pack PDF
+              </button>
+              <button class="btn btn-secondary btn-sm" style="font-size:.78rem;"
+                onclick="alert('Generating EMP501 CSV…')">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" x2="12" y1="15" y2="3" />
+                </svg>
+                Download EMP501 CSV
+              </button>
+              <button class="btn btn-ghost btn-sm" style="font-size:.78rem;"
+                onclick="document.getElementById('yearEndBanner').style.display='none'">Dismiss</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Score rings row -->
+        <div class="score-grid">
+          <!-- SARS -->
+          <div class="score-card sars">
+            <div class="score-ring-wrap">
+              <svg class="score-ring-svg" width="110" height="110" viewBox="0 0 110 110">
+                <circle class="score-ring-track" cx="55" cy="55" r="45" />
+                <circle class="score-ring-fill sars-fill" cx="55" cy="55" r="45" stroke-dasharray="282.7"
+                  stroke-dashoffset="22.6" />
+              </svg>
+              <div class="score-center">
+                <span class="score-pct sars-col">92%</span>
+                <span class="score-label-sm">SARS</span>
+              </div>
+            </div>
+            <div class="score-title">SARS Compliance</div>
+            <div class="score-subtitle">Tax obligations &amp; filings</div>
+            <div class="score-items">
+              <div class="score-item">
+                <div class="score-item-dot pass"></div>EMP201: Feb submitted
+              </div>
+              <div class="score-item">
+                <div class="score-item-dot pass"></div>PAYE calculations verified
+              </div>
+              <div class="score-item">
+                <div class="score-item-dot warn"></div>2 employees need IRP5 review
+              </div>
+              <div class="score-item">
+                <div class="score-item-dot pass"></div>ETI claims reconciled
+              </div>
+            </div>
+          </div>
+
+          <!-- BCEA -->
+          <div class="score-card bcea">
+            <div class="score-ring-wrap">
+              <svg class="score-ring-svg" width="110" height="110" viewBox="0 0 110 110">
+                <circle class="score-ring-track" cx="55" cy="55" r="45" />
+                <circle class="score-ring-fill bcea-fill" cx="55" cy="55" r="45" stroke-dasharray="282.7"
+                  stroke-dashoffset="0" />
+              </svg>
+              <div class="score-center">
+                <span class="score-pct bcea-col">100%</span>
+                <span class="score-label-sm">BCEA</span>
+              </div>
+            </div>
+            <div class="score-title">BCEA Compliance</div>
+            <div class="score-subtitle">Labour law: working time &amp; leave</div>
+            <div class="score-items">
+              <div class="score-item">
+                <div class="score-item-dot pass"></div>No overtime violations
+              </div>
+              <div class="score-item">
+                <div class="score-item-dot pass"></div>Leave balances accurate
+              </div>
+              <div class="score-item">
+                <div class="score-item-dot pass"></div>Payslips issued on time
+              </div>
+              <div class="score-item">
+                <div class="score-item-dot pass"></div>Notice periods compliant
+              </div>
+            </div>
+          </div>
+
+          <!-- POPIA -->
+          <div class="score-card popia">
+            <div class="score-ring-wrap">
+              <svg class="score-ring-svg" width="110" height="110" viewBox="0 0 110 110">
+                <circle class="score-ring-track" cx="55" cy="55" r="45" />
+                <circle class="score-ring-fill popia-fill" cx="55" cy="55" r="45" stroke-dasharray="282.7"
+                  stroke-dashoffset="37.2" />
+              </svg>
+              <div class="score-center">
+                <span class="score-pct popia-col">87%</span>
+                <span class="score-label-sm">POPIA</span>
+              </div>
+            </div>
+            <div class="score-title">POPIA Compliance</div>
+            <div class="score-subtitle">Data protection &amp; privacy</div>
+            <div class="score-items">
+              <div class="score-item">
+                <div class="score-item-dot pass"></div>Data retention policy active
+              </div>
+              <div class="score-item">
+                <div class="score-item-dot pass"></div>Consent records up to date
+              </div>
+              <div class="score-item">
+                <div class="score-item-dot fail"></div>3 records past retention limit
+              </div>
+              <div class="score-item">
+                <div class="score-item-dot warn"></div>Access log review pending
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2-col layout: filing schedule + risk items -->
+        <div style="display:grid;grid-template-columns:1fr 360px;gap:20px;align-items:start;margin-bottom:20px;">
+
+          <!-- Filing schedule -->
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div
+              style="padding:18px 24px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <h3 style="font-size:.95rem;font-weight:700;margin:0 0 2px;">SARS Filing Schedule</h3>
+                <p style="font-size:.78rem;color:var(--text-secondary);margin:0;">Tax year 1 March 2025 – 28 February
+                  2026</p>
+              </div>
+              <span class="badge badge-warning">1 pending</span>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Filing</th>
+                    <th>Period</th>
+                    <th>Due Date</th>
+                    <th>Submitted</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="font-weight:600;">EMP201</td>
+                    <td class="td-mono">Jan 2026</td>
+                    <td class="td-mono">7 Feb 2026</td>
+                    <td class="td-mono">5 Feb 2026</td>
+                    <td><span class="filing-status-chip chip-submitted"><i data-lucide="check-circle"
+                          style="width:12px;height:12px;"></i> Submitted</span></td>
+                    <td><button class="risk-action" style="font-size:.72rem;padding:3px 10px;">View</button></td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:600;">EMP201</td>
+                    <td class="td-mono">Feb 2026</td>
+                    <td class="td-mono">7 Mar 2026</td>
+                    <td class="td-mono">-</td>
+                    <td><span class="filing-status-chip chip-draft"><i data-lucide="file-edit"
+                          style="width:12px;height:12px;"></i> Draft</span></td>
+                    <td><button class="risk-action" style="font-size:.72rem;padding:3px 10px;">Prepare</button></td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:600;">EMP201</td>
+                    <td class="td-mono">Mar 2026</td>
+                    <td class="td-mono">7 Apr 2026</td>
+                    <td class="td-mono">-</td>
+                    <td><span class="filing-status-chip chip-upcoming"><i data-lucide="clock"
+                          style="width:12px;height:12px;"></i> Upcoming</span></td>
+                    <td><button class="risk-action" style="font-size:.72rem;padding:3px 10px;" disabled
+                        style="opacity:.5;">Prepare</button></td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:600;">EMP501</td>
+                    <td class="td-mono">2025/2026</td>
+                    <td class="td-mono">31 May 2026</td>
+                    <td class="td-mono">-</td>
+                    <td><span class="filing-status-chip chip-upcoming"><i data-lucide="clock"
+                          style="width:12px;height:12px;"></i> Upcoming</span></td>
+                    <td><button class="risk-action" style="font-size:.72rem;padding:3px 10px;" disabled>Prepare</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:600;">IRP5 / IT3(a)</td>
+                    <td class="td-mono">2025/2026</td>
+                    <td class="td-mono">31 May 2026</td>
+                    <td class="td-mono">-</td>
+                    <td><span class="filing-status-chip chip-upcoming"><i data-lucide="clock"
+                          style="width:12px;height:12px;"></i> Upcoming</span></td>
+                    <td><button class="risk-action" style="font-size:.72rem;padding:3px 10px;"
+                        disabled>Generate</button></td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:600;">EMP501</td>
+                    <td class="td-mono">2024/2025</td>
+                    <td class="td-mono">31 May 2025</td>
+                    <td class="td-mono">28 May 2025</td>
+                    <td><span class="filing-status-chip chip-submitted"><i data-lucide="check-circle"
+                          style="width:12px;height:12px;"></i> Submitted</span></td>
+                    <td><button class="risk-action" style="font-size:.72rem;padding:3px 10px;">Download</button></td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:600;">IRP5 / IT3(a)</td>
+                    <td class="td-mono">2024/2025</td>
+                    <td class="td-mono">31 May 2025</td>
+                    <td class="td-mono">28 May 2025</td>
+                    <td><span class="filing-status-chip chip-submitted"><i data-lucide="check-circle"
+                          style="width:12px;height:12px;"></i> Submitted</span></td>
+                    <td><button class="risk-action" style="font-size:.72px;padding:3px 10px;">Download</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Risk Items -->
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div
+              style="padding:18px 20px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+              <h3 style="font-size:.95rem;font-weight:700;margin:0;">Risk Items</h3>
+              <span class="badge badge-error" style="font-size:.72rem;">3 active</span>
+            </div>
+            <div style="padding:0 16px;">
+              <div class="risk-item">
+                <div class="risk-icon high">
+                  <i data-lucide="alert-triangle" style="width:17px;height:17px;"></i>
+                </div>
+                <div class="risk-meta">
+                  <div class="risk-title">POPIA: Records past retention limit</div>
+                  <div class="risk-desc">3 former employee files older than 5 years still active in system. Must be
+                    purged per POPIA Section 14.</div>
+                  <div style="margin-top:6px;"><span class="risk-severity sev-high">HIGH</span></div>
+                </div>
+              </div>
+
+              <div class="risk-item">
+                <div class="risk-icon medium">
+                  <i data-lucide="file-warning" style="width:17px;height:17px;"></i>
+                </div>
+                <div class="risk-meta">
+                  <div class="risk-title">SARS: 2 IRP5s need review</div>
+                  <div class="risk-desc">Thabo Molefe and Fatima Osman have unreconciled travel allowance codes. Review
+                    before EMP501 submission.</div>
+                  <div style="margin-top:6px;"><span class="risk-severity sev-medium">MEDIUM</span></div>
+                </div>
+              </div>
+
+              <div class="risk-item">
+                <div class="risk-icon medium">
+                  <i data-lucide="eye" style="width:17px;height:17px;"></i>
+                </div>
+                <div class="risk-meta">
+                  <div class="risk-title">POPIA: Access log review overdue</div>
+                  <div class="risk-desc">Quarterly access log review for payroll data is 12 days overdue. Required by
+                    POPIA Section 22.</div>
+                  <div style="margin-top:6px;"><span class="risk-severity sev-medium">MEDIUM</span></div>
+                </div>
+              </div>
+            </div>
+            <div style="padding:12px 16px;border-top:1px solid var(--border-subtle);">
+              <button class="btn btn-primary" style="width:100%;justify-content:center;font-size:.83rem;">
+                <i data-lucide="clipboard-check" style="width:15px;height:15px;"></i>
+                Run Compliance Check
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BCEA Working Time Summary -->
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div style="padding:18px 24px;border-bottom:1px solid var(--border-subtle);">
+            <h3 style="font-size:.95rem;font-weight:700;margin:0 0 2px;">BCEA Working Time Compliance: February 2026
+            </h3>
+            <p style="font-size:.78rem;color:var(--text-secondary);margin:0;">BCEA Section 9: 45-hour week limit ·
+              Section 10: overtime limits</p>
+          </div>
+          <div style="padding:20px 24px;">
+            <div class="bcea-grid" style="margin-bottom:20px;">
+              <div class="bcea-item">
+                <div class="bcea-item-label">Max Weekly Hours</div>
+                <div class="bcea-item-value">45 hrs</div>
+                <div class="bcea-item-sub">BCEA Section 9 limit</div>
+              </div>
+              <div class="bcea-item">
+                <div class="bcea-item-label">Max Daily Hours</div>
+                <div class="bcea-item-value">9 hrs</div>
+                <div class="bcea-item-sub">5-day week (8 hrs for 6-day)</div>
+              </div>
+              <div class="bcea-item">
+                <div class="bcea-item-label">Overtime Rate</div>
+                <div class="bcea-item-value">1.5×</div>
+                <div class="bcea-item-sub">2× on Sundays &amp; public holidays</div>
+              </div>
+              <div class="bcea-item">
+                <div class="bcea-item-label">Max OT per Week</div>
+                <div class="bcea-item-value">10 hrs</div>
+                <div class="bcea-item-sub">BCEA Section 10 limit</div>
+              </div>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    <th>Week Hours</th>
+                    <th>OT Hours</th>
+                    <th>Daily Max</th>
+                    <th>BCEA Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="avatar avatar-sm" style="background:#1d4777;">LD</div><span
+                          style="font-weight:500;">Lerato Dlamini</span>
+                      </div>
+                    </td>
+                    <td class="td-mono">43.5</td>
+                    <td class="td-mono">0</td>
+                    <td class="td-mono">8.5</td>
+                    <td><span class="filing-status-chip chip-submitted">✓ Compliant</span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="avatar avatar-sm" style="background:#d4890e;">TM</div><span
+                          style="font-weight:500;">Thabo Molefe</span>
+                      </div>
+                    </td>
+                    <td class="td-mono">47.0</td>
+                    <td class="td-mono">2.0</td>
+                    <td class="td-mono">9.0</td>
+                    <td><span class="filing-status-chip chip-submitted">✓ Compliant</span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="avatar avatar-sm" style="background:#34495e;">KdB</div><span
+                          style="font-weight:500;">Kobus de Bruyn</span>
+                      </div>
+                    </td>
+                    <td class="td-mono">45.0</td>
+                    <td class="td-mono">0</td>
+                    <td class="td-mono">9.0</td>
+                    <td><span class="filing-status-chip chip-submitted">✓ Compliant</span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="avatar avatar-sm" style="background:#2ecc71;color:#1a5e35;">SK</div><span
+                          style="font-weight:500;">Sipho Khumalo</span>
+                      </div>
+                    </td>
+                    <td class="td-mono">51.0</td>
+                    <td class="td-mono">6.0</td>
+                    <td class="td-mono">9.5</td>
+                    <td><span class="filing-status-chip chip-draft">⚠ Review OT</span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:8px;">
+                        <div class="avatar avatar-sm" style="background:#e74c3c;">PN</div><span
+                          style="font-weight:500;">Priya Naidoo</span>
+                      </div>
+                    </td>
+                    <td class="td-mono">42.0</td>
+                    <td class="td-mono">0</td>
+                    <td class="td-mono">8.0</td>
+                    <td><span class="filing-status-chip chip-submitted">✓ Compliant</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Mobile drawer overlay -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+  <!-- Admin Bottom Navigation (≤640px) -->
+  <nav class="bottom-nav">
+    <a href="02-dashboard.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="7" height="9" x="3" y="3" rx="1" />
+        <rect width="7" height="5" x="14" y="3" rx="1" />
+        <rect width="7" height="9" x="14" y="12" rx="1" />
+        <rect width="7" height="5" x="3" y="16" rx="1" />
+      </svg>
+      <span class="bottom-nav-label">Dashboard</span>
+    </a>
+    <a href="03-employees.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+      <span class="bottom-nav-label">Employees</span>
+    </a>
+    <a href="07-timesheet.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+      <span class="bottom-nav-label">Timesheets</span>
+    </a>
+    <button class="bottom-nav-item" onclick="openAdminMore()">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="5" cy="12" r="1" />
+        <circle cx="12" cy="12" r="1" />
+        <circle cx="19" cy="12" r="1" />
+      </svg>
+      <span class="bottom-nav-label">More</span>
+    </button>
+  </nav>
+  <div class="admin-more-overlay" id="adminMoreOverlay" onclick="closeAdminMore()"></div>
+  <div class="admin-more-sheet" id="adminMoreSheet" style="display:none;">
+    <div class="admin-more-title">More</div>
+    <div class="admin-more-grid">
+      <a href="05-leave.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="4" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>Leave</a>
+      <a href="04-payroll.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="20" height="14" x="2" y="5" rx="2" />
+          <line x1="2" y1="10" x2="22" y2="10" />
+        </svg>Payroll</a>
+      <a href="06-compliance.html" class="admin-more-item"
+        style="border-color:var(--brand-primary);color:var(--brand-primary);background:var(--brand-primary-subtle);"><svg
+          xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>Compliance</a>
+      <a href="08-audit.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>Audit Trail</a>
+      <a href="10-settings.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>Settings</a>
+      <a href="12-analytics.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>Analytics</a>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script>
+    lucide.createIcons();
+    let sidebarCollapsed = false;
+    let isDark = false;
+
+    function toggleSidebar() {
+      sidebarCollapsed = !sidebarCollapsed;
+      document.getElementById('sidebar').classList.toggle('collapsed', sidebarCollapsed);
+      lucide.createIcons();
+    }
+    function openDrawer() {
+      document.getElementById('sidebar').classList.add('drawer-open');
+      document.getElementById('drawerOverlay').classList.add('visible');
+    }
+    function closeDrawer() {
+      document.getElementById('sidebar').classList.remove('drawer-open');
+      document.getElementById('drawerOverlay').classList.remove('visible');
+    }
+    function openAdminMore() {
+      document.getElementById('adminMoreOverlay').classList.add('visible');
+      document.getElementById('adminMoreSheet').style.display = 'block';
+    }
+    function closeAdminMore() {
+      document.getElementById('adminMoreOverlay').classList.remove('visible');
+      document.getElementById('adminMoreSheet').style.display = 'none';
+    }
+    function toggleTheme() {
+      isDark = !isDark;
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      document.getElementById('themeIcon').setAttribute('data-lucide', isDark ? 'moon' : 'sun');
+      lucide.createIcons();
+    }
+  </script>
+</body>
+
+</html>

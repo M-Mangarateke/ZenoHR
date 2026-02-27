@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ZenoHR.Api/ZenoHR.Api.csproj" />
+    <Project Path="src/ZenoHR.Domain/ZenoHR.Domain.csproj" />
+    <Project Path="src/ZenoHR.Infrastructure/ZenoHR.Infrastructure.csproj" />
+    <Project Path="src/ZenoHR.Module.Audit/ZenoHR.Module.Audit.csproj" />
+    <Project Path="src/ZenoHR.Module.Compliance/ZenoHR.Module.Compliance.csproj" />
+    <Project Path="src/ZenoHR.Module.Employee/ZenoHR.Module.Employee.csproj" />
+    <Project Path="src/ZenoHR.Module.Leave/ZenoHR.Module.Leave.csproj" />
+    <Project Path="src/ZenoHR.Module.Payroll/ZenoHR.Module.Payroll.csproj" />
+    <Project Path="src/ZenoHR.Module.Risk/ZenoHR.Module.Risk.csproj" />
+    <Project Path="src/ZenoHR.Module.TimeAttendance/ZenoHR.Module.TimeAttendance.csproj" />
+    <Project Path="src/ZenoHR.Web/ZenoHR.Web.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ZenoHR.Architecture.Tests/ZenoHR.Architecture.Tests.csproj" />
+    <Project Path="tests/ZenoHR.Domain.Tests/ZenoHR.Domain.Tests.csproj" />
+    <Project Path="tests/ZenoHR.Integration.Tests/ZenoHR.Integration.Tests.csproj" />
+    <Project Path="tests/ZenoHR.Module.Compliance.Tests/ZenoHR.Module.Compliance.Tests.csproj" />
+    <Project Path="tests/ZenoHR.Module.Payroll.Tests/ZenoHR.Module.Payroll.Tests.csproj" />
+  </Folder>
+</Solution>

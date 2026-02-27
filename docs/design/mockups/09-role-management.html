@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZenoHR - Role Management</title>
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    /* ── Split-panel layout ── */
+    .roles-layout {
+      display: flex;
+      gap: var(--card-gap);
+      align-items: flex-start;
+      height: calc(100vh - 64px - 28px - 62px - 16px);
+      overflow: hidden;
+    }
+
+    /* Left panel: role list 30% */
+    .roles-list-panel {
+      width: 30%;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .roles-list-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4) var(--space-5);
+      border-bottom: 1px solid var(--border-default);
+      flex-shrink: 0;
+    }
+
+    .roles-list-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-3);
+    }
+
+    .role-card {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: 12px 14px;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      transition: all var(--transition-default);
+      border: 1.5px solid transparent;
+      margin-bottom: 4px;
+      background: var(--bg-surface);
+    }
+
+    .role-card:hover {
+      background: var(--bg-surface-hover);
+      border-color: var(--border-default);
+    }
+
+    .role-card.active {
+      background: var(--brand-primary-subtle);
+      border-color: var(--brand-primary);
+    }
+
+    [data-theme="dark"] .role-card.active {
+      background: rgba(29, 71, 119, 0.18);
+      border-color: rgba(74, 143, 212, 0.4);
+    }
+
+    .role-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .role-card-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .role-card-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .role-card-meta {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .role-user-count {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      flex-shrink: 0;
+    }
+
+    /* Right detail panel 70% */
+    .role-detail-panel {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: var(--card-gap);
+    }
+
+    /* Permission toggles */
+    .permission-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .permission-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      gap: var(--space-4);
+    }
+
+    .permission-row:last-child {
+      border-bottom: none;
+    }
+
+    .permission-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .permission-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    .permission-desc {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* Toggle switch */
+    .toggle-switch {
+      position: relative;
+      width: 40px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius-full);
+      background: var(--border-strong);
+      cursor: pointer;
+      transition: background var(--transition-default);
+    }
+
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      left: 3px;
+      top: 3px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: white;
+      transition: transform var(--transition-default);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle-switch input:checked+.toggle-track {
+      background: var(--brand-primary);
+    }
+
+    .toggle-switch input:checked+.toggle-track::after {
+      transform: translateX(18px);
+    }
+
+    /* Assigned users */
+    .assigned-user-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .assigned-user-row:last-child {
+      border-bottom: none;
+    }
+
+    /* Role type badge colors (role-specific) */
+    .role-badge-director {
+      background: #f0f4ff;
+      color: #3730a3;
+    }
+
+    .role-badge-hrmanager {
+      background: var(--brand-primary-subtle);
+      color: var(--brand-primary);
+    }
+
+    .role-badge-manager {
+      background: var(--brand-accent-subtle);
+      color: var(--brand-accent);
+    }
+
+    .role-badge-employee {
+      background: var(--success-subtle);
+      color: var(--success);
+    }
+
+    .role-badge-saasadmin {
+      background: var(--danger-subtle);
+      color: var(--danger);
+    }
+
+    [data-theme="dark"] .role-badge-director {
+      background: rgba(55, 48, 163, 0.2);
+      color: #a5b4fc;
+    }
+
+    [data-theme="dark"] .role-badge-hrmanager {
+      background: rgba(29, 71, 119, 0.25);
+      color: #93c5fd;
+    }
+
+    [data-theme="dark"] .role-badge-manager {
+      background: rgba(212, 137, 14, 0.2);
+      color: #fbbf24;
+    }
+
+    [data-theme="dark"] .role-badge-employee {
+      background: rgba(22, 163, 74, 0.15);
+      color: #4ade80;
+    }
+
+    [data-theme="dark"] .role-badge-saasadmin {
+      background: rgba(220, 38, 38, 0.15);
+      color: #f87171;
+    }
+
+    /* Section divider label */
+    .section-label {
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--text-muted);
+      margin-bottom: var(--space-4);
+    }
+
+    /* Dept scope note */
+    .dept-scope-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: 10px 14px;
+      background: var(--brand-primary-subtle);
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(29, 71, 119, 0.15);
+      margin-top: var(--space-4);
+    }
+
+    [data-theme="dark"] .dept-scope-row {
+      background: rgba(29, 71, 119, 0.12);
+      border-color: rgba(74, 143, 212, 0.2);
+    }
+
+    .form-select {
+      height: 40px;
+      background: var(--bg-input);
+      border: 1.5px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: 0 var(--space-3);
+      font-size: 13.5px;
+      color: var(--text-primary);
+      font-family: var(--font-primary);
+      outline: none;
+      transition: all var(--transition-default);
+      width: 100%;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+
+    .form-select:focus {
+      border-color: var(--border-focus);
+      box-shadow: var(--shadow-focus);
+    }
+
+    /* ── Mobile ≤640px ── */
+    @media (max-width: 640px) {
+      .roles-layout {
+        flex-direction: column;
+        height: auto;
+        overflow: visible;
+      }
+
+      .roles-list-panel {
+        width: 100%;
+        height: auto;
+        max-height: 260px;
+      }
+
+      .roles-list-scroll {
+        max-height: 200px;
+      }
+
+      .role-detail-panel {
+        height: auto;
+        overflow-y: visible;
+      }
+
+      .permission-row {
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .dept-scope-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <img src="../Zenologo2.png" alt="ZenoHR" class="sidebar-logo-img">
+        <span class="sidebar-logo-text">Zeno<em>HR</em></span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Main</div>
+          <a class="nav-item" href="02-dashboard.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="7" height="9" x="3" y="3" rx="1" />
+              <rect width="7" height="5" x="14" y="3" rx="1" />
+              <rect width="7" height="9" x="14" y="12" rx="1" />
+              <rect width="7" height="5" x="3" y="16" rx="1" />
+            </svg>
+            <span class="nav-label">Dashboard</span>
+          </a>
+          <a class="nav-item" href="03-employees.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span class="nav-label">Employees</span>
+          </a>
+          <a class="nav-item" href="07-timesheet.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span class="nav-label">Timesheets</span>
+          </a>
+          <a class="nav-item" href="05-leave.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+              <line x1="16" x2="16" y1="2" y2="6" />
+              <line x1="8" x2="8" y1="2" y2="6" />
+              <line x1="3" x2="21" y1="10" y2="10" />
+            </svg>
+            <span class="nav-label">Leave</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Finance &amp; Compliance</div>
+          <a class="nav-item" href="04-payroll.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="14" x="2" y="5" rx="2" />
+              <line x1="2" x2="22" y1="10" y2="10" />
+            </svg>
+            <span class="nav-label">Payroll</span>
+          </a>
+          <a class="nav-item" href="06-compliance.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span class="nav-label">Compliance</span>
+            <span class="nav-badge">3</span>
+          </a>
+          <a class="nav-item" href="08-audit.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" x2="8" y1="13" y2="13" />
+              <line x1="16" x2="8" y1="17" y2="17" />
+            </svg>
+            <span class="nav-label">Audit Trail</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Settings</div>
+          <a class="nav-item active" href="09-role-management.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span class="nav-label">Role Management</span>
+          </a>
+          <a class="nav-item" href="10-settings.html">
+            <i data-lucide="building-2" class="nav-icon"></i><span class="nav-label">Departments</span>
+          </a>
+          <a class="nav-item" href="10-settings.html">
+            <i data-lucide="users" class="nav-icon"></i><span class="nav-label">Users</span>
+          </a>
+          <a class="nav-item" href="10-settings.html">
+            <i data-lucide="sliders-horizontal" class="nav-icon"></i><span class="nav-label">Company Settings</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Insights</div>
+          <a class="nav-item" href="12-analytics.html">
+            <i data-lucide="bar-chart-3" class="nav-icon"></i><span class="nav-label">Analytics</span>
+          </a>
+          <a class="nav-item" href="13-my-analytics.html">
+            <i data-lucide="activity" class="nav-icon"></i><span class="nav-label">My Analytics</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Account</div>
+          <a class="nav-item" href="03-employees.html">
+            <!-- /profile in Blazor — merged employee record + account prefs (REQ-SEC-002) -->
+            <i data-lucide="circle-user" class="nav-icon"></i><span class="nav-label">My Profile</span>
+          </a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-profile-card">
+          <img class="sidebar-profile-img" src="sarah.jpg" alt="Sarah Nkosi">
+          <div class="sidebar-profile-label">
+            <div class="sidebar-profile-name">Sarah Nkosi</div>
+            <div class="sidebar-profile-role">HR Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main-wrapper" id="mainWrapper">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+            <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+        </div>
+        <div class="header-search">
+          <span class="search-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </span>
+          <input type="text" placeholder="Search roles, permissions…">
+        </div>
+        <div class="topbar-right">
+          <button class="icon-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+            <span class="notif-dot"></span>
+          </button>
+          <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+            <svg id="sun-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+            <svg id="moon-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+              style="display:none">
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <main class="page-content">
+        <div class="roles-layout">
+
+          <!-- Left: Role List Panel -->
+          <div class="card roles-list-panel" style="padding:0;overflow:hidden;">
+            <div class="roles-list-header">
+              <span class="card-title">Roles <span class="text-muted font-mono"
+                  style="font-size:12px;font-weight:500;">6</span></span>
+              <button class="btn btn-primary btn-sm" onclick="createNewRole()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" x2="12" y1="5" y2="19" />
+                  <line x1="5" x2="19" y1="12" y2="12" />
+                </svg>
+                Create Role
+              </button>
+            </div>
+            <div class="roles-list-scroll">
+
+              <!-- Director Role -->
+              <div class="role-card active" onclick="selectRole(this, 'Executive Director', 'director', null, 2)"
+                id="role-director">
+                <div class="role-icon role-badge-director">ED</div>
+                <div class="role-card-info">
+                  <div class="role-card-name">Executive Director</div>
+                  <div class="role-card-meta">
+                    <span class="badge badge-nodot"
+                      style="font-size:10px;padding:2px 7px;background:#f0f4ff;color:#3730a3;">Director</span>
+                    &nbsp;· All departments
+                  </div>
+                </div>
+                <div class="role-user-count">2</div>
+              </div>
+
+              <!-- HR Manager Role -->
+              <div class="role-card" onclick="selectRole(this, 'HR Manager', 'hrmanager', null, 3)" id="role-hrmanager">
+                <div class="role-icon role-badge-hrmanager">HM</div>
+                <div class="role-card-info">
+                  <div class="role-card-name">HR Manager</div>
+                  <div class="role-card-meta">
+                    <span class="badge badge-primary badge-nodot"
+                      style="font-size:10px;padding:2px 7px;">HRManager</span>
+                    &nbsp;· All departments
+                  </div>
+                </div>
+                <div class="role-user-count">3</div>
+              </div>
+
+              <!-- Engineering Manager -->
+              <div class="role-card" onclick="selectRole(this, 'Engineering Manager', 'manager', 'Engineering', 1)"
+                id="role-engmgr">
+                <div class="role-icon role-badge-manager">EM</div>
+                <div class="role-card-info">
+                  <div class="role-card-name">Engineering Manager</div>
+                  <div class="role-card-meta">
+                    <span class="badge badge-accent badge-nodot" style="font-size:10px;padding:2px 7px;">Manager</span>
+                    &nbsp;· Engineering
+                  </div>
+                </div>
+                <div class="role-user-count">1</div>
+              </div>
+
+              <!-- Operations Manager -->
+              <div class="role-card" onclick="selectRole(this, 'Operations Manager', 'manager', 'Operations', 2)"
+                id="role-opsmgr">
+                <div class="role-icon role-badge-manager">OM</div>
+                <div class="role-card-info">
+                  <div class="role-card-name">Operations Manager</div>
+                  <div class="role-card-meta">
+                    <span class="badge badge-accent badge-nodot" style="font-size:10px;padding:2px 7px;">Manager</span>
+                    &nbsp;· Operations
+                  </div>
+                </div>
+                <div class="role-user-count">2</div>
+              </div>
+
+              <!-- Standard Employee -->
+              <div class="role-card" onclick="selectRole(this, 'Standard Employee', 'employee', null, 234)"
+                id="role-employee">
+                <div class="role-icon role-badge-employee">SE</div>
+                <div class="role-card-info">
+                  <div class="role-card-name">Standard Employee</div>
+                  <div class="role-card-meta">
+                    <span class="badge badge-success badge-nodot"
+                      style="font-size:10px;padding:2px 7px;">Employee</span>
+                    &nbsp;· Self-service only
+                  </div>
+                </div>
+                <div class="role-user-count">234</div>
+              </div>
+
+              <!-- SaaS Admin -->
+              <div class="role-card" onclick="selectRole(this, 'Platform Admin', 'saasadmin', null, 1)"
+                id="role-saasadmin">
+                <div class="role-icon role-badge-saasadmin">PA</div>
+                <div class="role-card-info">
+                  <div class="role-card-name">Platform Admin</div>
+                  <div class="role-card-meta">
+                    <span class="badge badge-danger badge-nodot"
+                      style="font-size:10px;padding:2px 7px;">SaasAdmin</span>
+                    &nbsp;· System-wide
+                  </div>
+                </div>
+                <div class="role-user-count">1</div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Right: Role Detail Panel -->
+          <div class="role-detail-panel" id="roleDetail">
+
+            <!-- Role Header Card -->
+            <div class="card" style="padding: var(--space-5) var(--space-6);">
+              <div class="flex items-center justify-between mb-5">
+                <div class="flex items-center gap-4">
+                  <div class="role-icon role-badge-director" id="detailIcon"
+                    style="width:52px;height:52px;border-radius:14px;font-size:18px;">ED</div>
+                  <div>
+                    <input id="roleNameInput" type="text" value="Executive Director"
+                      style="font-size:20px;font-weight:700;color:var(--text-primary);letter-spacing:-0.4px;border:none;background:transparent;outline:none;width:100%;padding:0;font-family:var(--font-primary);"
+                      onfocus="this.style.background='var(--bg-input)';this.style.border='1.5px solid var(--border-focus)';this.style.borderRadius='6px';this.style.padding='4px 8px';this.style.boxShadow='0 0 0 3px rgba(29,71,119,0.12)'"
+                      onblur="this.style.background='transparent';this.style.border='none';this.style.boxShadow='none';this.style.padding='0'">
+                    <div class="flex items-center gap-2 mt-2">
+                      <span class="badge badge-nodot" id="baseRoleBadge"
+                        style="background:#f0f4ff;color:#3730a3;font-size:11px;">Director</span>
+                      <span class="text-muted" style="font-size:11px;">System base type · read-only</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex gap-3">
+                  <button class="btn btn-danger btn-sm" style="opacity:0.85;" onclick="confirmDelete()">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                    </svg>
+                    Delete Role
+                  </button>
+                  <button class="btn btn-primary btn-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Save Changes
+                  </button>
+                </div>
+              </div>
+
+              <!-- Department Assignment (shown for Manager base type) -->
+              <div id="deptSection" style="display:none;">
+                <div class="divider" style="margin: var(--space-4) 0;"></div>
+                <div class="section-label">Department Scope</div>
+                <div class="form-group">
+                  <label class="form-label">Assigned Department</label>
+                  <select class="form-select" id="deptSelect">
+                    <option>Engineering</option>
+                    <option>Operations</option>
+                    <option>Finance</option>
+                    <option>Human Resources</option>
+                    <option>Sales</option>
+                    <option>Legal</option>
+                    <option>Logistics</option>
+                  </select>
+                  <div class="dept-scope-row">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                      stroke="var(--brand-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 16v-4" />
+                      <path d="M12 8h.01" />
+                    </svg>
+                    <span style="font-size:12px;color:var(--brand-primary);">Managers can only view and approve data for
+                      their assigned department's employees.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Permission Toggles (shown for Manager base type) -->
+            <div class="card" id="permissionsCard" style="display:none;">
+              <div class="card-header" style="margin-bottom:var(--space-4);">
+                <span class="card-title">Permissions</span>
+                <span class="badge badge-muted badge-nodot">Manager scope only</span>
+              </div>
+              <div class="permission-list">
+                <div class="permission-row">
+                  <div class="permission-info">
+                    <div class="permission-name">leave.team.view</div>
+                    <div class="permission-desc">View leave requests submitted by team members</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="toggle-track"></span>
+                  </label>
+                </div>
+                <div class="permission-row">
+                  <div class="permission-info">
+                    <div class="permission-name">leave.team.approve</div>
+                    <div class="permission-desc">Approve or reject leave requests for team members</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="toggle-track"></span>
+                  </label>
+                </div>
+                <div class="permission-row">
+                  <div class="permission-info">
+                    <div class="permission-name">timesheet.team.view</div>
+                    <div class="permission-desc">View timesheets submitted by team members</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="toggle-track"></span>
+                  </label>
+                </div>
+                <div class="permission-row">
+                  <div class="permission-info">
+                    <div class="permission-name">timesheet.team.approve</div>
+                    <div class="permission-desc">Approve or reject team timesheets</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox">
+                    <span class="toggle-track"></span>
+                  </label>
+                </div>
+                <div class="permission-row">
+                  <div class="permission-info">
+                    <div class="permission-name">employee.team.view</div>
+                    <div class="permission-desc">View employee profiles within assigned department</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox" checked>
+                    <span class="toggle-track"></span>
+                  </label>
+                </div>
+                <div class="permission-row">
+                  <div class="permission-info">
+                    <div class="permission-name">reports.team.view</div>
+                    <div class="permission-desc">Access team-scoped reports and summaries</div>
+                  </div>
+                  <label class="toggle-switch">
+                    <input type="checkbox">
+                    <span class="toggle-track"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Assigned Users -->
+            <div class="card">
+              <div class="card-header" style="margin-bottom:var(--space-4);">
+                <span class="card-title">Assigned Users</span>
+                <span class="badge badge-muted badge-nodot font-mono" id="assignedCount">2 users</span>
+              </div>
+              <div id="assignedUsersList">
+                <!-- Populated by JS -->
+              </div>
+              <button class="btn btn-secondary btn-sm" style="margin-top:var(--space-4);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" x2="12" y1="5" y2="19" />
+                  <line x1="5" x2="19" y1="12" y2="12" />
+                </svg>
+                Assign User
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    // ── Sidebar & theme ──
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('collapsed');
+      const icon = document.getElementById('toggle-icon');
+      icon.innerHTML = sidebar.classList.contains('collapsed')
+        ? '<polyline points="9 18 15 12 9 6"/>'
+        : '<polyline points="15 18 9 12 15 6"/>';
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('sun-icon').style.display = isDark ? 'block' : 'none';
+      document.getElementById('moon-icon').style.display = isDark ? 'none' : 'block';
+    }
+
+    // ── Role data ──
+    const roleData = {
+      director: {
+        users: [
+          { initials: 'JM', name: 'James Mathebula', email: 'james@zenowethu.co.za', color: '#3730a3', bg: '#f0f4ff' },
+          { initials: 'CE', name: 'Carol Ellis', email: 'carol@zenowethu.co.za', color: '#3730a3', bg: '#f0f4ff' },
+        ]
+      },
+      hrmanager: {
+        users: [
+          { initials: 'SN', name: 'Sarah Nkosi', email: 'sarah@zenowethu.co.za', color: 'var(--brand-primary)', bg: 'var(--brand-primary-subtle)' },
+          { initials: 'NZ', name: 'Nandi Zulu', email: 'nandi@zenowethu.co.za', color: '#d4890e', bg: '#fdf3e0' },
+          { initials: 'PM', name: 'Priya Moodley', email: 'priya.m@zenowethu.co.za', color: 'var(--brand-primary)', bg: 'var(--brand-primary-subtle)' },
+        ]
+      },
+      manager: {
+        users: [
+          { initials: 'TM', name: 'Thabo Molefe', email: 'thabo@zenowethu.co.za', color: '#d4890e', bg: '#fdf3e0' },
+        ]
+      },
+      employee: {
+        users: [
+          { initials: 'LD', name: 'Lerato Dlamini', email: 'lerato@zenowethu.co.za', color: 'var(--brand-primary)', bg: 'var(--brand-primary-subtle)' },
+          { initials: 'KD', name: 'Kobus de Bruyn', email: 'kobus@zenowethu.co.za', color: '#2563eb', bg: '#eff6ff' },
+          { initials: '...', name: '232 more employees', email: 'View all in Employees →', color: 'var(--text-muted)', bg: 'var(--bg-page)' },
+        ]
+      },
+      saasadmin: {
+        users: [
+          { initials: 'ZA', name: 'ZenoHR Support', email: 'admin@zenohr.co.za', color: '#dc2626', bg: '#fef2f2' },
+        ]
+      },
+    };
+
+    const badgeStyles = {
+      director: { text: 'Director', bg: '#f0f4ff', color: '#3730a3' },
+      hrmanager: { text: 'HRManager', bg: 'var(--brand-primary-subtle)', color: 'var(--brand-primary)' },
+      manager: { text: 'Manager', bg: 'var(--brand-accent-subtle)', color: 'var(--brand-accent)' },
+      employee: { text: 'Employee', bg: 'var(--success-subtle)', color: 'var(--success)' },
+      saasadmin: { text: 'SaasAdmin', bg: 'var(--danger-subtle)', color: 'var(--danger)' },
+    };
+
+    const iconClasses = {
+      director: 'role-badge-director',
+      hrmanager: 'role-badge-hrmanager',
+      manager: 'role-badge-manager',
+      employee: 'role-badge-employee',
+      saasadmin: 'role-badge-saasadmin',
+    };
+
+    function selectRole(el, name, baseType, dept, userCount) {
+      // Update list selection
+      document.querySelectorAll('.role-card').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+
+      // Update icon
+      const iconEl = document.getElementById('detailIcon');
+      iconEl.className = 'role-icon ' + iconClasses[baseType];
+      iconEl.style.cssText = 'width:52px;height:52px;border-radius:14px;font-size:18px;';
+      iconEl.textContent = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+
+      // Update name input
+      document.getElementById('roleNameInput').value = name;
+
+      // Update base role badge
+      const bs = badgeStyles[baseType];
+      const badge = document.getElementById('baseRoleBadge');
+      badge.textContent = bs.text;
+      badge.style.background = bs.bg;
+      badge.style.color = bs.color;
+
+      // Show/hide dept + permissions for Manager
+      const isManager = baseType === 'manager';
+      document.getElementById('deptSection').style.display = isManager ? '' : 'none';
+      document.getElementById('permissionsCard').style.display = isManager ? '' : 'none';
+
+      if (isManager && dept) {
+        document.getElementById('deptSelect').value = dept;
+      }
+
+      // Update assigned users
+      const key = baseType === 'manager' ? 'manager' : baseType;
+      const users = roleData[key]?.users || [];
+      document.getElementById('assignedCount').textContent = userCount + ' user' + (userCount !== 1 ? 's' : '');
+
+      const list = document.getElementById('assignedUsersList');
+      list.innerHTML = users.map(u => `
+    <div class="assigned-user-row">
+      <div class="avatar" style="background:${u.bg};color:${u.color};">${u.initials}</div>
+      <div class="flex-1 min-w-0">
+        <div class="person-name">${u.name}</div>
+        <div class="person-sub">${u.email}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="color:var(--text-muted);font-size:11px;" ${u.initials === '...' ? 'disabled' : ''}>Remove</button>
+    </div>
+  `).join('');
+    }
+
+    function createNewRole() {
+      alert('New Role wizard would open here.');
+    }
+
+    function confirmDelete() {
+      alert('Delete confirmation modal would appear. This action cannot be undone.');
+    }
+
+    // Init default selection
+    selectRole(document.getElementById('role-director'), 'Executive Director', 'director', null, 2);
+
+    // Wire up remaining role cards with their correct data
+    document.getElementById('role-hrmanager').onclick = () =>
+      selectRole(document.getElementById('role-hrmanager'), 'HR Manager', 'hrmanager', null, 3);
+    document.getElementById('role-engmgr').onclick = () =>
+      selectRole(document.getElementById('role-engmgr'), 'Engineering Manager', 'manager', 'Engineering', 1);
+    document.getElementById('role-opsmgr').onclick = () =>
+      selectRole(document.getElementById('role-opsmgr'), 'Operations Manager', 'manager', 'Operations', 2);
+    document.getElementById('role-employee').onclick = () =>
+      selectRole(document.getElementById('role-employee'), 'Standard Employee', 'employee', null, 234);
+    document.getElementById('role-saasadmin').onclick = () =>
+      selectRole(document.getElementById('role-saasadmin'), 'Platform Admin', 'saasadmin', null, 1);
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('collapsed');
+      const icon = document.getElementById('toggle-icon');
+      icon.innerHTML = sidebar.classList.contains('collapsed')
+        ? '<polyline points="9 18 15 12 9 6"/>'
+        : '<polyline points="15 18 9 12 15 6"/>';
+    }
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('sun-icon').style.display = isDark ? 'block' : 'none';
+      document.getElementById('moon-icon').style.display = isDark ? 'none' : 'block';
+    }
+    function openDrawer() {
+      document.getElementById('sidebar').classList.add('drawer-open');
+      document.getElementById('drawerOverlay').classList.add('visible');
+    }
+    function closeDrawer() {
+      document.getElementById('sidebar').classList.remove('drawer-open');
+      document.getElementById('drawerOverlay').classList.remove('visible');
+    }
+    function openAdminMore() {
+      document.getElementById('adminMoreOverlay').classList.add('visible');
+      document.getElementById('adminMoreSheet').style.display = 'block';
+    }
+    function closeAdminMore() {
+      document.getElementById('adminMoreOverlay').classList.remove('visible');
+      document.getElementById('adminMoreSheet').style.display = 'none';
+    }
+  </script>
+
+  <!-- Mobile drawer overlay -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+  <!-- Admin Bottom Navigation (≤640px) -->
+  <nav class="bottom-nav">
+    <a href="02-dashboard.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="7" height="9" x="3" y="3" rx="1" />
+        <rect width="7" height="5" x="14" y="3" rx="1" />
+        <rect width="7" height="9" x="14" y="12" rx="1" />
+        <rect width="7" height="5" x="3" y="16" rx="1" />
+      </svg>
+      <span class="bottom-nav-label">Dashboard</span>
+    </a>
+    <a href="03-employees.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+      <span class="bottom-nav-label">Employees</span>
+    </a>
+    <a href="09-role-management.html" class="bottom-nav-item active">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+      <span class="bottom-nav-label">Roles</span>
+    </a>
+    <button class="bottom-nav-item" onclick="openAdminMore()">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="5" cy="12" r="1" />
+        <circle cx="12" cy="12" r="1" />
+        <circle cx="19" cy="12" r="1" />
+      </svg>
+      <span class="bottom-nav-label">More</span>
+    </button>
+  </nav>
+  <div class="admin-more-overlay" id="adminMoreOverlay" onclick="closeAdminMore()"></div>
+  <div class="admin-more-sheet" id="adminMoreSheet" style="display:none;">
+    <div class="admin-more-title">More</div>
+    <div class="admin-more-grid">
+      <a href="07-timesheet.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="12 6 12 12 16 14" />
+        </svg>Timesheets</a>
+      <a href="05-leave.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="4" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>Leave</a>
+      <a href="04-payroll.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="20" height="14" x="2" y="5" rx="2" />
+          <line x1="2" y1="10" x2="22" y2="10" />
+        </svg>Payroll</a>
+      <a href="06-compliance.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>Compliance</a>
+      <a href="08-audit.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>Audit Trail</a>
+      <a href="10-settings.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>Settings</a>
+      <a href="12-analytics.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>Analytics</a>
+    </div>
+  </div>
+
+</body>
+
+</html>

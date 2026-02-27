@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leave Management - ZenoHR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    /* ── Calendar ─────────────────────────────────────────────────── */
+    .calendar-card {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .calendar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .calendar-header h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .cal-nav {
+      display: flex;
+      gap: 4px;
+    }
+
+    .cal-nav button {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface);
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .15s;
+    }
+
+    .cal-nav button:hover {
+      background: var(--surface-hover);
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      padding: 0 16px 16px;
+    }
+
+    .cal-day-name {
+      text-align: center;
+      font-size: .7rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: 12px 0 8px;
+    }
+
+    .cal-day {
+      position: relative;
+      text-align: center;
+      padding: 6px 4px 10px;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background .15s;
+      min-height: 54px;
+    }
+
+    .cal-day:hover {
+      background: var(--surface-hover);
+    }
+
+    .cal-day.other-month .day-num {
+      color: var(--text-disabled);
+    }
+
+    .cal-day.today .day-num {
+      background: var(--brand-primary);
+      color: #fff;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      line-height: 26px;
+      display: inline-block;
+      font-weight: 600;
+    }
+
+    .day-num {
+      font-size: .8rem;
+      font-weight: 500;
+      display: block;
+      line-height: 26px;
+    }
+
+    .day-dots {
+      display: flex;
+      gap: 3px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 2px;
+    }
+
+    .day-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .dot-annual {
+      background: var(--brand-primary);
+    }
+
+    .dot-sick {
+      background: #e74c3c;
+    }
+
+    .dot-family {
+      background: var(--brand-accent);
+    }
+
+    .dot-maternity {
+      background: #9b59b6;
+    }
+
+    .dot-parental {
+      background: #2ecc71;
+    }
+
+    /* ── Leave type legend ────────────────────────────────────────── */
+    .legend {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 0 24px 16px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: .78rem;
+      color: var(--text-secondary);
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── Balance summary ──────────────────────────────────────────── */
+    .balance-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .balance-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .balance-card {
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 16px 18px;
+    }
+
+    .balance-card-label {
+      font-size: .75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: 8px;
+    }
+
+    .balance-card-days {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      margin-bottom: 2px;
+    }
+
+    .balance-card-sub {
+      font-size: .78rem;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+
+    .balance-bar {
+      height: 6px;
+      background: var(--surface-hover);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .balance-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+    }
+
+    /* ── Request list ─────────────────────────────────────────────── */
+    .request-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .request-row:last-child {
+      border-bottom: none;
+    }
+
+    .request-meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .request-name {
+      font-size: .88rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .request-detail {
+      font-size: .78rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .request-dates {
+      font-size: .78rem;
+      font-family: var(--font-mono);
+      color: var(--text-secondary);
+      white-space: nowrap;
+    }
+
+    .request-days {
+      font-size: .88rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      font-family: var(--font-mono);
+      white-space: nowrap;
+      text-align: right;
+      min-width: 36px;
+    }
+
+    .request-actions {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-approve {
+      padding: 5px 12px;
+      border-radius: 7px;
+      font-size: .78rem;
+      font-weight: 600;
+      background: #e8f7ef;
+      color: #1a7a44;
+      border: none;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .btn-approve:hover {
+      background: #c7edda;
+    }
+
+    .btn-reject {
+      padding: 5px 12px;
+      border-radius: 7px;
+      font-size: .78rem;
+      font-weight: 600;
+      background: #fdecea;
+      color: #c0392b;
+      border: none;
+      cursor: pointer;
+      transition: background .15s;
+    }
+
+    .btn-reject:hover {
+      background: #f9c9c6;
+    }
+
+    [data-theme="dark"] .btn-approve {
+      background: rgba(26, 122, 68, .25);
+      color: #3ddc82;
+    }
+
+    [data-theme="dark"] .btn-approve:hover {
+      background: rgba(26, 122, 68, .4);
+    }
+
+    [data-theme="dark"] .btn-reject {
+      background: rgba(192, 57, 43, .25);
+      color: #ff6b6b;
+    }
+
+    [data-theme="dark"] .btn-reject:hover {
+      background: rgba(192, 57, 43, .4);
+    }
+
+    /* leave detail modal overlay */
+    .leave-detail-panel {
+      position: fixed;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 340px;
+      background: var(--surface);
+      border-left: 1px solid var(--border-subtle);
+      z-index: 300;
+      padding: 24px;
+      overflow-y: auto;
+      transform: translateX(100%);
+      transition: transform .25s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    .leave-detail-panel.open {
+      transform: translateX(0);
+    }
+
+    .detail-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .detail-close:hover {
+      color: var(--text-primary);
+    }
+
+    .detail-employee {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .detail-info h4 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 0 0 2px;
+    }
+
+    .detail-info p {
+      font-size: .8rem;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .detail-section {
+      margin-bottom: 20px;
+    }
+
+    .detail-section-label {
+      font-size: .72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+    }
+
+    .detail-row-label {
+      font-size: .8rem;
+      color: var(--text-secondary);
+    }
+
+    .detail-row-value {
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .detail-row-value.mono {
+      font-family: var(--font-mono);
+    }
+
+    .detail-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .detail-actions button {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: .85rem;
+      cursor: pointer;
+      border: none;
+    }
+
+    .apply-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border-radius: 10px;
+      background: var(--brand-primary);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: .85rem;
+      transition: opacity .15s;
+    }
+
+    .apply-btn:hover {
+      opacity: .88;
+    }
+
+    /* ── Mobile responsive ──────────────────────────────── */
+    @media (max-width: 768px) {
+      div[style*="grid-template-columns:1fr 340px"] {
+        grid-template-columns: 1fr !important;
+      }
+
+      .balance-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .request-dates {
+        display: none;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .balance-grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      .balance-card-days {
+        font-size: 1.3rem;
+      }
+
+      /* Calendar compact */
+      .cal-day {
+        min-height: 42px;
+        padding: 4px 2px 6px;
+      }
+
+      .day-num {
+        font-size: .7rem;
+      }
+
+      .legend {
+        gap: 8px;
+        padding: 0 12px 12px;
+      }
+
+      .legend-item {
+        font-size: .7rem;
+      }
+
+      /* Leave detail panel → bottom sheet */
+      .leave-detail-panel {
+        width: 100%;
+        left: 0;
+        right: 0;
+        top: auto;
+        bottom: 0;
+        border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+        max-height: 85vh;
+        border-left: none;
+        transform: translateY(100%);
+      }
+
+      .leave-detail-panel.open {
+        transform: translateY(0);
+      }
+
+      /* Compact header */
+      h1[style*="font-size:1.5rem"] {
+        font-size: 1.2rem !important;
+      }
+
+      .apply-btn {
+        width: 100%;
+        justify-content: center;
+        margin-top: 8px;
+      }
+
+      div[style*="display:flex;align-items:flex-start;justify-content:space-between"] {
+        flex-direction: column;
+      }
+
+      /* Approved leave table hide cols */
+      .table-wrapper table th:nth-child(6),
+      .table-wrapper table td:nth-child(6),
+      .table-wrapper table th:nth-child(7),
+      .table-wrapper table td:nth-child(7) {
+        display: none;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-layout">
+    <!-- ── Sidebar ─────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="../Zenologo2.png" alt="ZenoHR" class="sidebar-logo" id="sidebarLogo" />
+        <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Collapse sidebar">
+          <i data-lucide="panel-left-close" style="width:18px;height:18px;"></i>
+        </button>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Main</div>
+          <a href="02-dashboard.html" class="nav-item">
+            <i data-lucide="layout-dashboard" class="nav-icon"></i><span class="nav-label">Dashboard</span>
+          </a>
+          <a href="03-employees.html" class="nav-item">
+            <i data-lucide="users" class="nav-icon"></i><span class="nav-label">Employees</span>
+          </a>
+          <a href="07-timesheet.html" class="nav-item">
+            <i data-lucide="clock" class="nav-icon"></i><span class="nav-label">Timesheets</span>
+          </a>
+          <a href="05-leave.html" class="nav-item active">
+            <i data-lucide="calendar-days" class="nav-icon"></i><span class="nav-label">Leave</span>
+            <span class="nav-badge">8</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Finance &amp; Compliance</div>
+          <a href="04-payroll.html" class="nav-item">
+            <i data-lucide="banknote" class="nav-icon"></i><span class="nav-label">Payroll</span>
+          </a>
+          <a href="06-compliance.html" class="nav-item">
+            <i data-lucide="shield-check" class="nav-icon"></i><span class="nav-label">Compliance</span>
+            <span class="nav-badge">3</span>
+          </a>
+          <a href="08-audit.html" class="nav-item">
+            <i data-lucide="scroll-text" class="nav-icon"></i><span class="nav-label">Audit Trail</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Settings</div>
+          <a href="09-role-management.html" class="nav-item">
+            <i data-lucide="shield-check" class="nav-icon"></i><span class="nav-label">Role Management</span>
+          </a>
+          <a href="10-settings.html" class="nav-item">
+            <i data-lucide="building-2" class="nav-icon"></i><span class="nav-label">Departments</span>
+          </a>
+          <a href="10-settings.html" class="nav-item">
+            <i data-lucide="users" class="nav-icon"></i><span class="nav-label">Users</span>
+          </a>
+          <a href="10-settings.html" class="nav-item">
+            <i data-lucide="sliders-horizontal" class="nav-icon"></i><span class="nav-label">Company Settings</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Insights</div>
+          <a href="12-analytics.html" class="nav-item">
+            <i data-lucide="bar-chart-3" class="nav-icon"></i><span class="nav-label">Analytics</span>
+          </a>
+          <a href="13-my-analytics.html" class="nav-item">
+            <i data-lucide="activity" class="nav-icon"></i><span class="nav-label">My Analytics</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Account</div>
+          <a href="03-employees.html" class="nav-item">
+            <!-- /profile in Blazor — merged employee record + account prefs (REQ-SEC-002) -->
+            <i data-lucide="circle-user" class="nav-icon"></i><span class="nav-label">My Profile</span>
+          </a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-profile-card">
+          <img class="sidebar-profile-img" src="sarah.jpg" alt="Sarah Nkosi">
+          <div class="sidebar-profile-label">
+            <div class="sidebar-profile-name">Sarah Nkosi</div>
+            <div class="sidebar-profile-role">HR Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Main ───────────────────────────────────────────────────── -->
+    <main class="main-content">
+      <!-- Top bar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+            <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+        </div>
+        <div class="header-search">
+          <span class="search-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </span>
+          <input type="text" placeholder="Search leave requests, employees…">
+        </div>
+        <div class="topbar-right">
+          <button class="icon-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+            <span class="notif-dot"></span>
+          </button>
+          <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
+            <i data-lucide="sun" style="width:18px;height:18px;" id="themeIcon"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="content-body">
+        <!-- Page header -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;">
+          <div>
+            <h1 style="font-size:1.5rem;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;margin:0 0 4px;">
+              Leave Management</h1>
+            <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">Track and approve employee leave requests
+            </p>
+          </div>
+          <button class="apply-btn" onclick="openDetail(null)">
+            <i data-lucide="plus" style="width:16px;height:16px;"></i>
+            Apply Leave
+          </button>
+        </div>
+        <!-- Balance summary row -->
+        <div class="balance-grid" style="margin-bottom:24px;">
+          <div class="balance-card">
+            <div class="balance-card-label">Annual Leave</div>
+            <div class="balance-card-days">15.5</div>
+            <div class="balance-card-sub">of 21 days remaining (Sarah Nkosi · Your balance)</div>
+            <div class="balance-bar">
+              <div class="balance-bar-fill" style="width:73.8%;background:var(--brand-primary);"></div>
+            </div>
+          </div>
+          <div class="balance-card">
+            <div class="balance-card-label">Sick Leave</div>
+            <div class="balance-card-days">28.5</div>
+            <div class="balance-card-sub">of 30 days remaining (Sarah Nkosi · Your balance)</div>
+            <div class="balance-bar">
+              <div class="balance-bar-fill" style="width:93.3%;background:#e74c3c;"></div>
+            </div>
+          </div>
+          <div class="balance-card">
+            <div class="balance-card-label">Pending Approval</div>
+            <div class="balance-card-days">8</div>
+            <div class="balance-card-sub">requests awaiting action</div>
+            <div class="balance-bar">
+              <div class="balance-bar-fill" style="width:40%;background:var(--brand-accent);"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main 2-col layout -->
+        <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start;">
+
+          <!-- Calendar -->
+          <div class="card calendar-card">
+            <div class="calendar-header">
+              <h3>February 2026</h3>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div class="legend">
+                  <div class="legend-item">
+                    <div class="legend-dot dot-annual"></div>Annual
+                  </div>
+                  <div class="legend-item">
+                    <div class="legend-dot dot-sick"></div>Sick
+                  </div>
+                  <div class="legend-item">
+                    <div class="legend-dot dot-family"></div>Family
+                  </div>
+                  <div class="legend-item">
+                    <div class="legend-dot dot-maternity"></div>Maternity
+                  </div>
+                </div>
+                <div class="cal-nav">
+                  <button><i data-lucide="chevron-left" style="width:14px;height:14px;"></i></button>
+                  <button><i data-lucide="chevron-right" style="width:14px;height:14px;"></i></button>
+                </div>
+              </div>
+            </div>
+            <div class="calendar-grid">
+              <!-- Day names -->
+              <div class="cal-day-name">Sun</div>
+              <div class="cal-day-name">Mon</div>
+              <div class="cal-day-name">Tue</div>
+              <div class="cal-day-name">Wed</div>
+              <div class="cal-day-name">Thu</div>
+              <div class="cal-day-name">Fri</div>
+              <div class="cal-day-name">Sat</div>
+              <!-- Week 1: Jan 26 – Feb 1 -->
+              <div class="cal-day other-month"><span class="day-num">26</span></div>
+              <div class="cal-day other-month"><span class="day-num">27</span></div>
+              <div class="cal-day other-month"><span class="day-num">28</span></div>
+              <div class="cal-day other-month"><span class="day-num">29</span></div>
+              <div class="cal-day other-month"><span class="day-num">30</span></div>
+              <div class="cal-day other-month"><span class="day-num">31</span></div>
+              <div class="cal-day"><span class="day-num">1</span></div>
+              <!-- Week 2: Feb 2-8 -->
+              <div class="cal-day"><span class="day-num">2</span></div>
+              <div class="cal-day"><span class="day-num">3</span>
+                <div class="day-dots">
+                  <div class="day-dot dot-annual"></div>
+                  <div class="day-dot dot-annual"></div>
+                </div>
+              </div>
+              <div class="cal-day"><span class="day-num">4</span>
+                <div class="day-dots">
+                  <div class="day-dot dot-annual"></div>
+                  <div class="day-dot dot-sick"></div>
+                </div>
+              </div>
+              <div class="cal-day"><span class="day-num">5</span>
+                <div class="day-dots">
+                  <div class="day-dot dot-annual"></div>
+                  <div class="day-dot dot-sick"></div>
+                </div>
+              </div>
+              <div class="cal-day"><span class="day-num">6</span>
+                <div class="day-dots">
+                  <div class="day-dot dot-annual"></div>
+                </div>
+              </div>
+              <div class="cal-day"><span class="day-num">7</span></div>
+              <div class="cal-day"><span class="day-num">8</span></div>
+              <!-- Week 3: Feb 9-15 -->
+              <div class="cal-day"><span class="day-num">9</span></div>
+              <div class="cal-day"><span class="day-num">10</span>
+                <div class="day-dots">
+                  <div class="day-dot dot-family"></div>
+                </div>
+              </div>
+              <div class="cal-day"><span class="day-num">11</span>
+                <div class="day-dots">
+                  <div class="day-dot dot-family"></div>
+                </div>
+              </div>
+              <div class="cal-day"><span class="day-num">12</span>
+                <div class="day-dots">
+                  <div class="day-dot dot-maternity"></div>
+                </div>
+              </div>
+              <div class="cal-day"><span class="day-num">13</span>
+                <div class="day-dots">
+                  <div class="day-dot dot-maternity"></div>
+                </div>
+              </div>
+              <div class="cal-day"><span class="day-num">14</span>
+                <div class="day-dots">
+                  <div class="day-dot dot-sick"></div>
+                </div>
+              </div>
+              <div class="cal-day"><span class="day-num">15</span></div>
+              <!-- Week 4: Feb 16-22 -->
+              <div class="cal-day"><span class="day-num">16</span></div>
+              <div class="cal-day"><span class="day-num">17</span>
+                <div class="day-dots">
+                  <div class="day-dot dot-annual"></div>
+                  <div class="day-dot dot-annual"></div>
+                  <div class="day-dot dot-annual"></div>
+                </div>
+              </div>
+              <div class="cal-day"><span class="day-num">18</span>
+                <div class="day-dots">
+                  <div class="day-dot dot-annual"></div>
+                  <div class="day-dot dot-annual"></div>
+                  <div class="day-dot dot-annual"></div>
+                </div>
+              </div>
+              <div class="cal-day today"><span class="day-num">19</span>
+                <div class="day-dots">
+                  <div class="day-dot dot-annual"></div>
+                  <div class="day-dot dot-annual"></div>
+                </div>
+              </div>
+              <div class="cal-day"><span class="day-num">20</span>
+                <div class="day-dots">
+                  <div class="day-dot dot-annual"></div>
+                </div>
+              </div>
+              <div class="cal-day"><span class="day-num">21</span>
+                <div class="day-dots">
+                  <div class="day-dot dot-annual"></div>
+                </div>
+              </div>
+              <div class="cal-day"><span class="day-num">22</span></div>
+              <!-- Week 5: Feb 23-28 + Mar 1 -->
+              <div class="cal-day"><span class="day-num">23</span></div>
+              <div class="cal-day"><span class="day-num">24</span>
+                <div class="day-dots">
+                  <div class="day-dot dot-sick"></div>
+                </div>
+              </div>
+              <div class="cal-day"><span class="day-num">25</span>
+                <div class="day-dots">
+                  <div class="day-dot dot-sick"></div>
+                </div>
+              </div>
+              <div class="cal-day"><span class="day-num">26</span></div>
+              <div class="cal-day"><span class="day-num">27</span></div>
+              <div class="cal-day"><span class="day-num">28</span></div>
+              <div class="cal-day other-month"><span class="day-num">1</span></div>
+            </div>
+          </div>
+
+          <!-- Request list -->
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div
+              style="padding:18px 20px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;">
+              <h3 style="font-size:.95rem;font-weight:700;margin:0;">Pending Requests</h3>
+              <span class="badge badge-warning" style="font-size:.72rem;">8 pending</span>
+            </div>
+
+            <!-- Filter chips -->
+            <div
+              style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="chip chip-active">All</button>
+              <button class="chip">Annual</button>
+              <button class="chip">Sick</button>
+              <button class="chip">Family Resp.</button>
+              <button class="chip">Maternity</button>
+            </div>
+
+            <div style="padding:0 16px;">
+              <!-- Request rows -->
+              <div class="request-row" onclick="openDetail('lerato')">
+                <div class="avatar avatar-sm" style="background:#1d4777;flex-shrink:0;">LD</div>
+                <div class="request-meta">
+                  <div class="request-name">Lerato Dlamini</div>
+                  <div class="request-detail"><span class="badge badge-info" style="font-size:.7rem;">Annual</span> ·
+                    3–7 Mar 2026</div>
+                </div>
+                <div class="request-days">5d</div>
+                <div class="request-actions">
+                  <button class="btn-approve" onclick="event.stopPropagation()">✓</button>
+                  <button class="btn-reject" onclick="event.stopPropagation()">✗</button>
+                </div>
+              </div>
+
+              <div class="request-row" onclick="openDetail('thabo')">
+                <div class="avatar avatar-sm" style="background:#d4890e;flex-shrink:0;">TM</div>
+                <div class="request-meta">
+                  <div class="request-name">Thabo Molefe</div>
+                  <div class="request-detail"><span class="badge"
+                      style="background:#fdecea;color:#c0392b;font-size:.7rem;">Sick</span> · 17–18 Feb 2026</div>
+                </div>
+                <div class="request-days">2d</div>
+                <div class="request-actions">
+                  <button class="btn-approve" onclick="event.stopPropagation()">✓</button>
+                  <button class="btn-reject" onclick="event.stopPropagation()">✗</button>
+                </div>
+              </div>
+
+              <div class="request-row" onclick="openDetail('nandi')">
+                <div class="avatar avatar-sm" style="background:#9b59b6;flex-shrink:0;">NZ</div>
+                <div class="request-meta">
+                  <div class="request-name">Nandi Zulu</div>
+                  <div class="request-detail"><span class="badge"
+                      style="background:#f3eafd;color:#7b2fbe;font-size:.7rem;">Maternity</span> · 1 Feb – 30 Apr</div>
+                </div>
+                <div class="request-days">87d</div>
+                <div class="request-actions">
+                  <button class="btn-approve" onclick="event.stopPropagation()">✓</button>
+                  <button class="btn-reject" onclick="event.stopPropagation()">✗</button>
+                </div>
+              </div>
+
+              <div class="request-row" onclick="openDetail('sipho')">
+                <div class="avatar avatar-sm" style="background:#2ecc71;flex-shrink:0;color:#1a5e35;">SK</div>
+                <div class="request-meta">
+                  <div class="request-name">Sipho Khumalo</div>
+                  <div class="request-detail"><span class="badge"
+                      style="background:#fef3e2;color:#b86b00;font-size:.7rem;">Family Resp.</span> · 10–11 Feb 2026
+                  </div>
+                </div>
+                <div class="request-days">2d</div>
+                <div class="request-actions">
+                  <button class="btn-approve" onclick="event.stopPropagation()">✓</button>
+                  <button class="btn-reject" onclick="event.stopPropagation()">✗</button>
+                </div>
+              </div>
+
+              <div class="request-row" onclick="openDetail('priya')">
+                <div class="avatar avatar-sm" style="background:#e74c3c;flex-shrink:0;">PN</div>
+                <div class="request-meta">
+                  <div class="request-name">Priya Naidoo</div>
+                  <div class="request-detail"><span class="badge badge-info" style="font-size:.7rem;">Annual</span> ·
+                    17–21 Feb 2026</div>
+                </div>
+                <div class="request-days">5d</div>
+                <div class="request-actions">
+                  <button class="btn-approve" onclick="event.stopPropagation()">✓</button>
+                  <button class="btn-reject" onclick="event.stopPropagation()">✗</button>
+                </div>
+              </div>
+
+              <div class="request-row" onclick="openDetail('kobus')">
+                <div class="avatar avatar-sm" style="background:#34495e;flex-shrink:0;">KdB</div>
+                <div class="request-meta">
+                  <div class="request-name">Kobus de Bruyn</div>
+                  <div class="request-detail"><span class="badge badge-info" style="font-size:.7rem;">Annual</span> ·
+                    24–25 Feb 2026</div>
+                </div>
+                <div class="request-days">2d</div>
+                <div class="request-actions">
+                  <button class="btn-approve" onclick="event.stopPropagation()">✓</button>
+                  <button class="btn-reject" onclick="event.stopPropagation()">✗</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="padding:12px 16px;border-top:1px solid var(--border-subtle);text-align:center;">
+              <a href="#" style="font-size:.8rem;color:var(--brand-primary);font-weight:600;text-decoration:none;">View
+                all leave requests</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom: Approved leave table -->
+        <div class="card" style="margin-top:20px;padding:0;overflow:hidden;">
+          <div
+            style="padding:18px 24px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="font-size:.95rem;font-weight:700;margin:0;">Approved Leave: February 2026</h3>
+            <button class="btn btn-outline" style="font-size:.8rem;padding:6px 14px;">
+              <i data-lucide="download" style="width:14px;height:14px;"></i> Export
+            </button>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Leave Type</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Days</th>
+                  <th>Balance Before</th>
+                  <th>Balance After</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <div class="avatar avatar-sm" style="background:#1d4777;">LD</div><span
+                        style="font-weight:500;">Lerato Dlamini</span>
+                    </div>
+                  </td>
+                  <td><span class="badge badge-info">Annual</span></td>
+                  <td class="td-mono">3 Feb 2026</td>
+                  <td class="td-mono">7 Feb 2026</td>
+                  <td class="td-mono" style="font-weight:600;">5</td>
+                  <td class="td-mono">20.5</td>
+                  <td class="td-mono">15.5</td>
+                  <td><span class="badge badge-success">Approved</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <div class="avatar avatar-sm" style="background:#34495e;">KdB</div><span
+                        style="font-weight:500;">Kobus de Bruyn</span>
+                    </div>
+                  </td>
+                  <td><span class="badge badge-info">Annual</span></td>
+                  <td class="td-mono">10 Feb 2026</td>
+                  <td class="td-mono">14 Feb 2026</td>
+                  <td class="td-mono" style="font-weight:600;">5</td>
+                  <td class="td-mono">18.0</td>
+                  <td class="td-mono">13.0</td>
+                  <td><span class="badge badge-success">Approved</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <div class="avatar avatar-sm" style="background:#e74c3c;">PN</div><span
+                        style="font-weight:500;">Priya Naidoo</span>
+                    </div>
+                  </td>
+                  <td><span class="badge" style="background:#fdecea;color:#c0392b;">Sick</span></td>
+                  <td class="td-mono">14 Feb 2026</td>
+                  <td class="td-mono">14 Feb 2026</td>
+                  <td class="td-mono" style="font-weight:600;">1</td>
+                  <td class="td-mono">30.0</td>
+                  <td class="td-mono">29.0</td>
+                  <td><span class="badge badge-success">Approved</span></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <div class="avatar avatar-sm" style="background:#d4890e;">FO</div><span
+                        style="font-weight:500;">Fatima Osman</span>
+                    </div>
+                  </td>
+                  <td><span class="badge badge-info">Annual</span></td>
+                  <td class="td-mono">17 Feb 2026</td>
+                  <td class="td-mono">21 Feb 2026</td>
+                  <td class="td-mono" style="font-weight:600;">5</td>
+                  <td class="td-mono">16.0</td>
+                  <td class="td-mono">11.0</td>
+                  <td><span class="badge badge-success">Approved</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Bottom Navigation (visible ≤640px only) -->
+  <nav class="bottom-nav">
+    <a href="02-dashboard.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7" />
+        <rect x="14" y="3" width="7" height="7" />
+        <rect x="14" y="14" width="7" height="7" />
+        <rect x="3" y="14" width="7" height="7" />
+      </svg>
+      <span class="bottom-nav-label">Dashboard</span>
+    </a>
+    <a href="05-leave.html" class="bottom-nav-item active">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+      </svg>
+      <span class="bottom-nav-label">Leave</span>
+    </a>
+    <a href="14-clock-in.html" class="bottom-nav-item clock-in-nav">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+      <span class="bottom-nav-label">Clock In</span>
+    </a>
+    <a href="04-payroll.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="6" width="20" height="12" rx="2" />
+        <circle cx="12" cy="12" r="2" />
+        <path d="M6 12h.01M18 12h.01" />
+      </svg>
+      <span class="bottom-nav-label">Payslips</span>
+    </a>
+    <a href="13-my-analytics.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+      </svg>
+      <span class="bottom-nav-label">Analytics</span>
+    </a>
+  </nav>
+
+  <!-- Leave Detail Panel -->
+  <div class="leave-detail-panel" id="detailPanel">
+    <button class="detail-close" onclick="closeDetail()">
+      <i data-lucide="x" style="width:18px;height:18px;"></i>
+    </button>
+    <div class="detail-employee">
+      <div class="avatar" id="detailAvatar" style="background:#1d4777;">LD</div>
+      <div class="detail-info">
+        <h4 id="detailName">Lerato Dlamini</h4>
+        <p id="detailRole">HR Coordinator · Operations</p>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-label">Request Details</div>
+      <div class="detail-row">
+        <span class="detail-row-label">Leave Type</span>
+        <span class="detail-row-value"><span class="badge badge-info">Annual Leave</span></span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-row-label">From</span>
+        <span class="detail-row-value mono">3 Mar 2026</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-row-label">To</span>
+        <span class="detail-row-value mono">7 Mar 2026</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-row-label">Working Days</span>
+        <span class="detail-row-value mono">5</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-row-label">Submitted</span>
+        <span class="detail-row-value mono">15 Feb 2026</span>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-label">Leave Balance</div>
+      <div class="detail-row">
+        <span class="detail-row-label">Available</span>
+        <span class="detail-row-value mono">15.5 days</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-row-label">After approval</span>
+        <span class="detail-row-value mono" style="color:#1a7a44;">10.5 days</span>
+      </div>
+      <div style="margin-top:10px;">
+        <div class="balance-bar">
+          <div class="balance-bar-fill" style="width:50%;background:var(--brand-primary);"></div>
+        </div>
+        <div style="font-size:.72rem;color:var(--text-muted);margin-top:4px;">10.5 of 21 days remaining after</div>
+      </div>
+    </div>
+
+    <div class="detail-section">
+      <div class="detail-section-label">Note from employee</div>
+      <p
+        style="font-size:.82rem;color:var(--text-secondary);background:var(--surface-hover);border-radius:8px;padding:10px 12px;margin:0;line-height:1.5;">
+        Planned family vacation to the Western Cape. Will ensure all handover documents are completed before departure.
+      </p>
+    </div>
+
+    <div class="detail-actions">
+      <button onclick="closeDetail()"
+        style="background:var(--surface-hover);color:var(--text-secondary);">Cancel</button>
+      <button class="btn-reject" style="flex:1;padding:10px;" onclick="closeDetail()">Reject</button>
+      <button class="btn-approve" style="flex:1.5;padding:10px;" onclick="closeDetail()">✓ Approve</button>
+    </div>
+  </div>
+
+  <!-- Mobile drawer overlay -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script>
+    lucide.createIcons();
+
+    let sidebarCollapsed = false;
+    let isDark = false;
+
+    function toggleSidebar() {
+      sidebarCollapsed = !sidebarCollapsed;
+      document.getElementById('sidebar').classList.toggle('collapsed', sidebarCollapsed);
+      lucide.createIcons();
+    }
+
+    function openDrawer() {
+      document.getElementById('sidebar').classList.add('drawer-open');
+      document.getElementById('drawerOverlay').classList.add('visible');
+    }
+    function closeDrawer() {
+      document.getElementById('sidebar').classList.remove('drawer-open');
+      document.getElementById('drawerOverlay').classList.remove('visible');
+    }
+
+    function toggleTheme() {
+      isDark = !isDark;
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      const icon = document.getElementById('themeIcon');
+      icon.setAttribute('data-lucide', isDark ? 'moon' : 'sun');
+      lucide.createIcons();
+    }
+
+    function openDetail(emp) {
+      document.getElementById('detailPanel').classList.add('open');
+    }
+    function closeDetail() {
+      document.getElementById('detailPanel').classList.remove('open');
+    }
+  </script>
+</body>
+
+</html>

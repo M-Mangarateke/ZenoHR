@@ -1,0 +1,1072 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Timesheets - ZenoHR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    /* ── Week strip ───────────────────────────────────────────────── */
+    .week-strip {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+
+    .week-day-btn {
+      flex: 1;
+      border: 1.5px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 10px 8px;
+      text-align: center;
+      cursor: pointer;
+      background: var(--surface);
+      transition: all .15s;
+      user-select: none;
+    }
+
+    .week-day-btn:hover {
+      border-color: var(--brand-primary);
+      background: var(--surface-hover);
+    }
+
+    .week-day-btn.today {
+      border-color: var(--brand-primary);
+      background: var(--brand-primary-subtle);
+    }
+
+    .week-day-btn.today .wd-num {
+      color: var(--brand-primary);
+      font-weight: 800;
+    }
+
+    .wd-name {
+      font-size: .68rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    .wd-num {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin: 2px 0;
+      font-family: var(--font-mono);
+    }
+
+    .wd-total {
+      font-size: .72rem;
+      color: var(--text-secondary);
+      font-family: var(--font-mono);
+    }
+
+    .wd-total.over {
+      color: var(--brand-accent);
+      font-weight: 600;
+    }
+
+    /* ── Timesheet grid ───────────────────────────────────────────── */
+    .ts-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .ts-table th {
+      font-size: .72rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: 10px 12px;
+      background: var(--surface-hover);
+      border-bottom: 1px solid var(--border-subtle);
+      text-align: center;
+    }
+
+    .ts-table th.left {
+      text-align: left;
+    }
+
+    .ts-table td {
+      padding: 0;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+
+    .ts-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .ts-table tr:hover td {
+      background: var(--surface-hover);
+    }
+
+    .emp-cell {
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 180px;
+    }
+
+    .emp-name {
+      font-size: .85rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .emp-role {
+      font-size: .72rem;
+      color: var(--text-secondary);
+    }
+
+    .hour-cell {
+      text-align: center;
+      padding: 0;
+      position: relative;
+    }
+
+    .hour-input {
+      width: 100%;
+      height: 100%;
+      min-height: 52px;
+      border: none;
+      background: transparent;
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: .88rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: text;
+      padding: 0;
+    }
+
+    .hour-input:focus {
+      outline: none;
+      background: var(--surface-hover);
+    }
+
+    .hour-input.ot {
+      color: var(--brand-accent);
+      font-weight: 700;
+    }
+
+    .hour-input.max {
+      color: #e74c3c;
+      font-weight: 700;
+    }
+
+    .hour-input:disabled {
+      color: var(--text-disabled);
+      background: var(--surface-hover);
+    }
+
+    .total-cell {
+      text-align: center;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: .88rem;
+      font-weight: 700;
+      min-width: 60px;
+    }
+
+    .total-cell.over {
+      color: var(--brand-accent);
+    }
+
+    .total-cell.violation {
+      color: #e74c3c;
+    }
+
+    .ot-cell {
+      text-align: center;
+      padding: 12px;
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      min-width: 50px;
+    }
+
+    .ot-cell.has-ot {
+      color: var(--brand-accent);
+      font-weight: 600;
+    }
+
+    .ot-cell.no-ot {
+      color: var(--text-disabled);
+    }
+
+    .status-cell {
+      text-align: center;
+      padding: 12px;
+    }
+
+    /* ── Action bar ───────────────────────────────────────────────── */
+    .action-bar {
+      position: sticky;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      border-top: 1.5px solid var(--border-subtle);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, .06);
+      margin: 0 -24px;
+      /* bleed to content edges */
+      z-index: 50;
+    }
+
+    .action-bar-label {
+      font-size: .82rem;
+      color: var(--text-secondary);
+      flex: 1;
+    }
+
+    .action-bar-label strong {
+      color: var(--text-primary);
+    }
+
+    .bcea-note {
+      background: var(--brand-primary-subtle);
+      border: 1px solid rgba(29, 71, 119, .2);
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      font-size: .8rem;
+      color: var(--brand-primary);
+    }
+
+    [data-theme="dark"] .bcea-note {
+      background: rgba(29, 71, 119, .25);
+      border-color: rgba(29, 71, 119, .4);
+      color: #7fafd6;
+    }
+
+    /* ── KPI summary ──────────────────────────────────────────────── */
+    .ts-kpi-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 900px) {
+      .ts-kpi-row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .ts-kpi {
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 14px;
+      padding: 14px 16px;
+    }
+
+    .ts-kpi-label {
+      font-size: .72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .ts-kpi-value {
+      font-size: 1.4rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--text-primary);
+    }
+
+    .ts-kpi-sub {
+      font-size: .75rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    /* Week nav */
+    .week-nav {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .week-nav button {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface);
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .week-nav button:hover {
+      background: var(--surface-hover);
+    }
+
+    .week-label {
+      font-size: .88rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    /* ── Mobile responsive ───────────────────────────── */
+    @media (max-width: 768px) {
+      .ts-kpi-row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .ts-kpi-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      /* Week strip: scroll horizontally */
+      .week-strip {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 4px;
+      }
+
+      .week-day-btn {
+        flex: 0 0 64px;
+      }
+
+      /* Timesheet table: horizontal scroll */
+      .ts-table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .ts-table {
+        min-width: 600px;
+      }
+
+      /* Action bar buttons stack */
+      .action-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .action-bar-label {
+        order: -1;
+      }
+
+      .action-bar .btn {
+        justify-content: center;
+      }
+
+      input,
+      select {
+        font-size: 16px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-layout">
+    <!-- ── Sidebar ─────────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="../Zenologo2.png" alt="ZenoHR" class="sidebar-logo" />
+        <button class="sidebar-toggle" onclick="toggleSidebar()" title="Collapse sidebar">
+          <i data-lucide="panel-left-close" style="width:18px;height:18px;"></i>
+        </button>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Main</div>
+          <a href="02-dashboard.html" class="nav-item">
+            <i data-lucide="layout-dashboard" class="nav-icon"></i><span class="nav-label">Dashboard</span>
+          </a>
+          <a href="03-employees.html" class="nav-item">
+            <i data-lucide="users" class="nav-icon"></i><span class="nav-label">Employees</span>
+          </a>
+          <a href="07-timesheet.html" class="nav-item active">
+            <i data-lucide="clock" class="nav-icon"></i><span class="nav-label">Timesheets</span>
+          </a>
+          <a href="05-leave.html" class="nav-item">
+            <i data-lucide="calendar-days" class="nav-icon"></i><span class="nav-label">Leave</span>
+            <span class="nav-badge">8</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Finance &amp; Compliance</div>
+          <a href="04-payroll.html" class="nav-item">
+            <i data-lucide="banknote" class="nav-icon"></i><span class="nav-label">Payroll</span>
+          </a>
+          <a href="06-compliance.html" class="nav-item">
+            <i data-lucide="shield-check" class="nav-icon"></i><span class="nav-label">Compliance</span>
+            <span class="nav-badge">3</span>
+          </a>
+          <a href="08-audit.html" class="nav-item">
+            <i data-lucide="scroll-text" class="nav-icon"></i><span class="nav-label">Audit Trail</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Settings</div>
+          <a href="09-role-management.html" class="nav-item">
+            <i data-lucide="shield-check" class="nav-icon"></i><span class="nav-label">Role Management</span>
+          </a>
+          <a href="10-settings.html" class="nav-item">
+            <i data-lucide="building-2" class="nav-icon"></i><span class="nav-label">Departments</span>
+          </a>
+          <a href="10-settings.html" class="nav-item">
+            <i data-lucide="users" class="nav-icon"></i><span class="nav-label">Users</span>
+          </a>
+          <a href="10-settings.html" class="nav-item">
+            <i data-lucide="sliders-horizontal" class="nav-icon"></i><span class="nav-label">Company Settings</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Insights</div>
+          <a href="12-analytics.html" class="nav-item">
+            <i data-lucide="bar-chart-3" class="nav-icon"></i><span class="nav-label">Analytics</span>
+          </a>
+          <a href="13-my-analytics.html" class="nav-item">
+            <i data-lucide="activity" class="nav-icon"></i><span class="nav-label">My Analytics</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Account</div>
+          <a href="03-employees.html" class="nav-item">
+            <!-- /profile in Blazor — merged employee record + account prefs (REQ-SEC-002) -->
+            <i data-lucide="circle-user" class="nav-icon"></i><span class="nav-label">My Profile</span>
+          </a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-profile-card">
+          <img class="sidebar-profile-img" src="sarah.jpg" alt="Sarah Nkosi">
+          <div class="sidebar-profile-label">
+            <div class="sidebar-profile-name">Sarah Nkosi</div>
+            <div class="sidebar-profile-role">HR Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Main ───────────────────────────────────────────────────── -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+            <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+        </div>
+        <div class="header-search">
+          <span class="search-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </span>
+          <input type="text" placeholder="Search employees, timesheets…">
+        </div>
+        <div class="topbar-right">
+          <div class="week-nav">
+            <button><i data-lucide="chevron-left" style="width:14px;height:14px;"></i></button>
+            <span class="week-label">Week of 16 Feb 2026</span>
+            <button><i data-lucide="chevron-right" style="width:14px;height:14px;"></i></button>
+          </div>
+          <button class="btn btn-outline" style="font-size:.85rem;">
+            <i data-lucide="download" style="width:15px;height:15px;"></i> Export
+          </button>
+          <button class="icon-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+            <span class="notif-dot"></span>
+          </button>
+          <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
+            <i data-lucide="sun" style="width:18px;height:18px;" id="themeIcon"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="content-body">
+
+        <!-- KPI summary -->
+        <div class="ts-kpi-row">
+          <div class="ts-kpi">
+            <div class="ts-kpi-label">Total Hours (Week)</div>
+            <div class="ts-kpi-value">1,847</div>
+            <div class="ts-kpi-sub">across 42 employees</div>
+          </div>
+          <div class="ts-kpi">
+            <div class="ts-kpi-label">Overtime Hours</div>
+            <div class="ts-kpi-value" style="color:var(--brand-accent);">24.5</div>
+            <div class="ts-kpi-sub">6 employees with OT</div>
+          </div>
+          <div class="ts-kpi">
+            <div class="ts-kpi-label">Awaiting Approval</div>
+            <div class="ts-kpi-value" style="color:var(--brand-primary);">7</div>
+            <div class="ts-kpi-sub">timesheets pending</div>
+          </div>
+          <div class="ts-kpi">
+            <div class="ts-kpi-label">BCEA Violations</div>
+            <div class="ts-kpi-value" style="color:#e74c3c;">1</div>
+            <div class="ts-kpi-sub">Sipho K. - daily limit</div>
+          </div>
+        </div>
+
+        <!-- Week strip -->
+        <div class="week-strip">
+          <div class="week-day-btn">
+            <div class="wd-name">Mon</div>
+            <div class="wd-num">16</div>
+            <div class="wd-total">368h</div>
+          </div>
+          <div class="week-day-btn">
+            <div class="wd-name">Tue</div>
+            <div class="wd-num">17</div>
+            <div class="wd-total">371h</div>
+          </div>
+          <div class="week-day-btn">
+            <div class="wd-name">Wed</div>
+            <div class="wd-num">18</div>
+            <div class="wd-total">365h</div>
+          </div>
+          <div class="week-day-btn today">
+            <div class="wd-name">Thu</div>
+            <div class="wd-num">19</div>
+            <div class="wd-total over">382h</div>
+          </div>
+          <div class="week-day-btn">
+            <div class="wd-name">Fri</div>
+            <div class="wd-num">20</div>
+            <div class="wd-total">361h</div>
+          </div>
+          <div class="week-day-btn" style="opacity:.5;">
+            <div class="wd-name">Sat</div>
+            <div class="wd-num">21</div>
+            <div class="wd-total">-</div>
+          </div>
+          <div class="week-day-btn" style="opacity:.5;">
+            <div class="wd-name">Sun</div>
+            <div class="wd-num">22</div>
+            <div class="wd-total">-</div>
+          </div>
+        </div>
+
+        <!-- BCEA note -->
+        <div class="bcea-note">
+          <i data-lucide="info" style="width:16px;height:16px;flex-shrink:0;"></i>
+          <span><strong>BCEA limits:</strong> 45 hrs/week · 9 hrs/day (5-day) · Max 10 hrs overtime/week · Overtime:
+            1.5× normal, 2× on Sundays and public holidays. Highlighted cells indicate limit proximity or breach.</span>
+        </div>
+
+        <!-- Timesheet grid -->
+        <div class="card" style="padding:0;overflow:hidden;margin-bottom:0;">
+          <div
+            style="padding:14px 20px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;gap:8px;">
+              <button class="chip chip-active">All Employees</button>
+              <button class="chip">Operations</button>
+              <button class="chip">Finance</button>
+              <button class="chip">IT</button>
+              <button class="chip">Pending Only</button>
+            </div>
+            <span style="font-size:.78rem;color:var(--text-secondary);">Showing 8 of 42 employees</span>
+          </div>
+
+          <div style="overflow-x:auto;">
+            <table class="ts-table">
+              <thead>
+                <tr>
+                  <th class="left" style="min-width:190px;">Employee</th>
+                  <th>Mon 16</th>
+                  <th>Tue 17</th>
+                  <th>Wed 18</th>
+                  <th>Thu 19</th>
+                  <th>Fri 20</th>
+                  <th>Sat 21</th>
+                  <th>Sun 22</th>
+                  <th>Total</th>
+                  <th>OT</th>
+                  <th>Clock</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Lerato Dlamini - normal week -->
+                <tr>
+                  <td>
+                    <div class="emp-cell">
+                      <div class="avatar avatar-sm av-4">LD</div>
+                      <div>
+                        <div class="emp-name">Lerato Dlamini</div>
+                        <div class="emp-role">Senior Developer</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="hour-cell"><input class="hour-input" value="8.5" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="9.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="8.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="8.5" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="9.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="total-cell">43.0</td>
+                  <td class="ot-cell no-ot">0.0</td>
+                  <td class="status-cell"><span
+                      style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;background:var(--success-subtle);color:var(--success);padding:2px 7px;border-radius:99px;"
+                      title="Clocked in 08:29"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg> In</span></td>
+                  <td class="status-cell"><span class="badge badge-warning" style="font-size:.72rem;">Pending</span>
+                  </td>
+                  <td class="status-cell"><button class="btn btn-ghost btn-sm" style="padding:3px 6px;opacity:.4;"
+                      title="No concern" disabled><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                        <line x1="4" x2="4" y1="22" y2="15" />
+                      </svg></button></td>
+                </tr>
+
+                <!-- Thabo Molefe - some overtime -->
+                <tr>
+                  <td>
+                    <div class="emp-cell">
+                      <div class="avatar avatar-sm av-7">TM</div>
+                      <div>
+                        <div class="emp-name">Thabo Molefe</div>
+                        <div class="emp-role">Operations Manager</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="hour-cell"><input class="hour-input" value="9.0" /></td>
+                  <td class="hour-cell"><input class="hour-input ot" value="10.5" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="9.0" /></td>
+                  <td class="hour-cell"><input class="hour-input ot" value="10.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="8.5" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="total-cell over">47.0</td>
+                  <td class="ot-cell has-ot">2.0</td>
+                  <td class="status-cell"><span
+                      style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;background:var(--success-subtle);color:var(--success);padding:2px 7px;border-radius:99px;"
+                      title="Clocked in 07:58"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg> In</span></td>
+                  <td class="status-cell"><span class="badge badge-success" style="font-size:.72rem;">Approved</span>
+                  </td>
+                  <td class="status-cell"><button class="btn btn-ghost btn-sm" style="padding:3px 6px;opacity:.4;"
+                      disabled><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                        <line x1="4" x2="4" y1="22" y2="15" />
+                      </svg></button></td>
+                </tr>
+
+                <!-- Nandi Zulu - on maternity -->
+                <tr style="opacity:.6;">
+                  <td>
+                    <div class="emp-cell">
+                      <div class="avatar avatar-sm av-5">NZ</div>
+                      <div>
+                        <div class="emp-name">Nandi Zulu</div>
+                        <div class="emp-role">HR Officer</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="total-cell" style="color:var(--text-disabled);">0.0</td>
+                  <td class="ot-cell no-ot">0.0</td>
+                  <td class="status-cell"><span
+                      style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;background:var(--warning-subtle);color:var(--warning);padding:2px 7px;border-radius:99px;">—
+                      Leave</span></td>
+                  <td class="status-cell"><span class="badge"
+                      style="background:#f3eafd;color:#7b2fbe;font-size:.72rem;">Maternity</span></td>
+                  <td class="status-cell"><button class="btn btn-ghost btn-sm" style="padding:3px 6px;opacity:.4;"
+                      disabled><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                        <line x1="4" x2="4" y1="22" y2="15" />
+                      </svg></button></td>
+                </tr>
+
+                <!-- Kobus de Bruyn - annual leave some days -->
+                <tr>
+                  <td>
+                    <div class="emp-cell">
+                      <div class="avatar avatar-sm av-4">KdB</div>
+                      <div>
+                        <div class="emp-name">Kobus de Bruyn</div>
+                        <div class="emp-role">Junior Developer</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="hour-cell"><input class="hour-input" value="9.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="9.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="hour-cell"><input class="hour-input" value="9.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="9.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="total-cell">36.0</td>
+                  <td class="ot-cell no-ot">0.0</td>
+                  <td class="status-cell"><span
+                      style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;background:var(--success-subtle);color:var(--success);padding:2px 7px;border-radius:99px;"
+                      title="Clocked in 08:41"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg> In</span></td>
+                  <td class="status-cell"><span class="badge badge-warning" style="font-size:.72rem;">Pending</span>
+                  </td>
+                  <td class="status-cell"><button class="btn btn-ghost btn-sm" style="padding:3px 6px;opacity:.4;"
+                      disabled><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                        <line x1="4" x2="4" y1="22" y2="15" />
+                      </svg></button></td>
+                </tr>
+
+                <!-- Priya Naidoo - normal -->
+                <tr>
+                  <td>
+                    <div class="emp-cell">
+                      <div class="avatar avatar-sm av-6">PN</div>
+                      <div>
+                        <div class="emp-name">Priya Naidoo</div>
+                        <div class="emp-role">Financial Analyst</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="hour-cell"><input class="hour-input" value="8.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="8.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="8.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="8.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="8.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="total-cell">40.0</td>
+                  <td class="ot-cell no-ot">0.0</td>
+                  <td class="status-cell"><span
+                      style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;background:var(--success-subtle);color:var(--success);padding:2px 7px;border-radius:99px;"
+                      title="Clocked in 08:05"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg> In</span></td>
+                  <td class="status-cell"><span class="badge badge-success" style="font-size:.72rem;">Approved</span>
+                  </td>
+                  <td class="status-cell"><button class="btn btn-ghost btn-sm" style="padding:3px 6px;opacity:.4;"
+                      disabled><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                        <line x1="4" x2="4" y1="22" y2="15" />
+                      </svg></button></td>
+                </tr>
+
+                <!-- Sipho Khumalo - BCEA violation -->
+                <tr style="background: rgba(231,76,60,.04);">
+                  <td>
+                    <div class="emp-cell">
+                      <div class="avatar avatar-sm av-7">SK</div>
+                      <div>
+                        <div class="emp-name">Sipho Khumalo</div>
+                        <div class="emp-role">Sales Representative</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="hour-cell"><input class="hour-input ot" value="9.5" /></td>
+                  <td class="hour-cell"><input class="hour-input ot" value="10.5" /></td>
+                  <td class="hour-cell"><input class="hour-input ot" value="10.0" /></td>
+                  <td class="hour-cell"><input class="hour-input max" value="11.0" title="BCEA daily limit breached" />
+                  </td>
+                  <td class="hour-cell"><input class="hour-input ot" value="10.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="total-cell violation">51.0</td>
+                  <td class="ot-cell has-ot">6.0</td>
+                  <td class="status-cell"><span
+                      style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;background:var(--success-subtle);color:var(--success);padding:2px 7px;border-radius:99px;"
+                      title="Clocked in 07:31"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg> In</span></td>
+                  <td class="status-cell">
+                    <span class="badge badge-error" style="font-size:.72rem;">⚠ Violation</span>
+                  </td>
+                  <td class="status-cell"><button class="btn btn-ghost btn-sm"
+                      style="padding:3px 6px;color:var(--brand-accent);" title="Flag suspicious hours"
+                      onclick="alert('Flag raised: Sipho Khumalo — suspicious hours')"><svg
+                        xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                        <line x1="4" x2="4" y1="22" y2="15" />
+                      </svg></button></td>
+                </tr>
+
+                <!-- Fatima Osman - normal -->
+                <tr>
+                  <td>
+                    <div class="emp-cell">
+                      <div class="avatar avatar-sm av-2">FO</div>
+                      <div>
+                        <div class="emp-name">Fatima Osman</div>
+                        <div class="emp-role">Compliance Officer</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="hour-cell"><input class="hour-input" value="8.5" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="9.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="8.5" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="8.5" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="8.5" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="total-cell">43.0</td>
+                  <td class="ot-cell no-ot">0.0</td>
+                  <td class="status-cell"><span
+                      style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;background:var(--success-subtle);color:var(--success);padding:2px 7px;border-radius:99px;"
+                      title="Clocked in 08:44"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg> In</span></td>
+                  <td class="status-cell"><span class="badge badge-warning" style="font-size:.72rem;">Pending</span>
+                  </td>
+                  <td class="status-cell"><button class="btn btn-ghost btn-sm" style="padding:3px 6px;opacity:.4;"
+                      disabled><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                        <line x1="4" x2="4" y1="22" y2="15" />
+                      </svg></button></td>
+                </tr>
+
+                <!-- Andre van Wyk - normal -->
+                <tr>
+                  <td>
+                    <div class="emp-cell">
+                      <div class="avatar avatar-sm av-1">AvW</div>
+                      <div>
+                        <div class="emp-name">Andre van Wyk</div>
+                        <div class="emp-role">Driver</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="hour-cell"><input class="hour-input" value="9.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="9.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="9.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="9.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="8.0" /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="hour-cell"><input class="hour-input" value="" disabled /></td>
+                  <td class="total-cell">44.0</td>
+                  <td class="ot-cell no-ot">0.0</td>
+                  <td class="status-cell"><span
+                      style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;background:var(--success-subtle);color:var(--success);padding:2px 7px;border-radius:99px;"
+                      title="Clocked in 08:02"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"
+                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg> In</span></td>
+                  <td class="status-cell"><span class="badge badge-warning" style="font-size:.72rem;">Pending</span>
+                  </td>
+                  <td class="status-cell"><button class="btn btn-ghost btn-sm" style="padding:3px 6px;opacity:.4;"
+                      disabled><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24"
+                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+                        <line x1="4" x2="4" y1="22" y2="15" />
+                      </svg></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Action bar -->
+          <div class="action-bar">
+            <div class="action-bar-label">
+              <strong>5 pending</strong> timesheets · <strong>1 BCEA violation</strong> requires attention before
+              approval
+            </div>
+            <button class="btn btn-outline" style="font-size:.85rem;">
+              <i data-lucide="message-square" style="width:15px;height:15px;"></i>
+              Reject with Comment
+            </button>
+            <button class="btn btn-outline" style="font-size:.85rem;" disabled title="Resolve BCEA violation first">
+              <i data-lucide="check-circle" style="width:15px;height:15px;"></i>
+              Approve All
+            </button>
+            <button class="btn btn-primary" style="font-size:.85rem;">
+              <i data-lucide="check" style="width:15px;height:15px;"></i>
+              Approve Selected (4)
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Mobile drawer overlay -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+  <!-- Admin Bottom Navigation (≤640px) -->
+  <nav class="bottom-nav">
+    <a href="02-dashboard.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect width="7" height="9" x="3" y="3" rx="1" />
+        <rect width="7" height="5" x="14" y="3" rx="1" />
+        <rect width="7" height="9" x="14" y="12" rx="1" />
+        <rect width="7" height="5" x="3" y="16" rx="1" />
+      </svg>
+      <span class="bottom-nav-label">Dashboard</span>
+    </a>
+    <a href="03-employees.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+      <span class="bottom-nav-label">Employees</span>
+    </a>
+    <a href="07-timesheet.html" class="bottom-nav-item active">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+      <span class="bottom-nav-label">Timesheets</span>
+    </a>
+    <button class="bottom-nav-item" onclick="openAdminMore()">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="5" cy="12" r="1" />
+        <circle cx="12" cy="12" r="1" />
+        <circle cx="19" cy="12" r="1" />
+      </svg>
+      <span class="bottom-nav-label">More</span>
+    </button>
+  </nav>
+  <div class="admin-more-overlay" id="adminMoreOverlay" onclick="closeAdminMore()"></div>
+  <div class="admin-more-sheet" id="adminMoreSheet" style="display:none;">
+    <div class="admin-more-title">More</div>
+    <div class="admin-more-grid">
+      <a href="05-leave.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="4" rx="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>Leave</a>
+      <a href="04-payroll.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="20" height="14" x="2" y="5" rx="2" />
+          <line x1="2" y1="10" x2="22" y2="10" />
+        </svg>Payroll</a>
+      <a href="06-compliance.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>Compliance</a>
+      <a href="08-audit.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>Audit Trail</a>
+      <a href="10-settings.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>Settings</a>
+      <a href="12-analytics.html" class="admin-more-item"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10" />
+          <line x1="12" y1="20" x2="12" y2="4" />
+          <line x1="6" y1="20" x2="6" y2="14" />
+        </svg>Analytics</a>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script>
+    lucide.createIcons();
+    let sidebarCollapsed = false;
+    let isDark = false;
+
+    function toggleSidebar() {
+      sidebarCollapsed = !sidebarCollapsed;
+      document.getElementById('sidebar').classList.toggle('collapsed', sidebarCollapsed);
+      lucide.createIcons();
+    }
+    function openDrawer() {
+      document.getElementById('sidebar').classList.add('drawer-open');
+      document.getElementById('drawerOverlay').classList.add('visible');
+    }
+    function closeDrawer() {
+      document.getElementById('sidebar').classList.remove('drawer-open');
+      document.getElementById('drawerOverlay').classList.remove('visible');
+    }
+    function openAdminMore() {
+      document.getElementById('adminMoreOverlay').classList.add('visible');
+      document.getElementById('adminMoreSheet').style.display = 'block';
+    }
+    function closeAdminMore() {
+      document.getElementById('adminMoreOverlay').classList.remove('visible');
+      document.getElementById('adminMoreSheet').style.display = 'none';
+    }
+    function toggleTheme() {
+      isDark = !isDark;
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      document.getElementById('themeIcon').setAttribute('data-lucide', isDark ? 'moon' : 'sun');
+      lucide.createIcons();
+    }
+  </script>
+</body>
+
+</html>

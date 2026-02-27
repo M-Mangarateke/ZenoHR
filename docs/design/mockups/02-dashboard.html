@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZenoHR - Dashboard</title>
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    /* KPI icon colors */
+    .kpi-icon-blue {
+      background: var(--brand-primary-subtle);
+      color: var(--brand-primary);
+    }
+
+    .kpi-icon-orange {
+      background: var(--brand-accent-subtle);
+      color: var(--brand-accent);
+    }
+
+    .kpi-icon-green {
+      background: var(--success-subtle);
+      color: var(--success);
+    }
+
+    .kpi-icon-amber {
+      background: var(--warning-subtle);
+      color: var(--warning);
+    }
+
+    /* Dark card text overrides */
+    .card-dark .kpi-label {
+      color: rgba(203, 213, 225, 0.6);
+    }
+
+    .card-dark .kpi-value {
+      color: white;
+    }
+
+    .card-dark .kpi-meta {
+      color: rgba(203, 213, 225, 0.5);
+    }
+
+    /* Compliance ring card */
+    .compliance-card {
+      display: flex;
+      align-items: center;
+      gap: var(--space-5);
+    }
+
+    /* Activity table */
+    .activity-row {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .activity-row:last-child {
+      border-bottom: none;
+    }
+
+    .activity-desc {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .activity-sub {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      margin-top: 1px;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 180px;
+    }
+
+    /* EMP201 dark card accent border */
+    .card-emp201 {
+      border-left: 3px solid var(--brand-accent);
+    }
+
+    /* ── Mobile responsive ──────────────────────────────── */
+    @media (max-width: 768px) {
+      .grid-cols-4 {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .grid-cols-4 {
+        grid-template-columns: 1fr;
+      }
+
+      .page-greeting {
+        font-size: clamp(20px, 5vw, 28px);
+      }
+
+      .page-header .flex.gap-3 {
+        flex-direction: column;
+        width: 100%;
+      }
+
+      .page-header .flex.gap-3 .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .kpi-value {
+        font-size: clamp(20px, 5vw, 28px);
+      }
+
+      .chart-container {
+        height: 160px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-shell">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <img src="../Zenologo2.png" alt="ZenoHR Logo" class="sidebar-logo-img">
+        <span class="sidebar-logo-text">Zeno<em>HR</em></span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Main</div>
+          <a class="nav-item active" href="02-dashboard.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="7" height="9" x="3" y="3" rx="1" />
+              <rect width="7" height="5" x="14" y="3" rx="1" />
+              <rect width="7" height="9" x="14" y="12" rx="1" />
+              <rect width="7" height="5" x="3" y="16" rx="1" />
+            </svg>
+            <span class="nav-label">Dashboard</span>
+          </a>
+          <a class="nav-item" href="03-employees.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+            <span class="nav-label">Employees</span>
+          </a>
+          <a class="nav-item" href="07-timesheet.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+            <span class="nav-label">Timesheets</span>
+          </a>
+          <a class="nav-item" href="05-leave.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+              <line x1="16" x2="16" y1="2" y2="6" />
+              <line x1="8" x2="8" y1="2" y2="6" />
+              <line x1="3" x2="21" y1="10" y2="10" />
+              <path d="M8 14h.01" />
+              <path d="M12 14h.01" />
+              <path d="M16 14h.01" />
+              <path d="M8 18h.01" />
+              <path d="M12 18h.01" />
+              <path d="M16 18h.01" />
+            </svg>
+            <span class="nav-label">Leave</span>
+            <span class="nav-badge">8</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Finance &amp; Compliance</div>
+          <a class="nav-item" href="04-payroll.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="14" x="2" y="5" rx="2" />
+              <line x1="2" x2="22" y1="10" y2="10" />
+            </svg>
+            <span class="nav-label">Payroll</span>
+          </a>
+          <a class="nav-item" href="06-compliance.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            <span class="nav-label">Compliance</span>
+            <span class="nav-badge">3</span>
+          </a>
+          <a class="nav-item" href="08-audit.html">
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" x2="8" y1="13" y2="13" />
+              <line x1="16" x2="8" y1="17" y2="17" />
+              <polyline points="10 9 9 9 8 9" />
+            </svg>
+            <span class="nav-label">Audit Trail</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Settings</div>
+          <a class="nav-item" href="09-role-management.html">
+            <i data-lucide="shield-check" class="nav-icon"></i>
+            <span class="nav-label">Role Management</span>
+          </a>
+          <a class="nav-item" href="10-settings.html">
+            <i data-lucide="building-2" class="nav-icon"></i>
+            <span class="nav-label">Departments</span>
+          </a>
+          <a class="nav-item" href="10-settings.html">
+            <i data-lucide="users" class="nav-icon"></i>
+            <span class="nav-label">Users</span>
+          </a>
+          <a class="nav-item" href="10-settings.html">
+            <i data-lucide="sliders-horizontal" class="nav-icon"></i>
+            <span class="nav-label">Company Settings</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Insights</div>
+          <a class="nav-item" href="12-analytics.html">
+            <i data-lucide="bar-chart-3" class="nav-icon"></i>
+            <span class="nav-label">Analytics</span>
+          </a>
+          <a class="nav-item" href="13-my-analytics.html">
+            <i data-lucide="activity" class="nav-icon"></i>
+            <span class="nav-label">My Analytics</span>
+          </a>
+        </div>
+
+        <div class="nav-section">
+          <div class="nav-section-label">Account</div>
+          <a class="nav-item" href="03-employees.html">
+            <!-- /profile route in Blazor — merged employee record + account prefs (REQ-SEC-002) -->
+            <i data-lucide="circle-user" class="nav-icon"></i>
+            <span class="nav-label">My Profile</span>
+          </a>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-profile-card">
+          <img class="sidebar-profile-img" src="sarah.jpg" alt="Sarah Nkosi">
+          <div class="sidebar-profile-label">
+            <div class="sidebar-profile-name">Sarah Nkosi</div>
+            <div class="sidebar-profile-role">HR Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="main-wrapper" id="mainWrapper">
+      <!-- Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+            <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <button class="icon-btn" onclick="toggleSidebar()" style="display:none" id="hamburger">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="6" x2="20" y2="6" />
+              <line x1="4" y1="12" x2="20" y2="12" />
+              <line x1="4" y1="18" x2="20" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <div class="header-search">
+          <span class="search-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </span>
+          <input type="text" placeholder="Search employees, runs, filings…">
+        </div>
+        <div class="topbar-right">
+          <button class="icon-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+            <span class="notif-dot"></span>
+          </button>
+          <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">
+            <svg id="sun-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="4" />
+              <path
+                d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+            </svg>
+            <svg id="moon-icon" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+              style="display:none">
+              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Content -->
+      <main class="page-content">
+
+        <!-- Page header -->
+        <div class="page-header">
+          <div class="flex items-center justify-between">
+            <div>
+              <h1 class="page-greeting">Good morning, <span>Sarah</span></h1>
+              <p class="page-subtitle">Here's what's happening at your company today, Thursday 19 February 2026</p>
+            </div>
+            <div class="flex gap-3">
+              <button class="btn btn-secondary btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" x2="12" y1="15" y2="3" />
+                </svg>
+                Export
+              </button>
+              <button class="btn btn-primary btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" x2="12" y1="5" y2="19" />
+                  <line x1="5" x2="19" y1="12" y2="12" />
+                </svg>
+                New Payroll Run
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI Row -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+
+          <div class="card kpi-card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="kpi-label">Total Employees</span>
+              <div class="kpi-icon kpi-icon-blue"
+                style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value">247</div>
+            <div class="kpi-meta">
+              <span class="trend-up">
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2.5">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+                +3
+              </span>
+              new this month
+            </div>
+          </div>
+
+          <div class="card kpi-card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="kpi-label">Monthly Payroll</span>
+              <div class="kpi-icon kpi-icon-orange"
+                style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="12" x2="12" y1="1" y2="23" />
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value" style="font-size:22px; letter-spacing:-1px;">R 2,847,320<span
+                style="font-size:16px;">.00</span></div>
+            <div class="kpi-meta">
+              <span class="trend-up">
+                <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2.5">
+                  <polyline points="18 15 12 9 6 15" />
+                </svg>
+                2.1%
+              </span>
+              vs Jan 2026
+            </div>
+          </div>
+
+          <div class="card kpi-card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="kpi-label">Compliance Score</span>
+              <div class="kpi-icon kpi-icon-green"
+                style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value" style="color: var(--success);">94%</div>
+            <div class="kpi-meta">
+              <span style="color:var(--warning);font-weight:600;font-size:11.5px;">3 items</span> need attention
+            </div>
+          </div>
+
+          <div class="card kpi-card">
+            <div class="flex items-center justify-between mb-3">
+              <span class="kpi-label">Leave Requests</span>
+              <div class="kpi-icon kpi-icon-amber"
+                style="width:32px;height:32px;border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+                  <line x1="16" x2="16" y1="2" y2="6" />
+                  <line x1="8" x2="8" y1="2" y2="6" />
+                  <line x1="3" x2="21" y1="10" y2="10" />
+                </svg>
+              </div>
+            </div>
+            <div class="kpi-value" style="color: var(--brand-accent);">8</div>
+            <div class="kpi-meta">
+              <span style="color:var(--brand-accent);font-weight:600;font-size:11.5px;">5 pending</span> your approval
+            </div>
+          </div>
+
+        </div><!-- /KPI Row -->
+
+        <!-- Row 2: Chart + Deadlines -->
+        <div class="grid grid-cols-60-40 gap-4 mb-6">
+
+          <!-- Payroll Trend Chart -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Payroll Cost Trend</span>
+              <div class="flex gap-2 items-center">
+                <span class="badge badge-muted badge-nodot">Mar–Feb 2026</span>
+                <a class="card-action" href="04-payroll.html">View runs →</a>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="payrollChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Upcoming Deadlines -->
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Upcoming Deadlines</span>
+              <a class="card-action" href="06-compliance.html">All →</a>
+            </div>
+            <div class="deadline-list">
+              <div class="deadline-item">
+                <div class="deadline-dot" style="background: var(--danger);"></div>
+                <div class="deadline-info">
+                  <div class="deadline-name">EMP201: February 2026</div>
+                  <div class="deadline-date">Due 7 March 2026 &nbsp;·&nbsp; <span
+                      style="color:var(--danger);font-weight:600;">7 days</span></div>
+                </div>
+                <span class="badge badge-danger">Urgent</span>
+              </div>
+              <div class="deadline-item">
+                <div class="deadline-dot" style="background: var(--warning);"></div>
+                <div class="deadline-info">
+                  <div class="deadline-name">EMP501 Interim Filing</div>
+                  <div class="deadline-date">Due 31 Oct 2026 &nbsp;·&nbsp; <span
+                      style="color:var(--warning);font-weight:600;">253 days</span></div>
+                </div>
+                <span class="badge badge-warning">Upcoming</span>
+              </div>
+              <div class="deadline-item">
+                <div class="deadline-dot" style="background: var(--info);"></div>
+                <div class="deadline-info">
+                  <div class="deadline-name">Leave Cycle Reset</div>
+                  <div class="deadline-date">1 March 2026 &nbsp;·&nbsp; <span
+                      style="color:var(--info);font-weight:600;">10 days</span></div>
+                </div>
+                <span class="badge badge-info">Info</span>
+              </div>
+              <div class="deadline-item">
+                <div class="deadline-dot" style="background: var(--success);"></div>
+                <div class="deadline-info">
+                  <div class="deadline-name">IRP5 / IT3(a) Issue</div>
+                  <div class="deadline-date">Due May 2026 &nbsp;·&nbsp; <span
+                      style="color:var(--success);font-weight:600;">On track</span></div>
+                </div>
+                <span class="badge badge-success">On Track</span>
+              </div>
+            </div>
+
+            <!-- EMP201 action card -->
+            <div class="card card-dark card-emp201" style="margin-top: var(--space-4); padding: 16px 18px;">
+              <div class="flex items-center gap-3">
+                <div
+                  style="width:36px;height:36px;border-radius:var(--radius-md);background:rgba(212,137,14,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="#d4890e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                    <path d="M12 9v4" />
+                    <path d="M12 17h.01" />
+                  </svg>
+                </div>
+                <div style="flex:1;">
+                  <div style="font-size:13px;font-weight:600;color:white;line-height:1.3;">EMP201 due in 7 days</div>
+                  <div style="font-size:11.5px;color:rgba(203,213,225,0.6);margin-top:2px;">Feb 2026 • R 2,847,320.00
+                    payroll</div>
+                </div>
+                <button class="btn btn-accent btn-sm">Generate</button>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /Row 2 -->
+
+        <!-- Row 3: Recent Activity -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Recent Activity</span>
+            <a class="card-action" href="08-audit.html">Audit trail →</a>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Action</th>
+                  <th>User</th>
+                  <th>Reference</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="td-mono td-muted">09:14</td>
+                  <td>
+                    <div class="person-cell">
+                      <div class="avatar avatar-sm"
+                        style="background:var(--brand-primary-subtle);color:var(--brand-primary);">SN</div>
+                      <div>
+                        <div style="font-size:13px;font-weight:500;">Payroll Run Approved</div>
+                        <div class="td-muted">Feb 2026: Monthly Run</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="td-muted">Sarah Nkosi</td>
+                  <td class="td-mono td-muted">RUN-2026-02</td>
+                  <td><span class="badge badge-success">Approved</span></td>
+                </tr>
+                <tr>
+                  <td class="td-mono td-muted">08:47</td>
+                  <td>
+                    <div class="person-cell">
+                      <div class="avatar avatar-sm" style="background:var(--warning-subtle);color:var(--warning);">TM
+                      </div>
+                      <div>
+                        <div style="font-size:13px;font-weight:500;">Leave Request Submitted</div>
+                        <div class="td-muted">Annual Leave · 5 days</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="td-muted">Thabo Molefe</td>
+                  <td class="td-mono td-muted">LVE-2026-0089</td>
+                  <td><span class="badge badge-warning">Pending</span></td>
+                </tr>
+                <tr>
+                  <td class="td-mono td-muted">08:22</td>
+                  <td>
+                    <div class="person-cell">
+                      <div class="avatar avatar-sm" style="background:var(--info-subtle);color:var(--info);">KD</div>
+                      <div>
+                        <div style="font-size:13px;font-weight:500;">Employee Onboarded</div>
+                        <div class="td-muted">Junior Developer · IT Dept</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="td-muted">Kobus de Bruyn</td>
+                  <td class="td-mono td-muted">EMP-0247</td>
+                  <td><span class="badge badge-primary">Active</span></td>
+                </tr>
+                <tr>
+                  <td class="td-mono td-muted">07:55</td>
+                  <td>
+                    <div class="person-cell">
+                      <div class="avatar avatar-sm" style="background:var(--success-subtle);color:var(--success);">SN
+                      </div>
+                      <div>
+                        <div style="font-size:13px;font-weight:500;">EMP201 Jan 2026 Submitted</div>
+                        <div class="td-muted">SARS e@syFile · R 2,798,100</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="td-muted">Sarah Nkosi</td>
+                  <td class="td-mono td-muted">EMP201-01-26</td>
+                  <td><span class="badge badge-success">Filed</span></td>
+                </tr>
+                <tr>
+                  <td class="td-mono td-muted">07:30</td>
+                  <td>
+                    <div class="person-cell">
+                      <div class="avatar avatar-sm"
+                        style="background:var(--brand-accent-subtle);color:var(--brand-accent);">NZ</div>
+                      <div>
+                        <div style="font-size:13px;font-weight:500;">Timesheet Approved</div>
+                        <div class="td-muted">Week 7 · Operations Dept</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="td-muted">Nandi Zulu</td>
+                  <td class="td-mono td-muted">TS-2026-W07</td>
+                  <td><span class="badge badge-success">Approved</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Bottom Navigation (visible ≤640px only) -->
+  <nav class="bottom-nav">
+    <a href="02-dashboard.html" class="bottom-nav-item active">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7" />
+        <rect x="14" y="3" width="7" height="7" />
+        <rect x="14" y="14" width="7" height="7" />
+        <rect x="3" y="14" width="7" height="7" />
+      </svg>
+      <span class="bottom-nav-label">Dashboard</span>
+    </a>
+    <a href="05-leave.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+      </svg>
+      <span class="bottom-nav-label">Leave</span>
+    </a>
+    <a href="14-clock-in.html" class="bottom-nav-item clock-in-nav">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+      <span class="bottom-nav-label">Clock In</span>
+    </a>
+    <a href="04-payroll.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="6" width="20" height="12" rx="2" />
+        <circle cx="12" cy="12" r="2" />
+        <path d="M6 12h.01M18 12h.01" />
+      </svg>
+      <span class="bottom-nav-label">Payslips</span>
+    </a>
+    <a href="13-my-analytics.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+      </svg>
+      <span class="bottom-nav-label">Analytics</span>
+    </a>
+  </nav>
+
+  <script>
+    // Sidebar collapse
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const wrapper = document.getElementById('mainWrapper');
+      sidebar.classList.toggle('collapsed');
+      const icon = document.getElementById('toggle-icon');
+      if (sidebar.classList.contains('collapsed')) {
+        icon.innerHTML = '<polyline points="9 18 15 12 9 6"/>';
+      } else {
+        icon.innerHTML = '<polyline points="15 18 9 12 15 6"/>';
+      }
+    }
+
+    // Theme toggle
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('sun-icon').style.display = isDark ? 'block' : 'none';
+      document.getElementById('moon-icon').style.display = isDark ? 'none' : 'block';
+      updateChart();
+    }
+
+    // Chart.js payroll trend
+    let chart;
+    function updateChart() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const gridColor = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)';
+      const textColor = isDark ? '#94a3b8' : '#64748b';
+      const blue = '#1d4777';
+
+      if (chart) chart.destroy();
+
+      const ctx = document.getElementById('payrollChart').getContext('2d');
+      const grad = ctx.createLinearGradient(0, 0, 0, 180);
+      grad.addColorStop(0, isDark ? 'rgba(29,71,119,0.5)' : 'rgba(29,71,119,0.15)');
+      grad.addColorStop(1, 'rgba(29,71,119,0)');
+
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb'],
+          datasets: [{
+            label: 'Payroll (R)',
+            data: [2640000, 2710000, 2680000, 2920000, 2798100, 2847320],
+            borderColor: blue,
+            backgroundColor: grad,
+            borderWidth: 2.5,
+            pointBackgroundColor: blue,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            tension: 0.4,
+            fill: true,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => ` R ${(ctx.raw / 1000000).toFixed(2)}M`
+              },
+              backgroundColor: isDark ? '#1e293b' : '#fff',
+              titleColor: isDark ? '#f1f5f9' : '#0f172a',
+              bodyColor: isDark ? '#94a3b8' : '#64748b',
+              borderColor: isDark ? '#334155' : '#e2e8f0',
+              borderWidth: 1,
+              padding: 10,
+              cornerRadius: 8,
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: gridColor, drawBorder: false },
+              ticks: { color: textColor, font: { family: "'JetBrains Mono', monospace", size: 11 } },
+              border: { display: false }
+            },
+            y: {
+              grid: { color: gridColor, drawBorder: false },
+              ticks: {
+                color: textColor,
+                font: { family: "'JetBrains Mono', monospace", size: 11 },
+                callback: v => 'R ' + (v / 1000000).toFixed(1) + 'M'
+              },
+              border: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    updateChart();
+  </script>
+</body>
+
+</html>

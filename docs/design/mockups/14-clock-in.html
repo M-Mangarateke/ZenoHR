@@ -1,0 +1,1139 @@
+﻿<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZenoHR — Clock In / Out</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="shared.css">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <style>
+    /* ── Clock action button ─────────────────────────────── */
+    .clock-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      max-width: 320px;
+      margin: 0 auto;
+      padding: 20px 32px;
+      border-radius: 16px;
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -.3px;
+      border: none;
+      cursor: pointer;
+      transition: transform .12s, box-shadow .12s;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    .clock-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    }
+
+    .clock-btn:active {
+      transform: translateY(0);
+    }
+
+    .clock-btn.clock-in {
+      background: var(--brand-primary);
+      color: #fff;
+    }
+
+    .clock-btn.clock-out {
+      background: var(--brand-accent);
+      color: #fff;
+    }
+
+    /* ── Timer display ───────────────────────────────────── */
+    .timer-display {
+      font-family: var(--font-mono);
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      letter-spacing: -.5px;
+      line-height: 1;
+      text-align: center;
+    }
+
+    .timer-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      text-align: center;
+      margin-top: 6px;
+    }
+
+    /* ── Status chip ─────────────────────────────────────── */
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status-chip .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+
+    .status-chip.clocked-in {
+      background: var(--success-subtle);
+      color: var(--success);
+    }
+
+    .status-chip.clocked-in .dot {
+      background: var(--success);
+      animation: pulse 1.5s infinite;
+    }
+
+    .status-chip.clocked-out {
+      background: var(--surface-hover);
+      color: var(--text-muted);
+    }
+
+    .status-chip.clocked-out .dot {
+      background: var(--text-muted);
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: .4;
+      }
+    }
+
+    /* ── Week log table ──────────────────────────────────── */
+    .week-log {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .week-log th {
+      text-align: left;
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 0 0 10px 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .week-log td {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+
+    .week-log tr:last-child td {
+      border-bottom: none;
+    }
+
+    .week-log .day-name {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .week-log .day-date {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    .week-log .hours-mono {
+      font-family: var(--font-mono);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .week-log .today-row {
+      background: var(--brand-primary-subtle);
+      border-radius: 6px;
+    }
+
+    .week-log .today-row td {
+      color: var(--brand-primary);
+    }
+
+    .week-log .today-row .day-date {
+      color: var(--brand-primary);
+      opacity: .7;
+    }
+
+    /* ── Day status badges ───────────────────────────────── */
+    .day-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 99px;
+    }
+
+    .day-badge.ok {
+      background: var(--success-subtle);
+      color: var(--success);
+    }
+
+    .day-badge.active {
+      background: var(--brand-primary-subtle);
+      color: var(--brand-primary);
+    }
+
+    .day-badge.missing {
+      background: rgba(220, 38, 38, 0.08);
+      color: #dc2626;
+    }
+
+    .day-badge.leave {
+      background: var(--warning-subtle);
+      color: var(--warning);
+    }
+
+    .day-badge.future {
+      background: var(--surface-hover);
+      color: var(--text-muted);
+    }
+
+    /* ── Team status table (Manager view) ───────────────── */
+    .team-status-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .team-status-table th {
+      text-align: left;
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-muted);
+      font-weight: 600;
+      padding: 0 0 10px 0;
+      border-bottom: 2px solid var(--border-subtle);
+    }
+
+    .team-status-table td {
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border-subtle);
+      vertical-align: middle;
+    }
+
+    .team-status-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    /* ── Emp avatar mini ─────────────────────────────────── */
+    .emp-avatar-sm {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--brand-primary-subtle);
+      color: var(--brand-primary);
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* ── Flag modal ──────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.show {
+      display: flex;
+    }
+
+    .modal-box {
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+      padding: 28px;
+      width: 100%;
+      max-width: 400px;
+      margin: 16px;
+    }
+
+    .modal-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .modal-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    .form-select,
+    .form-textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-family: var(--font-sans);
+      background: var(--input-bg, var(--surface));
+      color: var(--text-primary);
+      box-sizing: border-box;
+      outline: none;
+      transition: border-color .15s;
+    }
+
+    .form-select:focus,
+    .form-textarea:focus {
+      border-color: var(--brand-primary);
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    /* ── Role toggle (demo only) ─────────────────────────── */
+    .role-toggle-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      background: var(--brand-primary-subtle);
+      border-radius: var(--radius-md);
+      margin-bottom: 20px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--brand-primary);
+    }
+
+    /* ── Mobile responsive ──────────────────────────────── */
+    @media (max-width: 768px) {
+      .grid[style*="grid-template-columns:1fr 1.4fr"] {
+        grid-template-columns: 1fr !important;
+      }
+
+      .timer-display {
+        font-size: 2rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+
+      /* Clock button — full width, large touch target */
+      .clock-btn {
+        max-width: 100%;
+        padding: 18px 24px;
+        font-size: 1.1rem;
+        min-height: 56px;
+      }
+
+      /* Timer display compact */
+      .timer-display {
+        font-size: 1.8rem;
+      }
+
+      #currentTime {
+        font-size: 1.6rem !important;
+      }
+
+      /* Week log → card list */
+      .week-log thead {
+        display: none;
+      }
+
+      .week-log tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .week-log tbody tr {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 12px;
+        padding: 12px;
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-lg);
+        border-bottom: none;
+      }
+
+      .week-log tbody tr.today-row {
+        border-color: var(--brand-primary);
+        background: var(--brand-primary-subtle);
+      }
+
+      .week-log tbody tr.today-row td {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+      }
+
+      .week-log td {
+        padding: 2px 0;
+        border-bottom: none;
+      }
+
+      .week-log td:first-child {
+        grid-column: 1 / -1;
+      }
+
+      .week-log td:last-child {
+        grid-column: 1 / -1;
+      }
+
+      /* Manager view — stack KPIs */
+      div[style*="display:flex;gap:8px;"] {
+        flex-wrap: wrap !important;
+      }
+
+      /* Team status table compact */
+      .team-status-table {
+        font-size: 12px;
+      }
+
+      .team-status-table th:nth-child(4),
+      .team-status-table td:nth-child(4) {
+        display: none;
+      }
+
+      .team-status-table th:nth-child(5),
+      .team-status-table td:nth-child(5) {
+        display: none;
+      }
+
+      .emp-avatar-sm {
+        width: 28px;
+        height: 28px;
+        font-size: 10px;
+      }
+
+      /* Page header compact */
+      h1[style*="font-size:1.5rem"] {
+        font-size: 1.2rem !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app-layout">
+
+    <!-- Sidebar — Manager nav (REQ-SEC-002: role-conditional, Manager role shown here) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="../Zenologo2.png" alt="ZenoHR" class="sidebar-logo" id="sidebarLogo">
+        <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Collapse sidebar">
+          <i data-lucide="panel-left-close" style="width:18px;height:18px;"></i>
+        </button>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Main</div>
+          <a href="02-dashboard.html" class="nav-item">
+            <i data-lucide="layout-dashboard" class="nav-icon"></i><span class="nav-label">Dashboard</span>
+          </a>
+          <a href="03-employees.html" class="nav-item">
+            <i data-lucide="users" class="nav-icon"></i><span class="nav-label">Employees</span>
+          </a>
+          <a href="05-leave.html" class="nav-item">
+            <i data-lucide="calendar-days" class="nav-icon"></i><span class="nav-label">Leave</span>
+          </a>
+          <a href="07-timesheet.html" class="nav-item">
+            <i data-lucide="clock" class="nav-icon"></i><span class="nav-label">Timesheets</span>
+          </a>
+          <a href="14-clock-in.html" class="nav-item active">
+            <i data-lucide="timer" class="nav-icon"></i><span class="nav-label">Clock In / Out</span>
+          </a>
+          <a href="04-payroll.html" class="nav-item">
+            <i data-lucide="banknote" class="nav-icon"></i><span class="nav-label">My Payslips</span>
+          </a>
+          <a href="03-employees.html" class="nav-item">
+            <!-- /profile in Blazor — merged employee record + account prefs (REQ-SEC-002) -->
+            <i data-lucide="circle-user" class="nav-icon"></i><span class="nav-label">My Profile</span>
+          </a>
+        </div>
+        <div class="nav-section">
+          <div class="nav-section-label">Insights</div>
+          <a href="12-analytics.html" class="nav-item">
+            <!-- Team Analytics — server-side filtered to Manager's department (REQ-SEC-002) -->
+            <i data-lucide="bar-chart-3" class="nav-icon"></i><span class="nav-label">Team Analytics</span>
+          </a>
+          <a href="13-my-analytics.html" class="nav-item">
+            <i data-lucide="activity" class="nav-icon"></i><span class="nav-label">My Analytics</span>
+          </a>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-profile-card">
+          <img class="sidebar-profile-img" src="sarah.jpg" alt="Sarah Nkosi">
+          <div class="sidebar-profile-label">
+            <div class="sidebar-profile-name">Sarah Nkosi</div>
+            <div class="sidebar-profile-role">HR Administrator</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn" onclick="toggleSidebar()" title="Toggle sidebar">
+            <svg id="toggle-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+        </div>
+        <div class="header-search">
+          <span class="search-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </span>
+          <input type="text" placeholder="Search attendance records…">
+        </div>
+        <div class="topbar-right">
+          <!-- Demo: view toggle -->
+          <div style="display:flex;gap:4px;background:var(--surface-hover);padding:3px;border-radius:var(--radius-md);">
+            <button onclick="showView('employee')" id="btnEmp" class="chip active" style="font-size:11px;">My
+              View</button>
+            <button onclick="showView('manager')" id="btnMgr" class="chip" style="font-size:11px;">Manager View</button>
+          </div>
+          <button class="icon-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+              <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+            </svg>
+            <span class="notif-dot"></span>
+          </button>
+          <button class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
+            <i data-lucide="sun" style="width:18px;height:18px;" id="themeIcon"></i>
+          </button>
+        </div>
+      </header>
+
+      <div class="content-body">
+
+        <!-- ══════════════════════════════════════════════════ -->
+        <!-- EMPLOYEE VIEW                                       -->
+        <!-- ══════════════════════════════════════════════════ -->
+        <div id="employeeView">
+          <!-- Page header -->
+          <div style="margin-bottom:24px;">
+            <h1 style="font-size:1.5rem;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;margin:0 0 4px;">
+              Clock In / Out</h1>
+            <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">Week of 17 Feb 2026 · Lerato Dlamini</p>
+          </div>
+
+          <div class="grid" style="grid-template-columns:1fr 1.4fr;gap:24px;align-items:start;">
+
+            <!-- Left: Clock action card -->
+            <div>
+              <div class="card" style="text-align:center;padding:36px 24px;">
+                <!-- Current time -->
+                <div
+                  style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">
+                  Current Time</div>
+                <div id="currentTime"
+                  style="font-family:var(--font-mono);font-size:2rem;font-weight:800;color:var(--text-primary);margin-bottom:20px;">
+                  08:47:22</div>
+
+                <!-- Clock-in state: show one or the other -->
+                <div id="stateNotClocked">
+                  <div class="status-chip clocked-out" style="margin: 0 auto 20px;">
+                    <div class="dot"></div> Not clocked in
+                  </div>
+                  <button class="clock-btn clock-in" onclick="clockIn()">
+                    <i data-lucide="log-in" style="width:22px;height:22px;"></i>
+                    Clock In
+                  </button>
+                  <p style="margin-top:14px;font-size:12px;color:var(--text-muted);">Your start time will be recorded
+                    when you press the button.</p>
+                </div>
+
+                <div id="stateClockedIn" style="display:none;">
+                  <div class="status-chip clocked-in" style="margin: 0 auto 12px;">
+                    <div class="dot"></div> Clocked in since 08:31
+                  </div>
+                  <div class="timer-display" id="elapsedTimer">00:16:22</div>
+                  <div class="timer-label">Time elapsed today</div>
+                  <button class="clock-btn clock-out" onclick="clockOut()" style="margin-top:20px;">
+                    <i data-lucide="log-out" style="width:22px;height:22px;"></i>
+                    Clock Out
+                  </button>
+                  <p style="margin-top:14px;font-size:12px;color:var(--text-muted);">Your end time will be recorded when
+                    you press the button.</p>
+                </div>
+              </div>
+
+              <!-- Today's session summary (shown after clock-in) -->
+              <div class="card" id="todaySession" style="display:none;margin-top:16px;">
+                <div class="card-header" style="margin-bottom:12px;">
+                  <span class="card-title">Today's Session</span>
+                  <span class="day-badge active">In Progress</span>
+                </div>
+                <div style="display:flex;gap:24px;font-size:13px;">
+                  <div>
+                    <div
+                      style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">
+                      Clock In</div>
+                    <div
+                      style="font-family:var(--font-mono);font-weight:700;color:var(--text-primary);font-size:1.1rem;">
+                      08:31</div>
+                  </div>
+                  <div>
+                    <div
+                      style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">
+                      Clock Out</div>
+                    <div style="font-family:var(--font-mono);font-weight:700;color:var(--text-muted);font-size:1.1rem;">
+                      —</div>
+                  </div>
+                  <div>
+                    <div
+                      style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">
+                      Hours</div>
+                    <div
+                      style="font-family:var(--font-mono);font-weight:700;color:var(--text-primary);font-size:1.1rem;"
+                      id="sessionHours">0h 16m</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: This week's time log -->
+            <div class="card">
+              <div class="card-header" style="margin-bottom:16px;">
+                <span class="card-title">This Week</span>
+                <span style="font-size:12px;color:var(--text-muted);">17 – 21 Feb 2026</span>
+              </div>
+              <table class="week-log">
+                <thead>
+                  <tr>
+                    <th>Day</th>
+                    <th>Clock In</th>
+                    <th>Clock Out</th>
+                    <th>Hours</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div class="day-name">Monday</div>
+                      <div class="day-date">17 Feb</div>
+                    </td>
+                    <td class="hours-mono">08:29</td>
+                    <td class="hours-mono">17:03</td>
+                    <td class="hours-mono">8h 34m</td>
+                    <td><span class="day-badge ok"><i data-lucide="check" style="width:10px;height:10px;"></i>
+                        Approved</span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="day-name">Tuesday</div>
+                      <div class="day-date">18 Feb</div>
+                    </td>
+                    <td class="hours-mono">08:41</td>
+                    <td class="hours-mono">16:55</td>
+                    <td class="hours-mono">8h 14m</td>
+                    <td><span class="day-badge ok"><i data-lucide="check" style="width:10px;height:10px;"></i>
+                        Approved</span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="day-name">Wednesday</div>
+                      <div class="day-date">19 Feb</div>
+                    </td>
+                    <td class="hours-mono">09:02</td>
+                    <td class="hours-mono">17:30</td>
+                    <td class="hours-mono">8h 28m</td>
+                    <td><span class="day-badge ok"><i data-lucide="check" style="width:10px;height:10px;"></i>
+                        Approved</span></td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div class="day-name">Thursday</div>
+                      <div class="day-date">20 Feb</div>
+                    </td>
+                    <td class="hours-mono">08:15</td>
+                    <td class="hours-mono">17:10</td>
+                    <td class="hours-mono">8h 55m</td>
+                    <td><span class="day-badge ok"><i data-lucide="check" style="width:10px;height:10px;"></i>
+                        Approved</span></td>
+                  </tr>
+                  <tr class="today-row">
+                    <td style="padding-left:8px;border-radius:6px 0 0 6px;">
+                      <div class="day-name" style="color:var(--brand-primary);">Friday</div>
+                      <div class="day-date">21 Feb — Today</div>
+                    </td>
+                    <td class="hours-mono" style="color:var(--brand-primary);">08:31</td>
+                    <td class="hours-mono">—</td>
+                    <td class="hours-mono">—</td>
+                    <td style="padding-right:8px;border-radius:0 6px 6px 0;"><span class="day-badge active">In
+                        Progress</span></td>
+                  </tr>
+                </tbody>
+              </table>
+              <div
+                style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;font-size:12.5px;">
+                <span style="color:var(--text-muted);">Week total so far</span>
+                <span style="font-family:var(--font-mono);font-weight:700;color:var(--text-primary);">34h 11m</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════ -->
+        <!-- MANAGER VIEW                                        -->
+        <!-- ══════════════════════════════════════════════════ -->
+        <div id="managerView" style="display:none;">
+          <!-- Page header -->
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;">
+            <div>
+              <h1
+                style="font-size:1.5rem;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;margin:0 0 4px;">
+                Team Attendance</h1>
+              <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">Engineering · Friday, 21 February 2026
+              </p>
+            </div>
+            <div style="display:flex;gap:8px;">
+              <div
+                style="text-align:center;padding:10px 18px;background:var(--success-subtle);border-radius:var(--radius-md);">
+                <div style="font-size:1.4rem;font-weight:800;font-family:var(--font-mono);color:var(--success);">6</div>
+                <div
+                  style="font-size:11px;font-weight:600;color:var(--success);text-transform:uppercase;letter-spacing:.05em;">
+                  Clocked In</div>
+              </div>
+              <div
+                style="text-align:center;padding:10px 18px;background:rgba(220,38,38,0.08);border-radius:var(--radius-md);">
+                <div style="font-size:1.4rem;font-weight:800;font-family:var(--font-mono);color:#dc2626;">1</div>
+                <div
+                  style="font-size:11px;font-weight:600;color:#dc2626;text-transform:uppercase;letter-spacing:.05em;">
+                  Not In</div>
+              </div>
+              <div
+                style="text-align:center;padding:10px 18px;background:var(--warning-subtle);border-radius:var(--radius-md);">
+                <div style="font-size:1.4rem;font-weight:800;font-family:var(--font-mono);color:var(--warning);">1</div>
+                <div
+                  style="font-size:11px;font-weight:600;color:var(--warning);text-transform:uppercase;letter-spacing:.05em;">
+                  On Leave</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Team status table -->
+          <div class="card">
+            <table class="team-status-table">
+              <thead>
+                <tr>
+                  <th>Employee</th>
+                  <th>Status</th>
+                  <th>Clock In</th>
+                  <th>Clock Out</th>
+                  <th>Hours Today</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <div class="emp-avatar-sm">LD</div>
+                      <div>
+                        <div style="font-weight:600;color:var(--text-primary);">Lerato Dlamini</div>
+                        <div style="font-size:11px;color:var(--text-muted);">Senior Developer</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="status-chip clocked-in">
+                      <div class="dot"></div> Clocked In
+                    </span></td>
+                  <td style="font-family:var(--font-mono);font-size:13px;">08:31</td>
+                  <td style="font-family:var(--font-mono);font-size:13px;color:var(--text-muted);">—</td>
+                  <td style="font-family:var(--font-mono);font-size:13px;">0h 16m</td>
+                  <td><button class="btn btn-ghost btn-sm" style="color:var(--text-muted);" disabled
+                      title="Employee is clocked in"><i data-lucide="flag" style="width:13px;height:13px;"></i></button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <div class="emp-avatar-sm av-7">TS</div>
+                      <div>
+                        <div style="font-weight:600;color:var(--text-primary);">Thabo Sithole</div>
+                        <div style="font-size:11px;color:var(--text-muted);">Operations Manager</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="status-chip clocked-in">
+                      <div class="dot"></div> Clocked In
+                    </span></td>
+                  <td style="font-family:var(--font-mono);font-size:13px;">07:58</td>
+                  <td style="font-family:var(--font-mono);font-size:13px;color:var(--text-muted);">—</td>
+                  <td style="font-family:var(--font-mono);font-size:13px;">0h 49m</td>
+                  <td><button class="btn btn-ghost btn-sm" style="color:var(--text-muted);" disabled
+                      title="Employee is clocked in"><i data-lucide="flag" style="width:13px;height:13px;"></i></button>
+                  </td>
+                </tr>
+                <tr style="background:rgba(220,38,38,0.04);">
+                  <td>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <div class="emp-avatar-sm av-4">KV</div>
+                      <div>
+                        <div style="font-weight:600;color:var(--text-primary);">Kobus van der Walt</div>
+                        <div style="font-size:11px;color:var(--text-muted);">Junior Developer</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="status-chip clocked-out" style="background:rgba(220,38,38,0.08);color:#dc2626;">
+                      <div class="dot" style="background:#dc2626;"></div> Not Clocked In
+                    </span></td>
+                  <td style="font-family:var(--font-mono);font-size:13px;color:var(--text-muted);">—</td>
+                  <td style="font-family:var(--font-mono);font-size:13px;color:var(--text-muted);">—</td>
+                  <td style="font-family:var(--font-mono);font-size:13px;color:var(--text-muted);">—</td>
+                  <td>
+                    <button class="btn btn-sm" onclick="openFlagModal('Kobus van der Walt')"
+                      style="background:rgba(220,38,38,0.08);color:#dc2626;border:1px solid rgba(220,38,38,0.2);font-size:11.5px;gap:4px;display:inline-flex;align-items:center;">
+                      <i data-lucide="flag" style="width:12px;height:12px;"></i> Flag
+                    </button>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <div class="emp-avatar-sm av-6">PS</div>
+                      <div>
+                        <div style="font-weight:600;color:var(--text-primary);">Priya Sharma</div>
+                        <div style="font-size:11px;color:var(--text-muted);">Financial Analyst</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="status-chip clocked-in">
+                      <div class="dot"></div> Clocked In
+                    </span></td>
+                  <td style="font-family:var(--font-mono);font-size:13px;">08:05</td>
+                  <td style="font-family:var(--font-mono);font-size:13px;color:var(--text-muted);">—</td>
+                  <td style="font-family:var(--font-mono);font-size:13px;">0h 42m</td>
+                  <td><button class="btn btn-ghost btn-sm" style="color:var(--text-muted);" disabled><i
+                        data-lucide="flag" style="width:13px;height:13px;"></i></button></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <div class="emp-avatar-sm av-7">SR</div>
+                      <div>
+                        <div style="font-weight:600;color:var(--text-primary);">Sipho Radebe</div>
+                        <div style="font-size:11px;color:var(--text-muted);">Sales Representative</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="status-chip clocked-in">
+                      <div class="dot"></div> Clocked In
+                    </span></td>
+                  <td style="font-family:var(--font-mono);font-size:13px;">08:22</td>
+                  <td style="font-family:var(--font-mono);font-size:13px;color:var(--text-muted);">—</td>
+                  <td style="font-family:var(--font-mono);font-size:13px;">0h 25m</td>
+                  <td><button class="btn btn-ghost btn-sm" style="color:var(--text-muted);" disabled><i
+                        data-lucide="flag" style="width:13px;height:13px;"></i></button></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <div class="emp-avatar-sm av-2">FC</div>
+                      <div>
+                        <div style="font-weight:600;color:var(--text-primary);">Fatima Cassim</div>
+                        <div style="font-size:11px;color:var(--text-muted);">Compliance Officer</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="status-chip clocked-in">
+                      <div class="dot"></div> Clocked In
+                    </span></td>
+                  <td style="font-family:var(--font-mono);font-size:13px;">08:44</td>
+                  <td style="font-family:var(--font-mono);font-size:13px;color:var(--text-muted);">—</td>
+                  <td style="font-family:var(--font-mono);font-size:13px;">0h 03m</td>
+                  <td><button class="btn btn-ghost btn-sm" style="color:var(--text-muted);" disabled><i
+                        data-lucide="flag" style="width:13px;height:13px;"></i></button></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <div class="emp-avatar-sm av-1">AM</div>
+                      <div>
+                        <div style="font-weight:600;color:var(--text-primary);">Andre Marais</div>
+                        <div style="font-size:11px;color:var(--text-muted);">Driver</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="status-chip clocked-out"
+                      style="background:var(--warning-subtle);color:var(--warning);">
+                      <div class="dot" style="background:var(--warning);"></div> On Leave
+                    </span></td>
+                  <td style="font-family:var(--font-mono);font-size:13px;color:var(--text-muted);">—</td>
+                  <td style="font-family:var(--font-mono);font-size:13px;color:var(--text-muted);">—</td>
+                  <td style="font-family:var(--font-mono);font-size:13px;color:var(--text-muted);">—</td>
+                  <td><button class="btn btn-ghost btn-sm" style="color:var(--text-muted);" disabled title="On leave"><i
+                        data-lucide="flag" style="width:13px;height:13px;"></i></button></td>
+                </tr>
+                <tr>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <div class="emp-avatar-sm av-5">NZ</div>
+                      <div>
+                        <div style="font-weight:600;color:var(--text-primary);">Nandi Zulu</div>
+                        <div style="font-size:11px;color:var(--text-muted);">HR Officer</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span class="status-chip clocked-in">
+                      <div class="dot"></div> Clocked In
+                    </span></td>
+                  <td style="font-family:var(--font-mono);font-size:13px;">08:10</td>
+                  <td style="font-family:var(--font-mono);font-size:13px;color:var(--text-muted);">—</td>
+                  <td style="font-family:var(--font-mono);font-size:13px;">0h 37m</td>
+                  <td><button class="btn btn-ghost btn-sm" style="color:var(--text-muted);" disabled><i
+                        data-lucide="flag" style="width:13px;height:13px;"></i></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Open flags section -->
+          <div style="margin-top:24px;">
+            <div
+              style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);font-weight:700;margin-bottom:8px;">
+              Open Flags</div>
+            <div class="card" style="padding:16px 20px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div
+                    style="width:34px;height:34px;border-radius:50%;background:rgba(220,38,38,0.08);color:#dc2626;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;">
+                    KV</div>
+                  <div>
+                    <div style="font-weight:600;font-size:13px;color:var(--text-primary);">Kobus van der Walt <span
+                        style="font-size:11px;font-weight:400;color:var(--text-muted);">· Suspected absence · 21 Feb
+                        2026</span></div>
+                    <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Flagged by: Sarah Nkosi
+                      (Manager) at 08:47</div>
+                  </div>
+                </div>
+                <div style="display:flex;gap:6px;">
+                  <button class="btn btn-ghost btn-sm">Dismiss</button>
+                  <button class="btn btn-primary btn-sm" style="font-size:11.5px;">Mark Resolved</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content-body -->
+    </main>
+  </div>
+
+  <!-- Bottom Navigation (visible ≤640px only) -->
+  <nav class="bottom-nav">
+    <a href="02-dashboard.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7" />
+        <rect x="14" y="3" width="7" height="7" />
+        <rect x="14" y="14" width="7" height="7" />
+        <rect x="3" y="14" width="7" height="7" />
+      </svg>
+      <span class="bottom-nav-label">Dashboard</span>
+    </a>
+    <a href="05-leave.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+        <line x1="16" y1="2" x2="16" y2="6" />
+        <line x1="8" y1="2" x2="8" y2="6" />
+        <line x1="3" y1="10" x2="21" y2="10" />
+      </svg>
+      <span class="bottom-nav-label">Leave</span>
+    </a>
+    <a href="14-clock-in.html" class="bottom-nav-item clock-in-nav active">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <polyline points="12 6 12 12 16 14" />
+      </svg>
+      <span class="bottom-nav-label">Clock In</span>
+    </a>
+    <a href="04-payroll.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="6" width="20" height="12" rx="2" />
+        <circle cx="12" cy="12" r="2" />
+        <path d="M6 12h.01M18 12h.01" />
+      </svg>
+      <span class="bottom-nav-label">Payslips</span>
+    </a>
+    <a href="13-my-analytics.html" class="bottom-nav-item">
+      <svg class="bottom-nav-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+      </svg>
+      <span class="bottom-nav-label">Analytics</span>
+    </a>
+  </nav>
+
+  <!-- Flag Modal -->
+  <div class="modal-overlay" id="flagModal" onclick="if(event.target===this)closeFlagModal()">
+    <div class="modal-box">
+      <div class="modal-title">Flag Attendance Concern</div>
+      <div class="modal-sub" id="flagModalSub">Kobus van der Walt · 21 Feb 2026</div>
+
+      <div style="margin-bottom:14px;">
+        <label class="form-label">Reason</label>
+        <select class="form-select">
+          <option value="suspected_absence" selected>Suspected absence — employee has not clocked in</option>
+          <option value="missing_clock_out">Missing clock-out — no clock-out recorded</option>
+          <option value="suspicious_hours">Suspicious hours — recorded time seems incorrect</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom:20px;">
+        <label class="form-label">Notes (optional)</label>
+        <textarea class="form-textarea" placeholder="Add any additional context for HR…"></textarea>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="closeFlagModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="closeFlagModal()"
+          style="gap:6px;display:inline-flex;align-items:center;">
+          <i data-lucide="flag" style="width:13px;height:13px;"></i> Submit Flag
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* ── Theme & sidebar ───────────────────────────────── */
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      sidebar.classList.toggle('collapsed');
+      const icon = document.getElementById('toggle-icon');
+      icon.innerHTML = sidebar.classList.contains('collapsed')
+        ? '<polyline points="9 18 15 12 9 6"/>'
+        : '<polyline points="15 18 9 12 15 6"/>';
+    }
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    }
+
+    /* ── View toggle ───────────────────────────────────── */
+    function showView(view) {
+      document.getElementById('employeeView').style.display = view === 'employee' ? '' : 'none';
+      document.getElementById('managerView').style.display = view === 'manager' ? '' : 'none';
+      document.getElementById('btnEmp').className = 'chip' + (view === 'employee' ? ' active' : '');
+      document.getElementById('btnMgr').className = 'chip' + (view === 'manager' ? ' active' : '');
+      lucide.createIcons();
+    }
+
+    /* ── Clock in / out ────────────────────────────────── */
+    let clocked = false;
+    let timerInterval = null;
+    let elapsed = 0;
+
+    function clockIn() {
+      clocked = true;
+      elapsed = 0;
+      document.getElementById('stateNotClocked').style.display = 'none';
+      document.getElementById('stateClockedIn').style.display = '';
+      document.getElementById('todaySession').style.display = '';
+      timerInterval = setInterval(() => {
+        elapsed++;
+        document.getElementById('elapsedTimer').textContent = formatElapsed(elapsed);
+        const h = Math.floor(elapsed / 3600), m = Math.floor((elapsed % 3600) / 60);
+        document.getElementById('sessionHours').textContent = `${h}h ${m}m`;
+      }, 1000);
+      lucide.createIcons();
+    }
+
+    function clockOut() {
+      clocked = false;
+      clearInterval(timerInterval);
+      document.getElementById('stateNotClocked').style.display = '';
+      document.getElementById('stateClockedIn').style.display = 'none';
+      lucide.createIcons();
+    }
+
+    function formatElapsed(s) {
+      const h = String(Math.floor(s / 3600)).padStart(2, '0');
+      const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+      const sec = String(s % 60).padStart(2, '0');
+      return `${h}:${m}:${sec}`;
+    }
+
+    /* ── Live clock ────────────────────────────────────── */
+    function updateClock() {
+      const now = new Date();
+      const t = now.toTimeString().slice(0, 8);
+      const el = document.getElementById('currentTime');
+      if (el) el.textContent = t;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    /* ── Flag modal ────────────────────────────────────── */
+    function openFlagModal(name) {
+      document.getElementById('flagModalSub').textContent = name + ' · 21 Feb 2026';
+      document.getElementById('flagModal').classList.add('show');
+    }
+    function closeFlagModal() {
+      document.getElementById('flagModal').classList.remove('show');
+    }
+
+    /* ── Init ──────────────────────────────────────────── */
+    lucide.createIcons();
+  </script>
+</body>
+
+</html>

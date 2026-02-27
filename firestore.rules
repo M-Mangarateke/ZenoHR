@@ -1,0 +1,312 @@
+// ZenoHR Firestore Security Rules
+// REQ-SEC-005: Tenant isolation — all queries must be scoped to tenant_id
+// REQ-SEC-001: Authentication required for all reads/writes
+// CTL-POPIA-001: Data access restricted to authorised roles
+// Critical rules:
+//   1. Every document requires an authenticated user
+//   2. All root collections enforce tenant_id scoping
+//   3. Finalised payroll runs and audit events are write-once (no updates, no deletes)
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ─── Helper Functions ───────────────────────────────────────────────────
+
+    // User must be authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // User belongs to the same tenant
+    function isTenant(tenantId) {
+      return isAuthenticated()
+        && request.auth.token.tenant_id == tenantId;
+    }
+
+    // User has Director or HRManager role
+    function isHR(tenantId) {
+      return isTenant(tenantId)
+        && request.auth.token.system_role in ['Director', 'HRManager'];
+    }
+
+    // User has at least Manager role
+    function isManager(tenantId) {
+      return isTenant(tenantId)
+        && request.auth.token.system_role in ['Director', 'HRManager', 'Manager'];
+    }
+
+    // User is a SaasAdmin (cross-tenant platform operator)
+    function isSaasAdmin() {
+      return isAuthenticated()
+        && request.auth.token.system_role == 'SaasAdmin';
+    }
+
+    // Document's tenant_id matches the user's tenant
+    function docBelongsToTenant(tenantId) {
+      return resource.data.tenant_id == tenantId;
+    }
+
+    // Incoming document has the correct tenant_id (write validation)
+    function writeHasTenantId(tenantId) {
+      return request.resource.data.tenant_id == tenantId;
+    }
+
+    // Immutability: finalized records cannot be updated or deleted
+    // REQ-OPS-001: Write-once for audit_events and finalized payroll_runs
+    function isFinalized() {
+      return resource.data.keys().hasAny(['finalized_at'])
+        && resource.data.finalized_at != null;
+    }
+
+    function isPayrollRunFinalized() {
+      return resource.data.keys().hasAny(['status'])
+        && resource.data.status in ['filed', 'finalised', 'archived'];
+    }
+
+    // ─── Employees ──────────────────────────────────────────────────────────
+    // REQ-HR-001: Employee data access
+    match /employees/{employeeId} {
+      // HR can read/write all employees in their tenant
+      allow read: if isHR(resource.data.tenant_id)
+                  || (isTenant(resource.data.tenant_id)
+                      && request.auth.token.employee_id == employeeId);
+      allow create: if isHR(request.resource.data.tenant_id)
+                    && writeHasTenantId(request.resource.data.tenant_id);
+      allow update: if isHR(resource.data.tenant_id)
+                    && writeHasTenantId(resource.data.tenant_id)
+                    && !resource.data.keys().hasAny(['archived_at'])
+                       || resource.data.archived_at == null;
+      allow delete: if false; // REQ-OPS-001: No deletion — archive only
+
+      // Employment contracts subcollection
+      match /contracts/{contractId} {
+        allow read: if isHR(get(/databases/$(database)/documents/employees/$(employeeId)).data.tenant_id)
+                    || (isAuthenticated()
+                        && request.auth.token.employee_id == employeeId);
+        allow write: if isHR(get(/databases/$(database)/documents/employees/$(employeeId)).data.tenant_id);
+        allow delete: if false;
+      }
+
+      // Bank accounts subcollection — HR only, highly sensitive
+      // CTL-POPIA-002: Banking data restricted
+      match /bank_accounts/{accountId} {
+        allow read: if isHR(get(/databases/$(database)/documents/employees/$(employeeId)).data.tenant_id);
+        allow write: if isHR(get(/databases/$(database)/documents/employees/$(employeeId)).data.tenant_id);
+        allow delete: if false;
+      }
+
+      // Benefits subcollection
+      match /benefits/{benefitId} {
+        allow read: if isHR(get(/databases/$(database)/documents/employees/$(employeeId)).data.tenant_id)
+                    || (isAuthenticated()
+                        && request.auth.token.employee_id == employeeId);
+        allow write: if isHR(get(/databases/$(database)/documents/employees/$(employeeId)).data.tenant_id);
+        allow delete: if false;
+      }
+
+      // Next of kin subcollection
+      match /next_of_kin/{nokId} {
+        allow read: if isHR(get(/databases/$(database)/documents/employees/$(employeeId)).data.tenant_id)
+                    || (isAuthenticated()
+                        && request.auth.token.employee_id == employeeId);
+        allow write: if isHR(get(/databases/$(database)/documents/employees/$(employeeId)).data.tenant_id);
+        allow delete: if false;
+      }
+
+      // Leave requests subcollection — employee writes own, HR and manager approve
+      // REQ-HR-002: Leave request access
+      match /leave_requests/{requestId} {
+        allow read: if isManager(get(/databases/$(database)/documents/employees/$(employeeId)).data.tenant_id)
+                    || (isAuthenticated()
+                        && request.auth.token.employee_id == employeeId);
+        allow create: if isTenant(request.resource.data.tenant_id)
+                      && request.auth.token.employee_id == employeeId;
+        allow update: if isManager(resource.data.tenant_id);
+        allow delete: if false;
+      }
+    }
+
+    // ─── Payroll Runs ────────────────────────────────────────────────────────
+    // REQ-HR-003: Payroll run access
+    // REQ-OPS-001: Finalised runs are immutable
+    match /payroll_runs/{runId} {
+      allow read: if isHR(resource.data.tenant_id);
+      allow create: if isHR(request.resource.data.tenant_id)
+                    && writeHasTenantId(request.resource.data.tenant_id);
+      allow update: if isHR(resource.data.tenant_id)
+                    && !isPayrollRunFinalized(); // Cannot update finalized runs
+      allow delete: if false;
+
+      // Payroll results subcollection
+      match /results/{resultId} {
+        allow read: if isHR(get(/databases/$(database)/documents/payroll_runs/$(runId)).data.tenant_id)
+                    || (isAuthenticated()
+                        && request.auth.token.employee_id == resource.data.employee_id);
+        allow create: if isHR(request.resource.data.tenant_id);
+        allow update: if false; // Results are write-once
+        allow delete: if false;
+      }
+
+      // Payroll adjustments subcollection
+      match /adjustments/{adjustmentId} {
+        allow read: if isHR(get(/databases/$(database)/documents/payroll_runs/$(runId)).data.tenant_id);
+        allow create: if isHR(request.resource.data.tenant_id);
+        allow update: if false; // Adjustments are write-once
+        allow delete: if false;
+      }
+    }
+
+    // ─── Audit Events ────────────────────────────────────────────────────────
+    // REQ-OPS-001: Audit trail is write-once, append-only, hash-chained
+    // CTL-POPIA-010: Immutable tamper-evident log
+    match /audit_events/{eventId} {
+      allow read: if isHR(resource.data.tenant_id) || isSaasAdmin();
+      allow create: if isAuthenticated()
+                    && writeHasTenantId(request.resource.data.tenant_id);
+      allow update: if false; // Strictly immutable
+      allow delete: if false;
+    }
+
+    // ─── Leave Balances ──────────────────────────────────────────────────────
+    match /leave_balances/{balanceId} {
+      allow read: if isHR(resource.data.tenant_id)
+                  || (isTenant(resource.data.tenant_id)
+                      && request.auth.token.employee_id == resource.data.employee_id);
+      allow write: if isHR(resource.data.tenant_id);
+      allow delete: if false;
+    }
+
+    // ─── Accrual Ledger ──────────────────────────────────────────────────────
+    // Write-once accrual entries
+    match /accrual_ledger/{entryId} {
+      allow read: if isHR(resource.data.tenant_id)
+                  || (isTenant(resource.data.tenant_id)
+                      && request.auth.token.employee_id == resource.data.employee_id);
+      allow create: if isHR(request.resource.data.tenant_id);
+      allow update: if false; // Ledger entries are immutable
+      allow delete: if false;
+    }
+
+    // ─── Timesheets ──────────────────────────────────────────────────────────
+    match /timesheets/{timesheetId} {
+      allow read: if isManager(resource.data.tenant_id);
+      allow write: if isHR(resource.data.tenant_id);
+      allow delete: if false;
+
+      match /time_entries/{entryId} {
+        allow read: if isManager(get(/databases/$(database)/documents/timesheets/$(timesheetId)).data.tenant_id);
+        allow write: if isHR(get(/databases/$(database)/documents/timesheets/$(timesheetId)).data.tenant_id);
+        allow delete: if false;
+      }
+    }
+
+    // ─── Clock Entries ───────────────────────────────────────────────────────
+    // REQ-HR-005: Employee self-service clock-in
+    match /clock_entries/{entryId} {
+      allow read: if isManager(resource.data.tenant_id)
+                  || (isTenant(resource.data.tenant_id)
+                      && request.auth.token.employee_id == resource.data.employee_id);
+      allow create: if isTenant(request.resource.data.tenant_id)
+                    && (request.auth.token.employee_id == request.resource.data.employee_id
+                        || isManager(request.resource.data.tenant_id));
+      allow update: if isTenant(resource.data.tenant_id)
+                    && (request.auth.token.employee_id == resource.data.employee_id
+                        || isManager(resource.data.tenant_id))
+                    && resource.data.status == 'open'; // Can only update open entries
+      allow delete: if false;
+    }
+
+    // ─── Timesheet Flags ─────────────────────────────────────────────────────
+    match /timesheet_flags/{flagId} {
+      allow read: if isManager(resource.data.tenant_id);
+      allow create: if isManager(request.resource.data.tenant_id);
+      allow update: if isManager(resource.data.tenant_id);
+      allow delete: if false;
+    }
+
+    // ─── Compliance Submissions ──────────────────────────────────────────────
+    match /compliance_submissions/{submissionId} {
+      allow read: if isHR(resource.data.tenant_id);
+      allow create: if isHR(request.resource.data.tenant_id);
+      allow update: if isHR(resource.data.tenant_id) && !isFinalized();
+      allow delete: if false;
+    }
+
+    // ─── Compliance Schedules ────────────────────────────────────────────────
+    match /compliance_schedules/{scheduleId} {
+      allow read: if isHR(resource.data.tenant_id);
+      allow write: if isHR(resource.data.tenant_id);
+      allow delete: if false;
+    }
+
+    // ─── Statutory Rule Sets ─────────────────────────────────────────────────
+    // Seeded by SaasAdmin — tenant-scoped read-only at runtime
+    match /statutory_rule_sets/{ruleSetId} {
+      allow read: if isAuthenticated();
+      allow write: if isSaasAdmin();
+      allow delete: if false;
+    }
+
+    // ─── Company Settings ────────────────────────────────────────────────────
+    match /company_settings/{tenantId} {
+      allow read: if isTenant(tenantId);
+      allow write: if isHR(tenantId);
+      allow delete: if false;
+
+      // User preferences subcollection — user writes own prefs
+      match /user_preferences/{userId} {
+        allow read: if isTenant(tenantId) && request.auth.uid == userId;
+        allow write: if isTenant(tenantId) && request.auth.uid == userId;
+        allow delete: if false;
+      }
+    }
+
+    // ─── User Role Assignments ───────────────────────────────────────────────
+    // ROOT collection — NOT a subcollection of company_settings.
+    // PRD-15 Section 9: user_role_assignments/{assignment_id}
+    // REQ-SEC-002: Maps Firebase UIDs to ZenoHR system roles.
+    // Append-only: revocation sets is_active=false; assignments are never deleted.
+    match /user_role_assignments/{assignmentId} {
+      // HR can read/write all assignments in their tenant (role management via S9/S10)
+      allow read: if isHR(resource.data.tenant_id) || isSaasAdmin();
+      allow create: if isHR(request.resource.data.tenant_id)
+                    && writeHasTenantId(request.resource.data.tenant_id);
+      // Allow update only to revoke (is_active: false) — Director/HRManager
+      allow update: if isHR(resource.data.tenant_id)
+                    && writeHasTenantId(resource.data.tenant_id);
+      allow delete: if false; // Append-only — PRD-15 Section 16.4 invariant
+    }
+
+    // ─── Risk Assessments ────────────────────────────────────────────────────
+    match /risk_assessments/{assessmentId} {
+      allow read: if isHR(resource.data.tenant_id);
+      allow write: if isHR(resource.data.tenant_id);
+      allow delete: if false;
+    }
+
+    match /risk_snapshots/{snapshotId} {
+      allow read: if isHR(resource.data.tenant_id);
+      allow create: if isHR(request.resource.data.tenant_id);
+      allow update: if false; // Snapshots are point-in-time, immutable
+      allow delete: if false;
+    }
+
+    // ─── Analytics Snapshots ─────────────────────────────────────────────────
+    // DEC-023: Pre-aggregated analytics snapshots
+    match /analytics_snapshots/{snapshotId} {
+      allow read: if isManager(resource.data.tenant_id)
+                  || (isTenant(resource.data.tenant_id)
+                      && resource.data.scope == 'personal'
+                      && request.auth.token.employee_id == resource.data.employee_id);
+      allow create: if isHR(request.resource.data.tenant_id); // Background service writes
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ─── Deny all other access ───────────────────────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,297 @@
+# REQ-OPS-009: Automated CI/CD pipeline — build, unit tests, integration tests, SAST, dependency scan.
+# Runs on every push to main/master and on pull requests targeting those branches.
+# TC-OPS-001 to TC-OPS-003: Integration tests verified against Firestore emulator.
+
+name: ZenoHR CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+  BUILD_CONFIGURATION: Release
+  FIREBASE_PROJECT_ID: zenohr-a7ccf
+
+jobs:
+
+  # ─── Gate: Build ──────────────────────────────────────────────────────────
+  # All downstream jobs depend on this — if the build fails, nothing else runs.
+  # TreatWarningsAsErrors is enabled globally in Directory.Build.props.
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET (exact version from global.json)
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore ZenoHR.slnx
+
+      - name: Build (TreatWarningsAsErrors=true)
+        run: dotnet build ZenoHR.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore --no-incremental
+
+  # ─── Unit Tests ────────────────────────────────────────────────────────────
+  # Runs Domain, Payroll, Compliance, and Architecture tests.
+  # Excludes Integration tests (those run against the Firebase emulator in a separate job).
+  # Coverage collected in OpenCover XML format via coverlet.collector.
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET (exact version from global.json)
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore ZenoHR.slnx
+
+      - name: Build
+        run: dotnet build ZenoHR.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore --no-incremental
+
+      - name: Run unit tests with coverage
+        # REQ-OPS-003: coverage.runsettings enforces >=90% line on ZenoHR.Domain + ZenoHR.Module.*.
+        # coverlet will exit non-zero and fail this step if the threshold is not met.
+        run: |
+          dotnet test ZenoHR.slnx \
+            --configuration ${{ env.BUILD_CONFIGURATION }} \
+            --no-build \
+            --filter "FullyQualifiedName!~ZenoHR.Integration" \
+            --settings coverage.runsettings \
+            --collect:"XPlat Code Coverage" \
+            --results-directory TestResults \
+            --logger "trx;LogFileName=unit-tests.trx"
+
+      - name: Install ReportGenerator
+        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+
+      - name: Generate coverage report
+        # Merge all OpenCover XML files and produce HTML + JsonSummary artifacts.
+        run: |
+          reportgenerator \
+            -reports:"TestResults/**/coverage.opencover.xml" \
+            -targetdir:"coverage-report" \
+            -reporttypes:"Html;JsonSummary;Badges" \
+            -assemblyfilters:"+ZenoHR.Domain;+ZenoHR.Module.*" \
+            -classfilters:"-*AssemblyMarker"
+
+      - name: Enforce branch coverage >= 85%
+        # REQ-OPS-003: Parse JsonSummary produced by ReportGenerator and fail if branch < 85%.
+        run: |
+          BRANCH=$(jq -r '.summary.branchcoverage' coverage-report/Summary.json)
+          echo "Branch coverage: ${BRANCH}%"
+          if python3 -c "import sys; sys.exit(0 if float('${BRANCH}') >= 85 else 1)"; then
+            echo "Branch coverage gate PASSED (${BRANCH}% >= 85%)"
+          else
+            echo "::error::Branch coverage ${BRANCH}% is below the 85% minimum threshold (REQ-OPS-003)"
+            exit 1
+          fi
+
+      - name: Upload test results and coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: |
+            TestResults/
+            coverage-report/
+
+  # ─── Integration Tests (Firestore Emulator) ────────────────────────────────
+  # Starts the Firebase Auth + Firestore emulators, then runs integration tests.
+  # REQ-OPS-003: Integration tests always target the emulator, never production.
+  # TC-OPS-001: Emulator connectivity smoke test.
+  # TC-OPS-002: Tenant isolation verified against emulator.
+  integration-tests:
+    name: Integration Tests (Firestore Emulator)
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET (exact version from global.json)
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Setup Java 21 (Firebase emulator requirement)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Cache Firebase emulator binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}-v1
+
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Start Firebase emulators (background)
+        run: |
+          firebase emulators:start \
+            --only firestore,auth \
+            --project ${{ env.FIREBASE_PROJECT_ID }} 2>&1 &
+          echo "Waiting for Firestore emulator on :8080 (timeout 90s)..."
+          timeout 90 bash -c 'until nc -z localhost 8080 2>/dev/null; do sleep 2; done' \
+            && echo "Firestore emulator is ready" \
+            || (echo "::error::Firestore emulator did not start within 90 seconds" && exit 1)
+
+      - name: Restore
+        run: dotnet restore ZenoHR.slnx
+
+      - name: Build
+        run: dotnet build ZenoHR.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore --no-incremental
+
+      - name: Run integration tests
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          FIREBASE_AUTH_EMULATOR_HOST: localhost:9099
+        run: |
+          dotnet test tests/ZenoHR.Integration.Tests/ZenoHR.Integration.Tests.csproj \
+            --configuration ${{ env.BUILD_CONFIGURATION }} \
+            --no-build \
+            --results-directory TestResults/integration \
+            --logger "trx;LogFileName=integration-tests.trx"
+
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: TestResults/integration/
+
+  # ─── Dependency Vulnerability Scan ─────────────────────────────────────────
+  # Scans all NuGet packages (direct and transitive) for known CVEs.
+  # Fails the build if any vulnerable packages are detected.
+  # REQ-OPS-009 / REQ-SEC-010: Supply chain security.
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET (exact version from global.json)
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore ZenoHR.slnx
+
+      - name: Scan for vulnerable packages
+        run: |
+          echo "=== NuGet Vulnerability Scan (REQ-OPS-009) ==="
+          dotnet list ZenoHR.slnx package --vulnerable --include-transitive 2>&1 | tee vuln-report.txt
+          if grep -q "has the following vulnerable packages" vuln-report.txt; then
+            echo "::error::Vulnerable NuGet packages detected. Review the 'vulnerability-report' artifact."
+            exit 1
+          fi
+          echo "No vulnerable packages found."
+
+      - name: Upload vulnerability report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vulnerability-report
+          path: vuln-report.txt
+
+  # ─── Traceability Check ────────────────────────────────────────────────────
+  # Validates that every hand-written .cs file has at least one REQ-*/CTL-*/TC-* reference.
+  # REQ-OPS-008: Orphan code (no requirement trace) must not be committed.
+  # Fast check — only needs Python (no .NET build required).
+  traceability:
+    name: Traceability Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate traceability references (REQ-OPS-008)
+        run: python3 scripts/validate-traceability.py --all
+
+  # ─── CodeQL SAST ───────────────────────────────────────────────────────────
+  # Static Application Security Testing using GitHub CodeQL.
+  # Runs in parallel with other jobs — does NOT depend on the build gate.
+  # REQ-SEC-010: SAST scanning in CI pipeline.
+  # Results surfaced in GitHub Security tab (requires GitHub Advanced Security).
+  codeql:
+    name: CodeQL SAST
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET (exact version from global.json)
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: csharp
+          # security-extended adds OWASP Top 10, injection, XSS, path traversal etc.
+          queries: security-extended
+
+      - name: Restore
+        run: dotnet restore ZenoHR.slnx
+
+      - name: Build for CodeQL analysis
+        # NOTE: Do NOT use --no-incremental here — CodeQL needs to observe the build
+        run: dotnet build ZenoHR.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:csharp"

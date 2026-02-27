@@ -1,0 +1,87 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "SARS_ETI",
+  "version": "2026.1.0",
+  "effective_from": "2025-04-01",
+  "effective_to": "2029-02-28",
+  "source": "Employment Tax Incentive Act, 2013 (Act No. 26 of 2013) as amended April 2025",
+  "source_url": "https://www.sars.gov.za/types-of-tax/pay-as-you-earn/employment-tax-incentive-eti/",
+
+  "eligibility": {
+    "employee_age_min": 18,
+    "employee_age_max": 29,
+    "age_exemption": "Age limit does not apply if employee renders services mainly inside a Special Economic Zone (SEZ)",
+    "minimum_monthly_wage": 2500.00,
+    "minimum_hours_per_month": 160,
+    "maximum_monthly_remuneration": 7500.00,
+    "valid_id_required": true,
+    "id_types_accepted": ["SA ID", "Asylum Seeker Permit", "Refugee ID"],
+    "employer_must_be_compliant": true,
+    "employer_excluded": ["Schedule 2/3 public entities under PFMA (unless designated by Minister)"],
+    "eti_end_date": "2029-02-28"
+  },
+
+  "first_12_months": {
+    "description": "First 12 qualifying months of employment",
+    "tiers": [
+      {
+        "min_remuneration": 0.00,
+        "max_remuneration": 2499.99,
+        "formula": "0.60 * monthly_remuneration",
+        "description": "60% of monthly remuneration"
+      },
+      {
+        "min_remuneration": 2500.00,
+        "max_remuneration": 5499.99,
+        "formula": "1500.00",
+        "description": "Fixed R1,500 per month"
+      },
+      {
+        "min_remuneration": 5500.00,
+        "max_remuneration": 7499.99,
+        "formula": "1500.00 - (0.75 * (monthly_remuneration - 5500.00))",
+        "description": "R1,500 minus 75% of amount above R5,500"
+      }
+    ]
+  },
+
+  "second_12_months": {
+    "description": "Second 12 qualifying months of employment",
+    "tiers": [
+      {
+        "min_remuneration": 0.00,
+        "max_remuneration": 2499.99,
+        "formula": "0.30 * monthly_remuneration",
+        "description": "30% of monthly remuneration"
+      },
+      {
+        "min_remuneration": 2500.00,
+        "max_remuneration": 5499.99,
+        "formula": "750.00",
+        "description": "Fixed R750 per month"
+      },
+      {
+        "min_remuneration": 5500.00,
+        "max_remuneration": 7499.99,
+        "formula": "750.00 - (0.375 * (monthly_remuneration - 5500.00))",
+        "description": "R750 minus 37.5% of amount above R5,500"
+      }
+    ]
+  },
+
+  "hours_proration": {
+    "standard_hours": 160,
+    "rule": "If employee works fewer than 160 hours, gross up remuneration to 160-hour equivalent for tier calculation, then prorate the resulting ETI amount down by actual_hours / 160"
+  },
+
+  "rollover": {
+    "allowed": true,
+    "rule": "If employer's PAYE liability is less than the ETI amount in a month, the excess can be rolled over to subsequent months within the same reconciliation period (EMP201 period)"
+  },
+
+  "notes": {
+    "qualifying_months": "Count only months where employee was employed and paid. Not calendar months from start date.",
+    "displaced_employees": "Employer may be disqualified if an existing employee was displaced to hire an ETI-qualifying employee.",
+    "sez_exception": "For SEZ employees, the age limit (18-29) does not apply."
+  }
+}

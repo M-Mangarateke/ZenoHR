@@ -1,0 +1,44 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "SARS_EMP201",
+  "version": "2026.1.0",
+  "source": "SARS PAYE Employer Reconciliation BRS v24.0",
+  "source_url": "https://www.sars.gov.za/types-of-tax/pay-as-you-earn/reconciliations/",
+
+  "description": "EMP201 is the Monthly Employer Declaration submitted to SARS by the 7th of the following month. It declares total PAYE, SDL, UIF, and ETI amounts for the period.",
+
+  "submission_method": "e@syFile Employer or SARS eFiling",
+  "format": "CSV import into e@syFile (not submitted as raw CSV to SARS)",
+  "due_date": "7th of the month following the payment month",
+  "frequency": "Monthly",
+
+  "declaration_fields": [
+    { "field": "paye_reference_number", "type": "string", "length": 10, "required": true, "description": "Employer's PAYE reference number" },
+    { "field": "payment_period_start", "type": "date", "format": "CCYYMMDD", "required": true, "description": "First day of the payment period" },
+    { "field": "payment_period_end", "type": "date", "format": "CCYYMMDD", "required": true, "description": "Last day of the payment period" },
+    { "field": "total_paye", "type": "decimal", "precision": "18,2", "required": true, "description": "Total PAYE deducted from all employees for the period" },
+    { "field": "total_sdl", "type": "decimal", "precision": "18,2", "required": true, "description": "Total SDL payable by employer for the period" },
+    { "field": "total_uif", "type": "decimal", "precision": "18,2", "required": true, "description": "Total UIF (employer + employee) for the period" },
+    { "field": "total_eti", "type": "decimal", "precision": "18,2", "required": false, "description": "Total ETI claimed for the period (reduces PAYE liability)" },
+    { "field": "net_paye_payable", "type": "decimal", "precision": "18,2", "required": true, "description": "Total PAYE minus ETI" },
+    { "field": "total_liability", "type": "decimal", "precision": "18,2", "required": true, "description": "Net PAYE + SDL + UIF = total amount payable to SARS" },
+    { "field": "number_of_employees", "type": "integer", "required": true, "description": "Total number of employees paid in the period" },
+    { "field": "declaration_date", "type": "date", "format": "CCYYMMDD", "required": true, "description": "Date the declaration is submitted" }
+  ],
+
+  "validation_rules": [
+    "net_paye_payable = total_paye - total_eti (ETI reduces PAYE liability)",
+    "total_liability = net_paye_payable + total_sdl + total_uif",
+    "total_uif includes both employer and employee portions",
+    "total_eti cannot exceed total_paye (PAYE liability floor is zero after ETI)",
+    "If ETI exceeds PAYE, excess rolls over to next period",
+    "All amounts must be non-negative",
+    "Period must be a valid calendar month"
+  ],
+
+  "payment": {
+    "due_date": "7th of month following payment period",
+    "penalty_for_late_payment": "10% of outstanding amount",
+    "interest": "Charged from due date until payment"
+  }
+}

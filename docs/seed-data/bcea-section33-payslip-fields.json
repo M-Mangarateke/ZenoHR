@@ -1,0 +1,118 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "BCEA_PAYSLIP",
+  "version": "2026.1.0",
+  "effective_from": "2025-03-01",
+  "source": "Basic Conditions of Employment Act 75 of 1997 - Section 33(1)",
+  "ctl_id": "CTL-BCEA-005",
+
+  "mandatory_fields": [
+    {
+      "field": "employer_name",
+      "section": "33(1)(a)",
+      "description": "Full registered name of the employer"
+    },
+    {
+      "field": "employer_address",
+      "section": "33(1)(a)",
+      "description": "Physical address of the employer"
+    },
+    {
+      "field": "employee_name",
+      "section": "33(1)(b)",
+      "description": "Full name of the employee"
+    },
+    {
+      "field": "employee_occupation",
+      "section": "33(1)(b)",
+      "description": "Employee's job title or occupation"
+    },
+    {
+      "field": "payment_period",
+      "section": "33(1)(c)",
+      "description": "The period for which payment is made (e.g., 1 March 2026 to 31 March 2026)"
+    },
+    {
+      "field": "gross_remuneration",
+      "section": "33(1)(d)",
+      "description": "Remuneration in money (gross pay before deductions)"
+    },
+    {
+      "field": "deductions",
+      "section": "33(1)(e)",
+      "description": "Amount and purpose of each deduction made. Each deduction must be listed separately with its description (e.g., PAYE, UIF, pension, medical aid)"
+    },
+    {
+      "field": "net_pay",
+      "section": "33(1)(f)",
+      "description": "Actual amount paid to the employee after all deductions"
+    }
+  ],
+
+  "conditional_fields": [
+    {
+      "field": "rate_of_remuneration",
+      "section": "33(1)(d)",
+      "condition": "If remuneration is calculated by reference to a rate",
+      "description": "The rate of pay (e.g., per hour, per week, per month)"
+    },
+    {
+      "field": "overtime_rate",
+      "section": "33(1)(d)",
+      "condition": "If overtime was worked",
+      "description": "The rate of overtime pay"
+    },
+    {
+      "field": "ordinary_hours_worked",
+      "section": "33(1)(d)",
+      "condition": "If remuneration depends on hours worked",
+      "description": "Number of ordinary hours worked during the period"
+    },
+    {
+      "field": "overtime_hours_worked",
+      "section": "33(1)(d)",
+      "condition": "If overtime was worked",
+      "description": "Number of overtime hours worked during the period"
+    },
+    {
+      "field": "sunday_public_holiday_hours",
+      "section": "33(1)(d)",
+      "condition": "If work was performed on Sundays or public holidays",
+      "description": "Number of hours worked on Sundays or public holidays"
+    },
+    {
+      "field": "averaging_hours_total",
+      "section": "33(1)(d)",
+      "condition": "If Section 12 averaging agreement applies",
+      "description": "Total ordinary and overtime hours worked during the averaging period"
+    }
+  ],
+
+  "delivery_requirements": {
+    "timing": "On each day the employee is paid",
+    "location": "At the workplace or at a place agreed to by the employee",
+    "during": "Employee's ordinary working hours or within 15 minutes of shift start/end",
+    "format": "Written (paper, electronic, SMS, online payroll portal are all acceptable)"
+  },
+
+  "zenohr_additional_fields": {
+    "description": "Additional fields ZenoHR includes beyond BCEA minimum for compliance transparency",
+    "fields": [
+      "employee_id",
+      "tax_reference",
+      "payroll_run_id",
+      "pay_period_type (weekly/monthly)",
+      "paye_amount",
+      "uif_employee_amount",
+      "uif_employer_amount",
+      "sdl_amount",
+      "eti_amount (if applicable)",
+      "leave_balance_snapshot (annual, sick, family responsibility)",
+      "ytd_gross",
+      "ytd_paye",
+      "ytd_uif",
+      "rule_version_id",
+      "calculation_timestamp_utc"
+    ]
+  }
+}

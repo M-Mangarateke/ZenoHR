@@ -1,0 +1,7 @@
+<Project>
+  <!-- REQ-OPS-001: Shared build targets — test projects relax TreatWarningsAsErrors to allow test-only patterns -->
+  <PropertyGroup Condition="$(MSBuildProjectName.EndsWith('.Tests'))">
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+</Project>

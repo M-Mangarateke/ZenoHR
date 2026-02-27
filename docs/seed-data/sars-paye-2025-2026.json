@@ -1,0 +1,39 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "SARS_PAYE",
+  "version": "2026.1.0",
+  "effective_from": "2025-03-01",
+  "effective_to": "2026-02-28",
+  "tax_year": "2026",
+  "source": "SARS Rates of Tax for Individuals - 12 March 2025 (No changes announced)",
+  "source_url": "https://www.sars.gov.za/tax-rates/income-tax/rates-of-tax-for-individuals/",
+
+  "tax_brackets": [
+    { "min": 1, "max": 237100, "rate": 0.18, "base_tax": 0 },
+    { "min": 237101, "max": 370500, "rate": 0.26, "base_tax": 42678 },
+    { "min": 370501, "max": 512800, "rate": 0.31, "base_tax": 77362 },
+    { "min": 512801, "max": 673000, "rate": 0.36, "base_tax": 121475 },
+    { "min": 673001, "max": 857900, "rate": 0.39, "base_tax": 179147 },
+    { "min": 857901, "max": 1817000, "rate": 0.41, "base_tax": 251258 },
+    { "min": 1817001, "max": null, "rate": 0.45, "base_tax": 644489 }
+  ],
+
+  "rebates": {
+    "primary": 17235,
+    "secondary_age_65_plus": 9444,
+    "tertiary_age_75_plus": 3145
+  },
+
+  "tax_thresholds": {
+    "below_age_65": 95750,
+    "age_65_to_74": 148217,
+    "age_75_and_over": 165689
+  },
+
+  "notes": {
+    "calculation_method": "Annual equivalent method: annualise monthly taxable income, apply brackets, subtract rebates, de-annualise to monthly PAYE",
+    "weekly_conversion": "For weekly payroll: multiply weekly taxable income by 52, apply annual brackets, subtract rebates, divide result by 52",
+    "rounding": "Annual tax rounded to nearest rand. Monthly/weekly PAYE rounded to nearest cent.",
+    "no_changes_2026": "Budget Speech 12 March 2025 confirmed no changes to individual tax brackets, rebates, or thresholds for 2026 tax year"
+  }
+}
