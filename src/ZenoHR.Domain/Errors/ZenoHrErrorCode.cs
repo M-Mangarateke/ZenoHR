@@ -38,6 +38,8 @@ public enum ZenoHrErrorCode
     PayrollCalculationFailed = 3004,
     StatutoryRuleSetNotFound = 3005,
     PayrollRunInWrongState = 3006,
+    PayrollResultNotFound = 3007,
+    PayrollAdjustmentNotFound = 3008,
 
     // ── 4xxx — Leave ─────────────────────────────────────────────────────────
     LeaveRequestNotFound = 4000,

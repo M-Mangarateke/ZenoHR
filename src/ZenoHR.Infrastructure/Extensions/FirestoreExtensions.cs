@@ -63,6 +63,14 @@ public static class FirestoreExtensions
         services.AddSingleton<ClockEntryRepository>();
         services.AddSingleton<TimesheetFlagRepository>();
 
+        // REQ-HR-003: Payroll repositories (TASK-082, TASK-083, TASK-084)
+        services.AddSingleton<PayrollRunRepository>();
+        services.AddSingleton<PayrollResultRepository>();
+        services.AddSingleton<PayrollAdjustmentRepository>();
+
+        // REQ-HR-003: Payroll orchestration service (TASK-085)
+        services.AddSingleton<ZenoHR.Infrastructure.Services.PayrollOrchestrationService>();
+
         // REQ-SEC-002, REQ-SEC-003: RBAC — user role assignments repository
         // Note: ZenoHrClaimsTransformation (IClaimsTransformation) is registered in
         // ZenoHR.Api via AddZenoHrFirebaseAuth() since it depends on ASP.NET Core types.

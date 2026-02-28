@@ -46,9 +46,10 @@ app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "Zeno
    .WithName("HealthCheck")
    .AllowAnonymous();
 
-// ── Module API endpoints (TASK-067, TASK-070, TASK-071) ───────────────────────
+// ── Module API endpoints (TASK-067, TASK-070, TASK-071, TASK-086) ─────────────
 app.MapEmployeeEndpoints();  // GET/POST/PUT /api/employees
 app.MapLeaveEndpoints();     // GET/POST/PUT /api/leave/requests, /api/leave/balances
 app.MapClockEndpoints();     // POST /api/clock/in|out, GET /api/clock/today|team
+app.MapPayrollEndpoints();   // GET/POST/PUT /api/payroll/runs, /api/payroll/adjustments
 
 app.Run();
