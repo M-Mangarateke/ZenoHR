@@ -50,6 +50,7 @@ public enum ZenoHrErrorCode
     FilingDeadlineExceeded = 5001,
     InvalidFilingPeriod = 5002,
     EfilingConnectionFailed = 5003,
+    ComplianceCheckFailed = 5004,
 
     // ── 6xxx — Audit ─────────────────────────────────────────────────────────
     HashChainBroken = 6000,

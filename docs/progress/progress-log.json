@@ -1,8 +1,8 @@
 {
   "project": "ZenoHR",
   "current_phase": "Phase 1 — Domain Core + Payroll Engine",
-  "last_updated": "2026-02-28T16:00:00.000000+00:00",
-  "last_session_summary": "SARS frontend UX session (TASK-100). Added IRP5 code 4008 to seed data (v2026.1.2). Updated 6 mockups and created 17-irp5-certificate.html. Compliance screen: ITREG risk item, EMP601/EMP701 filing rows, tax year activation panel, 5 modals (ITREG, EMP601, tax table import, BCEA OT verification, IRP5 batch review), score card additions, Mark Reviewed on all risk items. Payroll screen: MSFTC column, PAYE waterfall modal, EMP201 preview modal, full Calculation Review drawer with 8-step PAYE waterfall + editable inputs + override reason + audit trail note. Leave screen: monthly accrual review banner + approval modal. My Analytics: IRP5 certificate section with all source codes, Download PDF, ITR12 Support Pack. Payslip template: MSFTC credit line (code 4116), tax ref in employee block, IRP5 code column in YTD. Employees screen: tax ref compliance badge on missing-ref employee, Income Tax Ref + ETI Status in Employment Details, MSFTC monthly credit in Benefits. NEW 17-irp5-certificate.html: A4-style cert viewer, income/deductions/tax code tables, sidebar download/cancel/audit actions, HR-only EMP601 cancel modal, dark mode support.",
+  "last_updated": "2026-02-28T20:00:00.000000+00:00",
+  "last_session_summary": "Phase 1 completion session. Fixed PayrollRun event constructor mismatches (build error). Completed all 8 remaining Phase 1 tasks: Employee aggregate + events (TASK-050), EmploymentContract (TASK-051), Leave domain aggregates/accrual logic (TASK-052), PayrollResult + invariant verifier (TASK-057), TerminationSettlement (TASK-058), PayrollRun state machine tests/144 pass (TASK-061), Architecture boundary tests/14 pass (TASK-063). Phase 1 fully complete. Phase 2 (Employee & Leave Modules) unblocked.",
   "phases": [
     {
       "id": "phase-0",
@@ -12,7 +12,7 @@
     {
       "id": "phase-1",
       "name": "Domain Core (Shared Kernel + Payroll Engine)",
-      "status": "in_progress"
+      "status": "completed"
     },
     {
       "id": "phase-2",
@@ -673,40 +673,46 @@
       "id": "TASK-050",
       "title": "Employee aggregate + domain events",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-047"
       ],
       "requirements": [
         "REQ-HR-001"
-      ]
+      ],
+      "completed_at": "2026-02-28",
+      "notes": "Employee aggregate (Active/Suspended/Terminated state machine), 5 domain events (Created, Updated, Terminated, Suspended, Reactivated). ETI age eligibility helper."
     },
     {
       "id": "TASK-051",
       "title": "EmploymentContract aggregate",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-050"
       ],
       "requirements": [
         "REQ-HR-001"
-      ]
+      ],
+      "completed_at": "2026-02-28",
+      "notes": "EmploymentContract entity: Create factory, UpdateSalary, Deactivate, Reconstitute. BCEA §9 OrdinaryHoursPerWeek validation (max 45)."
     },
     {
       "id": "TASK-052",
       "title": "Leave domain: LeaveBalance, LeaveRequest aggregates + accrual logic",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-050"
       ],
       "requirements": [
         "REQ-HR-002"
-      ]
+      ],
+      "completed_at": "2026-02-28",
+      "notes": "Leave module: LeaveType (5 BCEA types), LeaveRequestStatus state machine, LeaveBalance (accrual/consumption/reversal), LeaveRequest (Submit/Approve/Reject/Cancel), AccrualLedgerEntry (immutable, append-only), 5 domain events."
     },
     {
       "id": "TASK-053",
@@ -758,7 +764,7 @@
       "id": "TASK-056",
       "title": "PayrollRun aggregate + state machine (Draft→Processing→Finalizing→Filed)",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-047",
@@ -766,33 +772,39 @@
       ],
       "requirements": [
         "REQ-HR-003"
-      ]
+      ],
+      "completed_at": "2026-02-28",
+      "notes": "PayrollRun aggregate + state machine (Draft→Calculated→Finalized→Filed) implemented. Fixed event constructor mismatches."
     },
     {
       "id": "TASK-057",
       "title": "PayrollResult entity + payslip invariant verifier (PRD-16 Section 9)",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-056"
       ],
       "requirements": [
         "REQ-HR-003"
-      ]
+      ],
+      "completed_at": "2026-02-28",
+      "notes": "PayrollResult entity with payslip invariant check. PayslipInvariantVerifier (MoneyZAR and decimal variants). OtherLineItem record."
     },
     {
       "id": "TASK-058",
       "title": "TerminationSettlement calculation (PRD-16 Section 12)",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 3,
       "depends_on": [
         "TASK-057"
       ],
       "requirements": [
         "REQ-HR-003"
-      ]
+      ],
+      "completed_at": "2026-02-28",
+      "notes": "TerminationSettlement entity: Create/SetCalculated/Approve/Finalize lifecycle. CTL-BCEA-006 legal check enforcement."
     },
     {
       "id": "TASK-059",
@@ -827,14 +839,16 @@
       "id": "TASK-061",
       "title": "Unit tests: PayrollRun state machine",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-056"
       ],
       "requirements": [
         "TC-PAY-003"
-      ]
+      ],
+      "completed_at": "2026-02-28",
+      "notes": "20 unit tests for PayrollRun state machine (TC-PAY-010-001 to 020). Tests: Create validation, MarkCalculated transitions, Finalize (critical flag blocking, WARN allowed), MarkFiled, IsImmutable guard, PopDomainEvents. 144/144 pass."
     },
     {
       "id": "TASK-062",
@@ -854,14 +868,16 @@
       "id": "TASK-063",
       "title": "Architecture boundary tests (ArchUnit-style, module isolation)",
       "phase": "phase-1",
-      "status": "pending",
+      "status": "completed",
       "priority": 3,
       "depends_on": [
         "TASK-048"
       ],
       "requirements": [
         "REQ-OPS-005"
-      ]
+      ],
+      "completed_at": "2026-02-28",
+      "notes": "14 architecture boundary tests (TC-ARC-001). Module isolation verified: Employee, Payroll, Leave, Compliance do not cross-reference. Domain kernel has no module deps. Assembly loading via disk fallback. 14/14 pass."
     }
   ],
   "phase2_tasks": [
@@ -1271,7 +1287,10 @@
       "priority": 1,
       "depends_on": [],
       "blockers": [],
-      "requirements": ["CTL-SARS-005", "REQ-HR-003"],
+      "requirements": [
+        "CTL-SARS-005",
+        "REQ-HR-003"
+      ],
       "notes": "Completed 2026-02-28. (1) 06-compliance.html: ITREG risk item, EMP601/EMP701 filing rows, tax year activation panel (v2026.1.2), 5 modals (itregModal, emp601Modal, taxTableImportModal, bceaverifyModal, irp5ReviewModal), SARS score card additions (medical credits, missing tax ref, IRP5 batch review), Mark Reviewed on risk items; (2) 04-payroll.html: MSFTC column (Med Credit) with per-employee values, PAYE waterfall modal, EMP201 preview modal, Calculation Review drawer with full 8-step PAYE waterfall + editable inputs + override reason, Review button per row, openCalcReview() function; (3) 05-leave.html: leave accrual review banner + accrualReviewModal; (4) 13-my-analytics.html: IRP5 certificate section with all source codes (3601/4001/4005/4116/4102/4141/4472/4474), Download PDF, ITR12 Support Pack; (5) 16-payslip-template.html: MSFTC credit line (code 4116, green), tax ref in employee details, IRP5 code column in YTD table; (6) 03-employees.html: tax ref compliance badge on Sipho Khumalo, Income Tax Ref + ETI Status in Employment Details, MSFTC/dependants/monthly credit in Benefits section; (7) CREATED 17-irp5-certificate.html: A4-style certificate viewer with employer/employee blocks, income/deductions/tax code tables, sidebar actions (Download PDF/CSV, Email, ITR12 pack, Cancel EMP601), HR-only cancel modal, audit trail card, dark mode."
     }
   ],
