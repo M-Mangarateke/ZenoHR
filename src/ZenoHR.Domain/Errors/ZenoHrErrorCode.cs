@@ -44,6 +44,7 @@ public enum ZenoHrErrorCode
     InvalidLeaveType = 4003,
     LeaveOverlapsExistingRequest = 4004,
     SelfApprovalNotAllowed = 4005,
+    LeaveBalanceNotFound = 4006,
 
     // ── 5xxx — Compliance ────────────────────────────────────────────────────
     ComplianceSubmissionNotFound = 5000,
