@@ -1,7 +1,7 @@
 {
   "$schema": "StatutoryRuleSet",
   "rule_domain": "SARS_IRP5_IT3A",
-  "version": "2026.1.0",
+  "version": "2026.1.2",
   "source": "SARS Guide for Codes Applicable to Employees Tax Certificates 2026",
   "source_url": "https://www.sars.gov.za/guide-for-codes-applicable-to-employees-tax-certificates-2026/",
 
@@ -13,6 +13,8 @@
     "normal_income": [
       { "code": 3601, "description": "Salary, wages, overtime, bonus, pension (subject to PAYE)" },
       { "code": 3602, "description": "Non-taxable income and capital payments" },
+      { "code": 3603, "description": "Pension fund contributions (taxable portion — included in PAYE calculation)" },
+      { "code": 3604, "description": "Pension fund contributions (excluded from PAYE — non-taxable portion)" },
       { "code": 3605, "description": "Annual payments (13th cheque, performance bonus)" },
       { "code": 3606, "description": "Commission" },
       { "code": 3607, "description": "Overtime payments" }
@@ -22,6 +24,10 @@
       { "code": 3702, "description": "Reimbursive travel allowance (taxable portion)" },
       { "code": 3703, "description": "Reimbursive travel allowance (non-taxable portion)" },
       { "code": 3704, "description": "Subsistence allowance (local)" },
+      { "code": 3706, "description": "Entertainment allowance" },
+      { "code": 3709, "description": "Uniform / clothing allowance" },
+      { "code": 3711, "description": "Computer allowance" },
+      { "code": 3712, "description": "Phone / cellphone allowance" },
       { "code": 3713, "description": "Other allowances (taxable)" },
       { "code": 3714, "description": "Other allowances (non-taxable)" }
     ],
@@ -30,9 +36,14 @@
       { "code": 3802, "description": "Use of motor vehicle (fringe benefit)" },
       { "code": 3805, "description": "Accommodation (fringe benefit)" },
       { "code": 3809, "description": "Employer contributions to medical scheme (fringe benefit)" },
-      { "code": 3810, "description": "Employer medical scheme contributions" }
+      { "code": 3810, "description": "Employer medical scheme contributions" },
+      { "code": 3813, "description": "Other medical expenses paid by employer (fringe benefit not elsewhere classified)" },
+      { "code": 3817, "description": "Right of use of residential accommodation / housing fringe benefit" }
     ],
     "lump_sums": [
+      { "code": 3611, "description": "Purchased annuity (taxable portion)" },
+      { "code": 3612, "description": "Purchased annuity (non-taxable / excluded portion)" },
+      { "code": 3614, "description": "Other retirement fund lump sums not elsewhere classified" },
       { "code": 3901, "description": "Gratuities / severance benefit" },
       { "code": 3907, "description": "Other lump sums" },
       { "code": 3920, "description": "Retirement benefit (lump sum from retirement fund)" }
@@ -44,7 +55,8 @@
       { "code": 4001, "description": "Employee pension fund contribution" },
       { "code": 4003, "description": "Employee provident fund contribution" },
       { "code": 4005, "description": "Medical scheme contributions paid by employee" },
-      { "code": 4006, "description": "Retirement annuity fund contributions" }
+      { "code": 4006, "description": "Retirement annuity fund contributions" },
+      { "code": 4008, "description": "Other deductions (not elsewhere classified — employee)" }
     ],
     "employer_contributions": [
       { "code": 4472, "description": "Employer pension fund contribution" },

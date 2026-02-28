@@ -441,6 +441,10 @@
           <span class="ps-info-key">Hire Date <span class="bcea-tag">BCEA§33: employment_date</span></span>
           <span class="ps-info-val mono">2022-03-01</span>
         </div>
+        <div class="ps-info-row">
+          <span class="ps-info-key">Tax Ref</span>
+          <span class="ps-info-val mono">9123456789</span>
+        </div>
       </div>
     </div>
 
@@ -504,6 +508,11 @@
         <span>PAYE (Income Tax)</span>
         <span>Annual equiv.</span>
         <span>R 14,921.54</span>
+      </div>
+      <div class="ps-table-row deductions-cols" style="color:#1a7a44;">
+        <span>Medical Tax Credit (Sec 6A) — code 4116</span>
+        <span>Principal + 1 dependant</span>
+        <span>(R 610.00)</span>
       </div>
       <div class="ps-table-row deductions-cols">
         <span>UIF (Employee) <span class="bcea-tag">BCEA§33: deductions_itemised</span></span>
@@ -592,30 +601,41 @@
 
     <!-- 8. Tax Year to Date -->
     <div class="ps-section" style="margin-bottom:16px;">
-      <div class="ps-table-header ytd-cols">
+      <div class="ps-table-header" style="display:grid;grid-template-columns:1fr auto auto auto;gap:12px;">
         <span>Tax Year to Date (2025/2026)</span>
-        <span>This Period</span>
-        <span>Year to Date</span>
+        <span style="text-align:right;">This Period</span>
+        <span style="text-align:right;">Year to Date</span>
+        <span style="text-align:right;color:var(--text-muted);font-size:.72rem;">IRP5 Code</span>
       </div>
-      <div class="ps-table-row ytd-cols">
+      <div class="ps-table-row" style="display:grid;grid-template-columns:1fr auto auto auto;gap:12px;">
         <span>Gross Earnings</span>
-        <span>R 55,461.54</span>
-        <span>R 55,461.54</span>
+        <span style="text-align:right;">R 55,461.54</span>
+        <span style="text-align:right;">R 55,461.54</span>
+        <span class="td-mono" style="text-align:right;font-size:.75rem;color:var(--text-muted);">3601</span>
       </div>
-      <div class="ps-table-row ytd-cols">
+      <div class="ps-table-row" style="display:grid;grid-template-columns:1fr auto auto auto;gap:12px;">
         <span>PAYE Withheld</span>
-        <span>R 14,921.54</span>
-        <span>R 14,921.54</span>
+        <span style="text-align:right;">R 14,921.54</span>
+        <span style="text-align:right;">R 14,921.54</span>
+        <span class="td-mono" style="text-align:right;font-size:.75rem;color:var(--text-muted);">4102</span>
       </div>
-      <div class="ps-table-row ytd-cols">
+      <div class="ps-table-row" style="display:grid;grid-template-columns:1fr auto auto auto;gap:12px;color:#1a7a44;">
+        <span>Medical Tax Credit (Sec 6A)</span>
+        <span style="text-align:right;">(R 610.00)</span>
+        <span style="text-align:right;">(R 610.00)</span>
+        <span class="td-mono" style="text-align:right;font-size:.75rem;">4116</span>
+      </div>
+      <div class="ps-table-row" style="display:grid;grid-template-columns:1fr auto auto auto;gap:12px;">
         <span>UIF (Employee)</span>
-        <span>R 177.12</span>
-        <span>R 177.12</span>
+        <span style="text-align:right;">R 177.12</span>
+        <span style="text-align:right;">R 177.12</span>
+        <span class="td-mono" style="text-align:right;font-size:.75rem;color:var(--text-muted);">4141</span>
       </div>
-      <div class="ps-table-row ytd-cols">
+      <div class="ps-table-row" style="display:grid;grid-template-columns:1fr auto auto auto;gap:12px;">
         <span>Net Pay</span>
-        <span>R 32,862.88</span>
-        <span>R 32,862.88</span>
+        <span style="text-align:right;">R 32,862.88</span>
+        <span style="text-align:right;">R 32,862.88</span>
+        <span class="td-mono" style="text-align:right;font-size:.75rem;color:var(--text-muted);">—</span>
       </div>
     </div>
 

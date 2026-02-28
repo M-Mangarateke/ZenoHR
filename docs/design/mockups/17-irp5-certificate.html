@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IRP5 Certificate — ZenoHR</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── Reset & Base ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --brand-primary: #1d4777;
+      --brand-primary-subtle: rgba(29,71,119,.06);
+      --accent: #d4890e;
+      --surface: #fff;
+      --surface-hover: #f8fafc;
+      --bg: #f0f4f8;
+      --border-subtle: rgba(0,0,0,.09);
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --font-mono: 'JetBrains Mono', monospace;
+      --radius: 16px;
+    }
+    [data-theme="dark"] {
+      --surface: #1e2535;
+      --surface-hover: #252d3d;
+      --bg: #151c2a;
+      --border-subtle: rgba(255,255,255,.08);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text-primary);
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    /* ─── Page layout ──────────────────────────────────────── */
+    .page-wrapper {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .back-btn:hover { background: var(--surface-hover); }
+
+    .cert-layout {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    /* ─── Certificate A4 card ──────────────────────────────── */
+    .cert-card {
+      flex: 1;
+      min-width: 0;
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    }
+
+    .cert-header {
+      background: var(--brand-primary);
+      color: #fff;
+      padding: 20px 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .cert-header-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: -.3px;
+    }
+    .cert-header-sub {
+      font-size: .78rem;
+      opacity: .75;
+      margin-top: 3px;
+    }
+    .cert-type-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      background: rgba(255,255,255,.18);
+      border-radius: 20px;
+      font-size: .75rem;
+      font-weight: 700;
+      letter-spacing: .03em;
+    }
+    .cert-type-chip .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #4ade80;
+    }
+
+    .cert-party-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .cert-party {
+      padding: 18px 24px;
+    }
+    .cert-party:first-child {
+      border-right: 1px solid var(--border-subtle);
+    }
+    .cert-party-label {
+      font-size: .68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+    .cert-party-name {
+      font-size: .95rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .cert-party-detail {
+      font-size: .78rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+    .cert-party-detail .mono {
+      font-family: var(--font-mono);
+      font-size: .77rem;
+    }
+
+    /* ─── Code table ───────────────────────────────────────── */
+    .cert-section {
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .cert-section-header {
+      display: grid;
+      grid-template-columns: 70px 1fr auto;
+      gap: 12px;
+      padding: 10px 24px;
+      background: var(--surface-hover);
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .cert-row {
+      display: grid;
+      grid-template-columns: 70px 1fr auto;
+      gap: 12px;
+      padding: 10px 24px;
+      font-size: .82rem;
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background .12s;
+    }
+    .cert-row:last-child { border-bottom: none; }
+    .cert-row:hover { background: var(--surface-hover); }
+    .cert-code {
+      font-family: var(--font-mono);
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--brand-primary);
+    }
+    .cert-desc {
+      color: var(--text-secondary);
+    }
+    .cert-amount {
+      font-family: var(--font-mono);
+      font-size: .82rem;
+      font-weight: 600;
+      text-align: right;
+      white-space: nowrap;
+    }
+    .cert-row.income .cert-amount { color: var(--text-primary); }
+    .cert-row.deduction .cert-amount { color: var(--text-secondary); }
+    .cert-row.tax-paye .cert-amount { color: var(--danger); }
+    .cert-row.tax-credit .cert-amount { color: #27ae60; }
+    .cert-row.tax-credit .cert-code { color: #27ae60; }
+    .cert-row.subtotal {
+      background: var(--surface-hover);
+      font-weight: 700;
+    }
+    .cert-row.subtotal .cert-amount { color: var(--text-primary); }
+
+    .cert-footer {
+      padding: 16px 24px;
+      background: var(--surface-hover);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: .75rem;
+      color: var(--text-muted);
+    }
+
+    /* ─── Actions sidebar ──────────────────────────────────── */
+    .actions-sidebar {
+      width: 200px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: sticky;
+      top: 24px;
+    }
+
+    .action-card {
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 16px;
+    }
+    .action-card-title {
+      font-size: .72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border-subtle);
+      background: var(--surface);
+      color: var(--text-primary);
+      margin-bottom: 6px;
+      transition: background .12s;
+    }
+    .action-btn:last-child { margin-bottom: 0; }
+    .action-btn:hover { background: var(--surface-hover); }
+    .action-btn.primary {
+      background: var(--brand-primary);
+      color: #fff;
+      border-color: var(--brand-primary);
+    }
+    .action-btn.primary:hover { opacity: .9; }
+    .action-btn.danger {
+      color: var(--danger);
+      border-color: rgba(220,38,38,.3);
+    }
+    .action-btn.danger:hover { background: rgba(220,38,38,.06); }
+    .action-divider {
+      border: none;
+      border-top: 1px solid var(--border-subtle);
+      margin: 8px 0;
+    }
+    .action-note {
+      font-size: .72rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-top: 4px;
+    }
+
+    /* ─── Status chips ─────────────────────────────────────── */
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: .72rem;
+      font-weight: 600;
+    }
+    .chip-issued { background: #e8f7ef; color: #1a7a44; }
+    .chip-draft  { background: #fef3e2; color: #b86b00; }
+
+    /* ─── Theme toggle ─────────────────────────────────────── */
+    .theme-btn {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 7px 10px;
+      cursor: pointer;
+      font-size: .78rem;
+      color: var(--text-secondary);
+    }
+
+    @media (max-width: 700px) {
+      .cert-layout { flex-direction: column; }
+      .actions-sidebar { width: 100%; position: static; }
+      .cert-party-grid { grid-template-columns: 1fr; }
+      .cert-party:first-child { border-right: none; border-bottom: 1px solid var(--border-subtle); }
+    }
+  </style>
+</head>
+
+<body>
+  <button class="theme-btn" onclick="toggleTheme()">☀ / ☾</button>
+
+  <div class="page-wrapper">
+
+    <!-- Page header -->
+    <div class="page-header">
+      <a href="06-compliance.html" class="back-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+        Back
+      </a>
+      <div style="flex:1;">
+        <h1 style="font-size:1.1rem;font-weight:800;letter-spacing:-.3px;">IRP5 / IT3(a) Certificate Viewer</h1>
+        <p style="font-size:.78rem;color:var(--text-secondary);margin-top:2px;">Tax Year 2025/2026 · Read-only · Issued certificates are immutable</p>
+      </div>
+      <span class="chip chip-issued">
+        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        Issued
+      </span>
+    </div>
+
+    <div class="cert-layout">
+
+      <!-- ─── Certificate card ──────────────────────────────── -->
+      <div class="cert-card">
+
+        <!-- Header -->
+        <div class="cert-header">
+          <div>
+            <div class="cert-header-title">IRP5 — TAX YEAR 2025/2026</div>
+            <div class="cert-header-sub">Certificate No: <span style="font-family:var(--font-mono);">IRP5-2026-00042</span> &nbsp;·&nbsp; Generated: 2026-02-28</div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+            <span class="cert-type-chip"><span class="dot"></span>IRP5 — Tax Deducted</span>
+            <span style="font-size:.72rem;opacity:.65;">e@syFile / SARS eFiling compatible</span>
+          </div>
+        </div>
+
+        <!-- Employer & Employee -->
+        <div class="cert-party-grid">
+          <div class="cert-party">
+            <div class="cert-party-label">Employer</div>
+            <div class="cert-party-name">Zenowethu (Pty) Ltd</div>
+            <div class="cert-party-detail">
+              <div>Reg No: <span class="mono">2018/123456/07</span></div>
+              <div>PAYE Ref: <span class="mono">7010123456</span></div>
+              <div>SDL Ref: <span class="mono">L030123456</span></div>
+              <div>UIF Ref: <span class="mono">U0987654321</span></div>
+              <div style="margin-top:4px;">15 Nelson Mandela Avenue, Johannesburg, 2001</div>
+            </div>
+          </div>
+          <div class="cert-party">
+            <div class="cert-party-label">Employee</div>
+            <div class="cert-party-name">Lerato Dlamini</div>
+            <div class="cert-party-detail">
+              <div>SA ID: <span class="mono">890501 5800 081</span></div>
+              <div>Tax Ref: <span class="mono">9123456789</span></div>
+              <div>DOB: <span class="mono">1989-05-01</span></div>
+              <div style="margin-top:4px;">Period: <span class="mono">01 Mar 2025 – 28 Feb 2026</span></div>
+              <div>Pay periods included: <span class="mono">12</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Income -->
+        <div class="cert-section">
+          <div class="cert-section-header">
+            <span>Code</span>
+            <span>Income</span>
+            <span style="text-align:right;">Amount (ZAR)</span>
+          </div>
+          <div class="cert-row income">
+            <span class="cert-code">3601</span>
+            <span class="cert-desc">Salary, wages, overtime (subject to PAYE)</span>
+            <span class="cert-amount">R 582,000.00</span>
+          </div>
+          <div class="cert-row subtotal">
+            <span class="cert-code" style="color:var(--text-muted);">—</span>
+            <span>Total Remuneration</span>
+            <span class="cert-amount">R 582,000.00</span>
+          </div>
+        </div>
+
+        <!-- Deductions (employee) -->
+        <div class="cert-section">
+          <div class="cert-section-header">
+            <span>Code</span>
+            <span>Deductions (Employee Contributions)</span>
+            <span style="text-align:right;">Amount (ZAR)</span>
+          </div>
+          <div class="cert-row deduction">
+            <span class="cert-code">4001</span>
+            <span class="cert-desc">Employee pension fund contribution</span>
+            <span class="cert-amount">(R 40,740.00)</span>
+          </div>
+          <div class="cert-row deduction">
+            <span class="cert-code">4005</span>
+            <span class="cert-desc">Medical scheme contributions (employee portion)</span>
+            <span class="cert-amount">(R 20,400.00)</span>
+          </div>
+        </div>
+
+        <!-- Employer contributions -->
+        <div class="cert-section">
+          <div class="cert-section-header">
+            <span>Code</span>
+            <span>Employer Contributions (fringe benefit / information only)</span>
+            <span style="text-align:right;">Amount (ZAR)</span>
+          </div>
+          <div class="cert-row deduction">
+            <span class="cert-code">4472</span>
+            <span class="cert-desc">Employer pension fund contribution</span>
+            <span class="cert-amount">R 40,740.00</span>
+          </div>
+          <div class="cert-row deduction">
+            <span class="cert-code">4474</span>
+            <span class="cert-desc">Employer medical scheme contribution</span>
+            <span class="cert-amount">R 24,000.00</span>
+          </div>
+        </div>
+
+        <!-- Tax -->
+        <div class="cert-section">
+          <div class="cert-section-header">
+            <span>Code</span>
+            <span>Tax Withheld &amp; Credits</span>
+            <span style="text-align:right;">Amount (ZAR)</span>
+          </div>
+          <div class="cert-row tax-paye">
+            <span class="cert-code" style="color:var(--danger);">4102</span>
+            <span class="cert-desc">PAYE (employees' tax deducted by employer)</span>
+            <span class="cert-amount">R 116,601.00</span>
+          </div>
+          <div class="cert-row tax-credit">
+            <span class="cert-code">4116</span>
+            <span class="cert-desc">Medical Scheme Fees Tax Credit — Sec 6A (principal + 1 dependant)</span>
+            <span class="cert-amount">(R 4,368.00)</span>
+          </div>
+          <div class="cert-row deduction">
+            <span class="cert-code">4141</span>
+            <span class="cert-desc">UIF contribution (employee portion — 1% of remuneration)</span>
+            <span class="cert-amount">R 2,125.44</span>
+          </div>
+          <div class="cert-row subtotal">
+            <span class="cert-code" style="color:var(--text-muted);">—</span>
+            <span>Net PAYE After Credits (for ITR12)</span>
+            <span class="cert-amount" style="color:var(--danger);">R 112,233.00</span>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="cert-footer">
+          <span>This certificate was generated by ZenoHR from finalized payroll data. It is immutable and hash-chain verified (CTL-SARS-005).</span>
+          <span style="font-family:var(--font-mono);font-size:.7rem;">SHA: a3f8e2c1…</span>
+        </div>
+
+      </div><!-- /cert-card -->
+
+      <!-- ─── Actions sidebar ───────────────────────────────── -->
+      <div class="actions-sidebar">
+
+        <div class="action-card">
+          <div class="action-card-title">Download</div>
+          <button class="action-btn primary" onclick="alert('IRP5 PDF downloading…')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            Download PDF
+          </button>
+          <button class="action-btn" onclick="alert('IRP5 CSV (e@syFile format) downloading…')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+            Download CSV
+          </button>
+          <p class="action-note">CSV format is compatible with SARS e@syFile and e-filing bulk upload.</p>
+        </div>
+
+        <div class="action-card">
+          <div class="action-card-title">Employee Actions</div>
+          <button class="action-btn" onclick="alert('Sending IRP5 to employee email…')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Email to Employee
+          </button>
+          <button class="action-btn" onclick="alert('ITR12 support pack downloaded.')">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            ITR12 Support Pack
+          </button>
+        </div>
+
+        <div class="action-card">
+          <div class="action-card-title">HR Manager Only</div>
+          <hr class="action-divider">
+          <button class="action-btn danger" onclick="document.getElementById('emp601CancelModal').style.display='flex'">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" x2="9" y1="9" y2="15"/><line x1="9" x2="15" y1="9" y2="15"/></svg>
+            Cancel Certificate
+          </button>
+          <p class="action-note">Cancellation generates an EMP601 package for submission via e@syFile. Immutable — cannot be undone.</p>
+        </div>
+
+        <div class="action-card" style="background:rgba(29,71,119,.04);border-color:rgba(29,71,119,.15);">
+          <div class="action-card-title" style="color:var(--brand-primary);">Audit Trail</div>
+          <p style="font-size:.75rem;color:var(--text-secondary);line-height:1.6;">This certificate is part of the hash-chained audit trail. All access and downloads are logged.</p>
+          <p style="font-size:.72rem;font-family:var(--font-mono);color:var(--text-muted);margin-top:6px;">Event: CERT_VIEWED<br>User: sarah@zenowethu.co.za<br>2026-02-28 14:32:07</p>
+        </div>
+
+      </div><!-- /actions-sidebar -->
+
+    </div><!-- /cert-layout -->
+
+  </div><!-- /page-wrapper -->
+
+  <!-- EMP601 Cancel Modal -->
+  <div id="emp601CancelModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border-radius:18px;padding:28px;width:520px;max-width:90vw;">
+      <h3 style="font-size:1rem;font-weight:700;margin:0 0 4px;">Cancel IRP5 Certificate (EMP601)</h3>
+      <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:20px;">Cancels certificate IRP5-2026-00042 for Lerato Dlamini. The cancellation package must be submitted to SARS via e@syFile. <strong>This action cannot be undone.</strong></p>
+      <div style="background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);border-radius:10px;padding:12px;margin-bottom:16px;font-size:.8rem;color:var(--danger);">
+        ⚠ Cancelling an issued IRP5 will require the employee to re-submit their ITR12 if already filed.
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:6px;">Cancellation Reason</label>
+        <select style="width:100%;padding:9px 12px;border:1px solid var(--border-subtle);border-radius:8px;font-size:.85rem;background:var(--surface);color:var(--text-primary);">
+          <option>Incorrect income amounts</option>
+          <option>Duplicate certificate issued</option>
+          <option>Wrong employee details</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:6px;">Additional Notes</label>
+        <textarea rows="2" placeholder="Required audit trail note…" style="width:100%;padding:9px 12px;border:1px solid var(--border-subtle);border-radius:8px;font-size:.82rem;resize:none;background:var(--surface);color:var(--text-primary);"></textarea>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button style="padding:9px 18px;border-radius:8px;border:1px solid var(--border-subtle);background:var(--surface);color:var(--text-primary);font-size:.83rem;font-weight:600;cursor:pointer;" onclick="document.getElementById('emp601CancelModal').style.display='none'">Cancel</button>
+        <button style="padding:9px 18px;border-radius:8px;border:none;background:var(--danger);color:#fff;font-size:.83rem;font-weight:600;cursor:pointer;" onclick="alert('EMP601 package generated. Submit via e@syFile to complete cancellation.')">Generate EMP601 Package</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+    }
+  </script>
+</body>
+
+</html>

@@ -676,6 +676,19 @@
             Apply Leave
           </button>
         </div>
+        <!-- Leave Accrual Review Banner (shown when accruals are pending sign-off) -->
+        <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 18px;margin-bottom:20px;background:#fef3e2;border:1px solid rgba(212,137,14,.3);border-radius:12px;color:#92400e;">
+          <i data-lucide="calendar-check" style="width:18px;height:18px;flex-shrink:0;margin-top:1px;"></i>
+          <div style="flex:1;">
+            <div style="font-size:.86rem;font-weight:600;margin-bottom:6px;">February 2026 leave accruals pending your review — 247 employees</div>
+            <div style="font-size:.78rem;margin-bottom:8px;opacity:.85;">Annual leave: +1.5 days each · Sick leave: carried over · Family responsibility: no change</div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-sm" style="background:#92400e;color:#fff;border:none;" onclick="document.getElementById('accrualReviewModal').style.display='flex'">Review Accruals</button>
+              <button class="btn btn-ghost btn-sm" onclick="this.closest('div[style]').style.display='none'">Dismiss</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Balance summary row -->
         <div class="balance-grid" style="margin-bottom:24px;">
           <div class="balance-card">
@@ -1182,6 +1195,57 @@
 
   <!-- Mobile drawer overlay -->
   <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+  <!-- Accrual Review Modal -->
+  <div id="accrualReviewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border-radius:18px;padding:28px;width:580px;max-width:95vw;max-height:85vh;overflow-y:auto;">
+      <h3 style="font-size:1rem;font-weight:700;margin:0 0 4px;">Leave Accrual Review — February 2026</h3>
+      <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:16px;">These balances were calculated automatically. Review before confirming. Any corrections can be made here before the month is closed.</p>
+      <div class="table-wrapper" style="margin-bottom:16px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th style="text-align:right;">Annual (new)</th>
+              <th style="text-align:right;">Sick (balance)</th>
+              <th style="text-align:right;">FR (balance)</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Lerato Dlamini</td>
+              <td class="td-mono" style="text-align:right;color:#27ae60;">+1.5 days</td>
+              <td class="td-mono" style="text-align:right;">30 days</td>
+              <td class="td-mono" style="text-align:right;">3 days</td>
+              <td><button class="risk-action" style="font-size:.7rem;padding:2px 8px;color:#27ae60;">✓ OK</button></td>
+            </tr>
+            <tr>
+              <td>Thabo Molefe</td>
+              <td class="td-mono" style="text-align:right;color:#27ae60;">+1.5 days</td>
+              <td class="td-mono" style="text-align:right;">22 days</td>
+              <td class="td-mono" style="text-align:right;">3 days</td>
+              <td><button class="risk-action" style="font-size:.7rem;padding:2px 8px;color:#27ae60;">✓ OK</button></td>
+            </tr>
+            <tr>
+              <td>Nandi Zulu</td>
+              <td class="td-mono" style="text-align:right;color:#27ae60;">+1.5 days</td>
+              <td class="td-mono" style="text-align:right;">28 days</td>
+              <td class="td-mono" style="text-align:right;">3 days</td>
+              <td><button class="risk-action" style="font-size:.7rem;padding:2px 8px;color:#27ae60;">✓ OK</button></td>
+            </tr>
+            <tr>
+              <td style="color:var(--text-muted);font-size:.78rem;" colspan="5">… 244 more employees</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="document.getElementById('accrualReviewModal').style.display='none'">Cancel</button>
+        <button class="btn btn-primary" onclick="alert('Accruals approved and committed. Audit event logged.')">✓ Approve All Accruals (247)</button>
+      </div>
+    </div>
+  </div>
 
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <script>

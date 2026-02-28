@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" data-theme="light">
 
 <head>
@@ -645,6 +645,16 @@
               <div class="score-item">
                 <div class="score-item-dot pass"></div>ETI claims reconciled
               </div>
+              <div class="score-item">
+                <div class="score-item-dot pass"></div>Medical tax credits: active
+              </div>
+              <div class="score-item">
+                <div class="score-item-dot warn"></div>1 employee missing tax reference
+              </div>
+              <div class="score-item">
+                <div class="score-item-dot warn"></div>
+                <span>IRP5 batch: <button onclick="document.getElementById('irp5ReviewModal').style.display='flex'" style="background:none;border:none;cursor:pointer;color:var(--brand-primary);font-size:.78rem;font-weight:600;text-decoration:underline;">Review 247 certificates &#8594;</button></span>
+              </div>
             </div>
           </div>
 
@@ -804,6 +814,22 @@
                           style="width:12px;height:12px;"></i> Submitted</span></td>
                     <td><button class="risk-action" style="font-size:.72px;padding:3px 10px;">Download</button></td>
                   </tr>
+                  <tr>
+                    <td style="font-weight:600;">EMP601</td>
+                    <td class="td-mono">&#8212;</td>
+                    <td class="td-mono">On demand</td>
+                    <td class="td-mono">&#8212;</td>
+                    <td><span class="filing-status-chip chip-upcoming"><i data-lucide="minus" style="width:12px;height:12px;"></i> Not Required</span></td>
+                    <td><button class="risk-action" style="font-size:.72rem;padding:3px 10px;" onclick="document.getElementById('emp601Modal').style.display='flex'">Cancel Cert</button></td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight:600;">EMP701</td>
+                    <td class="td-mono">&#8212;</td>
+                    <td class="td-mono">On demand</td>
+                    <td class="td-mono">&#8212;</td>
+                    <td><span class="filing-status-chip chip-upcoming"><i data-lucide="minus" style="width:12px;height:12px;"></i> Not Required</span></td>
+                    <td><button class="risk-action" style="font-size:.72rem;padding:3px 10px;" onclick="document.getElementById('emp701Modal').style.display='flex'">Adjustment</button></td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -814,7 +840,7 @@
             <div
               style="padding:18px 20px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
               <h3 style="font-size:.95rem;font-weight:700;margin:0;">Risk Items</h3>
-              <span class="badge badge-error" style="font-size:.72rem;">3 active</span>
+              <span class="badge badge-error" style="font-size:.72rem;">4 active</span>
             </div>
             <div style="padding:0 16px;">
               <div class="risk-item">
@@ -825,7 +851,10 @@
                   <div class="risk-title">POPIA: Records past retention limit</div>
                   <div class="risk-desc">3 former employee files older than 5 years still active in system. Must be
                     purged per POPIA Section 14.</div>
-                  <div style="margin-top:6px;"><span class="risk-severity sev-high">HIGH</span></div>
+                  <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                    <span class="risk-severity sev-high">HIGH</span>
+                    <button class="risk-action" style="font-size:.72rem;padding:3px 10px;background:var(--surface-hover);" onclick="alert('Risk item marked as reviewed. Reason recorded in audit trail.')">&#10003; Mark Reviewed</button>
+                  </div>
                 </div>
               </div>
 
@@ -837,7 +866,10 @@
                   <div class="risk-title">SARS: 2 IRP5s need review</div>
                   <div class="risk-desc">Thabo Molefe and Fatima Osman have unreconciled travel allowance codes. Review
                     before EMP501 submission.</div>
-                  <div style="margin-top:6px;"><span class="risk-severity sev-medium">MEDIUM</span></div>
+                  <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                    <span class="risk-severity sev-medium">MEDIUM</span>
+                    <button class="risk-action" style="font-size:.72rem;padding:3px 10px;background:var(--surface-hover);" onclick="alert('Risk item marked as reviewed. Reason recorded in audit trail.')">&#10003; Mark Reviewed</button>
+                  </div>
                 </div>
               </div>
 
@@ -849,7 +881,23 @@
                   <div class="risk-title">POPIA: Access log review overdue</div>
                   <div class="risk-desc">Quarterly access log review for payroll data is 12 days overdue. Required by
                     POPIA Section 22.</div>
-                  <div style="margin-top:6px;"><span class="risk-severity sev-medium">MEDIUM</span></div>
+                  <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                    <span class="risk-severity sev-medium">MEDIUM</span>
+                    <button class="risk-action" style="font-size:.72rem;padding:3px 10px;background:var(--surface-hover);" onclick="alert('Risk item marked as reviewed. Reason recorded in audit trail.')">&#10003; Mark Reviewed</button>
+                  </div>
+                </div>
+              </div>
+              <div class="risk-item">
+                <div class="risk-icon high">
+                  <i data-lucide="user-x" style="width:17px;height:17px;"></i>
+                </div>
+                <div class="risk-meta">
+                  <div class="risk-title">SARS: 1 employee unregistered for tax</div>
+                  <div class="risk-desc">Sipho Khumalo does not have an income tax reference number. Payroll finalisation is blocked until registered (CTL-SARS-006).</div>
+                  <div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+                    <span class="risk-severity sev-high">HIGH</span>
+                    <button class="risk-action" onclick="document.getElementById('itregModal').style.display='flex'">Register Employee</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -951,7 +999,7 @@
                     <td class="td-mono">51.0</td>
                     <td class="td-mono">6.0</td>
                     <td class="td-mono">9.5</td>
-                    <td><span class="filing-status-chip chip-draft">⚠ Review OT</span></td>
+                    <td><button onclick="document.getElementById('bceaverifyModal').style.display='flex'" style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;background:#fef3e2;color:#b86b00;border:none;cursor:pointer;font-size:.75rem;font-weight:600;">⚠ Review OT</button></td>
                   </tr>
                   <tr>
                     <td>
@@ -968,6 +1016,45 @@
                 </tbody>
               </table>
             </div>
+          </div>
+        </div>
+
+        <!-- Tax Year Activation (TASK-138) -->
+        <div class="card" style="padding:0;overflow:hidden;margin-top:20px;">
+          <div style="padding:18px 24px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <h3 style="font-size:.95rem;font-weight:700;margin:0 0 2px;">Active Tax Tables</h3>
+              <p style="font-size:.78rem;color:var(--text-secondary);margin:0;">Statutory rule set governing all payroll calculations</p>
+            </div>
+            <span class="badge badge-success">Current</span>
+          </div>
+          <div style="padding:20px 24px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+            <div class="bcea-item">
+              <div class="bcea-item-label">Tax Year</div>
+              <div class="bcea-item-value">2025/2026</div>
+              <div class="bcea-item-sub">1 Mar 2025 – 28 Feb 2026</div>
+            </div>
+            <div class="bcea-item">
+              <div class="bcea-item-label">Version</div>
+              <div class="bcea-item-value">2026.1.2</div>
+              <div class="bcea-item-sub">Activated 1 Mar 2025</div>
+            </div>
+            <div class="bcea-item">
+              <div class="bcea-item-label">PAYE Brackets</div>
+              <div class="bcea-item-value">7 bands</div>
+              <div class="bcea-item-sub">R237,100 – R1,817,000</div>
+            </div>
+            <div class="bcea-item">
+              <div class="bcea-item-label">UIF Ceiling</div>
+              <div class="bcea-item-value">R17,712</div>
+              <div class="bcea-item-sub">Max R177.12/month</div>
+            </div>
+          </div>
+          <div style="padding:12px 24px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:.78rem;color:var(--text-secondary);">Next tax year (2026/2027) starts 1 March 2026. Import updated tables after Budget Speech.</span>
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('taxTableImportModal').style.display='flex'">
+              <i data-lucide="upload" style="width:13px;height:13px;"></i> Import New Tables
+            </button>
           </div>
         </div>
 
@@ -1057,6 +1144,159 @@
           <line x1="12" y1="20" x2="12" y2="4" />
           <line x1="6" y1="20" x2="6" y2="14" />
         </svg>Analytics</a>
+    </div>
+  </div>
+
+  <!-- ITREG Modal -->
+  <div id="itregModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border-radius:18px;padding:28px;width:480px;max-width:90vw;">
+      <h3 style="font-size:1rem;font-weight:700;margin:0 0 16px;">Register Employee for Tax (ITREG)</h3>
+      <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:20px;">Export this employee's details in SARS-required format for submission via eFiling. Once SARS assigns a tax reference, enter it below.</p>
+      <div style="background:var(--surface-hover);border-radius:10px;padding:14px;margin-bottom:16px;font-family:var(--font-mono);font-size:.78rem;line-height:1.8;">
+        <div>Employee: <strong>Sipho Khumalo</strong></div>
+        <div>SA ID: <strong>9401015800086</strong></div>
+        <div>DOB: <strong>1994-01-01</strong></div>
+        <div>Employment start: <strong>2024-03-15</strong></div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:6px;">Tax Reference (enter when received from SARS)</label>
+        <input type="text" placeholder="e.g. 9123456789" maxlength="10" style="width:100%;padding:9px 12px;border:1px solid var(--border-subtle);border-radius:8px;font-size:.85rem;font-family:var(--font-mono);">
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="document.getElementById('itregModal').style.display='none'">Cancel</button>
+        <button class="btn btn-secondary" onclick="alert('ITREG data package downloaded.')"><i data-lucide="download" style="width:13px;height:13px;"></i> Export ITREG Package</button>
+        <button class="btn btn-primary" onclick="alert('Tax reference saved.')">Save Reference</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMP601 Modal -->
+  <div id="emp601Modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border-radius:18px;padding:28px;width:520px;max-width:90vw;">
+      <h3 style="font-size:1rem;font-weight:700;margin:0 0 4px;">Cancel IRP5/IT3(a) Certificate (EMP601)</h3>
+      <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:20px;">Use this to cancel an incorrectly issued certificate. The cancellation package must be submitted to SARS via e@syFile.</p>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:6px;">Certificate Number to Cancel</label>
+        <input type="text" placeholder="e.g. IRP5-2026-00042" style="width:100%;padding:9px 12px;border:1px solid var(--border-subtle);border-radius:8px;font-size:.85rem;font-family:var(--font-mono);">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:6px;">Cancellation Reason</label>
+        <select style="width:100%;padding:9px 12px;border:1px solid var(--border-subtle);border-radius:8px;font-size:.85rem;">
+          <option>Incorrect income amounts</option>
+          <option>Duplicate certificate issued</option>
+          <option>Wrong employee details</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="document.getElementById('emp601Modal').style.display='none'">Cancel</button>
+        <button class="btn btn-accent" onclick="alert('EMP601 package generated. Submit via e@syFile.')"><i data-lucide="download" style="width:13px;height:13px;"></i> Generate EMP601 Package</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tax Table Import Modal -->
+  <div id="taxTableImportModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border-radius:18px;padding:28px;width:520px;max-width:90vw;">
+      <h3 style="font-size:1rem;font-weight:700;margin:0 0 4px;">Import New SARS Tax Tables</h3>
+      <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:20px;">Upload a new StatutoryRuleSet JSON file. The system will validate the schema, run a regression check, then require Compliance Officer approval before activation.</p>
+      <div style="border:2px dashed var(--border-subtle);border-radius:12px;padding:32px;text-align:center;margin-bottom:16px;color:var(--text-muted);">
+        <i data-lucide="upload-cloud" style="width:32px;height:32px;margin-bottom:8px;"></i>
+        <div style="font-size:.85rem;font-weight:600;">Drop JSON file here or click to browse</div>
+        <div style="font-size:.75rem;margin-top:4px;">sars-paye-YYYY-YYYY.json format</div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="document.getElementById('taxTableImportModal').style.display='none'">Cancel</button>
+        <button class="btn btn-primary" onclick="alert('File uploaded. Running regression checks…')">Upload &amp; Validate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BCEA OT Verification Modal -->
+  <div id="bceaverifyModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border-radius:18px;padding:28px;width:440px;max-width:90vw;">
+      <h3 style="font-size:1rem;font-weight:700;margin:0 0 4px;">BCEA Verification — Sipho Khumalo</h3>
+      <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:16px;">51 hrs this week (6 hrs overtime). Limit: 10 hrs/week. Review and confirm whether overtime was properly authorised.</p>
+      <div style="background:var(--surface-hover);border-radius:10px;padding:14px;margin-bottom:16px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.82rem;">
+          <div><span style="color:var(--text-muted);">Regular hours:</span> 45</div>
+          <div><span style="color:var(--text-muted);">Overtime hours:</span> <strong style="color:#b86b00;">6.0</strong></div>
+          <div><span style="color:var(--text-muted);">Daily max this week:</span> 9.5 hrs</div>
+          <div><span style="color:var(--text-muted);">OT rate applied:</span> 1.5×</div>
+        </div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:6px;">Verification Note (required)</label>
+        <textarea rows="2" placeholder="e.g. Approved by manager on 2026-02-28 — month-end deadline" style="width:100%;padding:9px 12px;border:1px solid var(--border-subtle);border-radius:8px;font-size:.82rem;resize:none;"></textarea>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="document.getElementById('bceaverifyModal').style.display='none'">Cancel</button>
+        <button class="btn btn-accent" onclick="alert('Flagged for timesheet correction.')">Flag for Correction</button>
+        <button class="btn btn-primary" onclick="alert('OT confirmed and verified.')">✓ Confirm Authorised OT</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IRP5 Batch Review Modal -->
+  <div id="irp5ReviewModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border-radius:18px;padding:28px;width:680px;max-width:95vw;max-height:85vh;overflow-y:auto;">
+      <h3 style="font-size:1rem;font-weight:700;margin:0 0 4px;">IRP5/IT3(a) Batch Review — Tax Year 2025/2026</h3>
+      <p style="font-size:.82rem;color:var(--text-secondary);margin-bottom:20px;">Review each employee certificate before generating the batch. Flag any that need correction. Cannot generate until all are reviewed or flagged.</p>
+      <div class="table-wrapper" style="margin-bottom:16px;">
+        <table>
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th style="text-align:right;">Gross (3601)</th>
+              <th style="text-align:right;">PAYE (4102)</th>
+              <th style="text-align:right;">MSFTC (4116)</th>
+              <th>Type</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Lerato Dlamini</strong></td>
+              <td class="td-mono" style="text-align:right;">R 582,000</td>
+              <td class="td-mono" style="text-align:right;color:var(--danger);">R 116,601</td>
+              <td class="td-mono" style="text-align:right;color:#27ae60;">R 4,368</td>
+              <td><span class="filing-status-chip chip-submitted">IRP5</span></td>
+              <td><button class="risk-action" style="font-size:.7rem;padding:2px 8px;color:#27ae60;">✓ Approve</button></td>
+            </tr>
+            <tr style="background:rgba(254,243,226,.4);">
+              <td><strong>Thabo Molefe</strong> <span style="color:#b86b00;font-size:.72rem;">⚠ travel code</span></td>
+              <td class="td-mono" style="text-align:right;">R 458,400</td>
+              <td class="td-mono" style="text-align:right;color:var(--danger);">R 95,612</td>
+              <td class="td-mono" style="text-align:right;color:var(--text-muted);">—</td>
+              <td><span class="filing-status-chip chip-submitted">IRP5</span></td>
+              <td><button class="risk-action" style="font-size:.7rem;padding:2px 8px;color:#b86b00;">⚠ Review</button></td>
+            </tr>
+            <tr>
+              <td><strong>Nandi Zulu</strong></td>
+              <td class="td-mono" style="text-align:right;">R 342,000</td>
+              <td class="td-mono" style="text-align:right;color:var(--danger);">R 56,244</td>
+              <td class="td-mono" style="text-align:right;color:#27ae60;">R 7,320</td>
+              <td><span class="filing-status-chip chip-submitted">IRP5</span></td>
+              <td><button class="risk-action" style="font-size:.7rem;padding:2px 8px;color:#27ae60;">✓ Approve</button></td>
+            </tr>
+            <tr>
+              <td><strong>Sipho Khumalo</strong> <span style="background:#fdecea;padding:1px 5px;border-radius:4px;font-size:.65rem;font-weight:700;color:#c0392b;margin-left:4px;">No Tax Ref</span></td>
+              <td class="td-mono" style="text-align:right;">R 216,000</td>
+              <td class="td-mono" style="text-align:right;color:var(--text-muted);">R 0</td>
+              <td class="td-mono" style="text-align:right;color:var(--text-muted);">—</td>
+              <td><span class="filing-status-chip chip-overdue">IT3(a)</span></td>
+              <td><button class="risk-action" style="font-size:.7rem;padding:2px 8px;color:#c0392b;">✕ Flag</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:.78rem;color:var(--text-secondary);">245 reviewed · 1 flagged · 1 pending</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-ghost" onclick="document.getElementById('irp5ReviewModal').style.display='none'">Close</button>
+          <button class="btn btn-primary" onclick="alert('Generating batch (245 certificates)…')">Generate 245 Certificates</button>
+        </div>
+      </div>
     </div>
   </div>
 

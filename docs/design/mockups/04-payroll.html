@@ -361,7 +361,7 @@
           <div class="flex items-center justify-between mb-4">
             <div>
               <h1 class="page-title">Payroll</h1>
-              <p class="page-subtitle">Monthly pay runs &nbsp;·&nbsp; PAYE, UIF, SDL, ETI calculated automatically</p>
+              <p class="page-subtitle">Monthly pay runs &nbsp;·&nbsp; PAYE, UIF, SDL, ETI, Medical Tax Credit calculated automatically</p>
             </div>
             <button class="btn btn-primary">
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -503,7 +503,7 @@
                 <div class="stat-box-label">Total PAYE</div>
                 <div class="stat-box-value" style="color:var(--danger);">R 645,230<span
                     style="font-size:16px;">.50</span></div>
-                <div class="stat-box-sub">SARS: due 7 Apr 2026</div>
+                <div class="stat-box-sub">After medical credits · SARS: due 7 Apr 2026</div>
               </div>
               <div class="stat-box" style="border-color:rgba(37,99,235,0.2);">
                 <div class="stat-box-label">Total UIF + SDL</div>
@@ -544,10 +544,12 @@
                       <th>Employee</th>
                       <th style="text-align:right;">Gross</th>
                       <th style="text-align:right;">PAYE</th>
+                      <th style="text-align:right;">Med Credit</th>
                       <th style="text-align:right;">UIF</th>
                       <th style="text-align:right;">SDL</th>
                       <th style="text-align:right;">ETI Credit</th>
                       <th style="text-align:right;">Net Pay</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -562,12 +564,13 @@
                         </div>
                       </td>
                       <td class="td-mono" style="text-align:right;">R 48,500.00</td>
-                      <td class="td-mono" style="text-align:right;color:var(--danger);">R 12,847.25</td>
+                      <td class="td-mono" style="text-align:right;color:var(--danger);"><button onclick="document.getElementById('payeModal').style.display='flex'" style="background:none;border:none;cursor:pointer;font-family:var(--font-mono);font-size:inherit;color:inherit;text-decoration:underline dotted;">R 12,847.25</button></td>
+                      <td class="td-mono" style="text-align:right;color:var(--text-muted);">—</td>
                       <td class="td-mono" style="text-align:right;">R 177.12</td>
                       <td class="td-mono" style="text-align:right;">R 485.00</td>
                       <td class="td-mono" style="text-align:right;color:var(--text-muted);">-</td>
-                      <td class="td-mono" style="text-align:right;font-weight:700;color:var(--success);">R 35,475.75
-                      </td>
+                      <td class="td-mono" style="text-align:right;font-weight:700;color:var(--success);">R 35,475.75</td>
+                      <td><button class="risk-action" style="font-size:.72rem;padding:4px 12px;" onclick="openCalcReview('lerato-dlamini')">Review</button></td>
                     </tr>
                     <tr>
                       <td>
@@ -580,12 +583,13 @@
                         </div>
                       </td>
                       <td class="td-mono" style="text-align:right;">R 38,200.00</td>
-                      <td class="td-mono" style="text-align:right;color:var(--danger);">R 8,642.00</td>
+                      <td class="td-mono" style="text-align:right;color:var(--danger);"><button onclick="document.getElementById('payeModal').style.display='flex'" style="background:none;border:none;cursor:pointer;font-family:var(--font-mono);font-size:inherit;color:inherit;text-decoration:underline dotted;">R 8,642.00</button></td>
+                      <td class="td-mono" style="text-align:right;color:var(--text-muted);">—</td>
                       <td class="td-mono" style="text-align:right;">R 177.12</td>
                       <td class="td-mono" style="text-align:right;">R 382.00</td>
                       <td class="td-mono" style="text-align:right;color:var(--text-muted);">-</td>
-                      <td class="td-mono" style="text-align:right;font-weight:700;color:var(--success);">R 29,380.00
-                      </td>
+                      <td class="td-mono" style="text-align:right;font-weight:700;color:var(--success);">R 29,380.00</td>
+                      <td><button class="risk-action" style="font-size:.72rem;padding:4px 12px;" onclick="openCalcReview('thabo-molefe')">Review</button></td>
                     </tr>
                     <tr>
                       <td>
@@ -598,12 +602,13 @@
                         </div>
                       </td>
                       <td class="td-mono" style="text-align:right;">R 28,500.00</td>
-                      <td class="td-mono" style="text-align:right;color:var(--danger);">R 5,112.00</td>
+                      <td class="td-mono" style="text-align:right;color:var(--danger);"><button onclick="document.getElementById('payeModal').style.display='flex'" style="background:none;border:none;cursor:pointer;font-family:var(--font-mono);font-size:inherit;color:inherit;text-decoration:underline dotted;">R 5,112.00</button></td>
+                      <td class="td-mono" style="text-align:right;color:#27ae60;">−R 610.00</td>
                       <td class="td-mono" style="text-align:right;">R 177.12</td>
                       <td class="td-mono" style="text-align:right;">R 285.00</td>
                       <td class="td-mono" style="text-align:right;color:var(--text-muted);">-</td>
-                      <td class="td-mono" style="text-align:right;font-weight:700;color:var(--success);">R 23,210.88
-                      </td>
+                      <td class="td-mono" style="text-align:right;font-weight:700;color:var(--success);">R 23,210.88</td>
+                      <td><button class="risk-action" style="font-size:.72rem;padding:4px 12px;" onclick="openCalcReview('nandi-zulu')">Review</button></td>
                     </tr>
                     <tr>
                       <td>
@@ -616,13 +621,13 @@
                         </div>
                       </td>
                       <td class="td-mono" style="text-align:right;">R 14,500.00</td>
-                      <td class="td-mono" style="text-align:right;color:var(--danger);">R 826.50</td>
+                      <td class="td-mono" style="text-align:right;color:var(--danger);"><button onclick="document.getElementById('payeModal').style.display='flex'" style="background:none;border:none;cursor:pointer;font-family:var(--font-mono);font-size:inherit;color:inherit;text-decoration:underline dotted;">R 826.50</button></td>
+                      <td class="td-mono" style="text-align:right;color:var(--text-muted);">—</td>
                       <td class="td-mono" style="text-align:right;">R 145.00</td>
                       <td class="td-mono" style="text-align:right;">R 145.00</td>
-                      <td class="td-mono" style="text-align:right;color:var(--success);font-weight:600;">−R 1,500.00
-                      </td>
-                      <td class="td-mono" style="text-align:right;font-weight:700;color:var(--success);">R 12,528.50
-                      </td>
+                      <td class="td-mono" style="text-align:right;color:var(--success);font-weight:600;">−R 1,500.00</td>
+                      <td class="td-mono" style="text-align:right;font-weight:700;color:var(--success);">R 12,528.50</td>
+                      <td><button class="risk-action" style="font-size:.72rem;padding:4px 12px;" onclick="openCalcReview('kobus-de-bruyn')">Review</button></td>
                     </tr>
                     <tr>
                       <td>
@@ -635,12 +640,13 @@
                         </div>
                       </td>
                       <td class="td-mono" style="text-align:right;">R 42,000.00</td>
-                      <td class="td-mono" style="text-align:right;color:var(--danger);">R 10,206.00</td>
+                      <td class="td-mono" style="text-align:right;color:var(--danger);"><button onclick="document.getElementById('payeModal').style.display='flex'" style="background:none;border:none;cursor:pointer;font-family:var(--font-mono);font-size:inherit;color:inherit;text-decoration:underline dotted;">R 10,206.00</button></td>
+                      <td class="td-mono" style="text-align:right;color:#27ae60;">−R 364.00</td>
                       <td class="td-mono" style="text-align:right;">R 177.12</td>
                       <td class="td-mono" style="text-align:right;">R 420.00</td>
                       <td class="td-mono" style="text-align:right;color:var(--text-muted);">-</td>
-                      <td class="td-mono" style="text-align:right;font-weight:700;color:var(--success);">R 31,616.88
-                      </td>
+                      <td class="td-mono" style="text-align:right;font-weight:700;color:var(--success);">R 31,616.88</td>
+                      <td><button class="risk-action" style="font-size:.72rem;padding:4px 12px;" onclick="openCalcReview('priya-naidoo')">Review</button></td>
                     </tr>
                     <tr>
                       <td>
@@ -653,12 +659,13 @@
                         </div>
                       </td>
                       <td class="td-mono" style="text-align:right;">R 36,800.00</td>
-                      <td class="td-mono" style="text-align:right;color:var(--danger);">R 8,028.00</td>
+                      <td class="td-mono" style="text-align:right;color:var(--danger);"><button onclick="document.getElementById('payeModal').style.display='flex'" style="background:none;border:none;cursor:pointer;font-family:var(--font-mono);font-size:inherit;color:inherit;text-decoration:underline dotted;">R 8,028.00</button></td>
+                      <td class="td-mono" style="text-align:right;color:var(--text-muted);">—</td>
                       <td class="td-mono" style="text-align:right;">R 177.12</td>
                       <td class="td-mono" style="text-align:right;">R 368.00</td>
                       <td class="td-mono" style="text-align:right;color:var(--text-muted);">-</td>
-                      <td class="td-mono" style="text-align:right;font-weight:700;color:var(--success);">R 28,594.88
-                      </td>
+                      <td class="td-mono" style="text-align:right;font-weight:700;color:var(--success);">R 28,594.88</td>
+                      <td><button class="risk-action" style="font-size:.72rem;padding:4px 12px;" onclick="openCalcReview('fatima-osman')">Review</button></td>
                     </tr>
                   </tbody>
                   <tfoot>
@@ -667,14 +674,13 @@
                         style="padding:12px 16px;font-size:12px;color:var(--text-secondary);letter-spacing:0.05em;text-transform:uppercase;">
                         247 Employees Total</td>
                       <td class="td-mono" style="text-align:right;padding:12px 16px;">R 3,021,450.00</td>
-                      <td class="td-mono" style="text-align:right;padding:12px 16px;color:var(--danger);">R 645,230.50
-                      </td>
+                      <td class="td-mono" style="text-align:right;padding:12px 16px;color:var(--danger);">R 645,230.50</td>
+                      <td class="td-mono" style="text-align:right;padding:12px 16px;color:#27ae60;">−R 12,640.00</td>
                       <td class="td-mono" style="text-align:right;padding:12px 16px;">R 43,712.16</td>
                       <td class="td-mono" style="text-align:right;padding:12px 16px;">R 30,000.00</td>
-                      <td class="td-mono" style="text-align:right;padding:12px 16px;color:var(--success);">−R 18,750.00
-                      </td>
-                      <td class="td-mono" style="text-align:right;padding:12px 16px;color:var(--success);">R
-                        2,302,507.34</td>
+                      <td class="td-mono" style="text-align:right;padding:12px 16px;color:var(--success);">−R 18,750.00</td>
+                      <td class="td-mono" style="text-align:right;padding:12px 16px;color:var(--success);">R 2,302,507.34</td>
+                      <td></td>
                     </tr>
                   </tfoot>
                 </table>
@@ -687,8 +693,7 @@
                     Lock to commit this run.</span>
                 </div>
                 <div class="ml-auto flex gap-3">
-                  <button class="btn btn-ghost btn-sm" title="Available after finalization"
-                    style="opacity:.4;cursor:not-allowed;" disabled>
+                  <button class="btn btn-ghost btn-sm" onclick="document.getElementById('emp201Modal').style.display='flex'">
                     <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
                       stroke="currentColor" stroke-width="1.5">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -762,6 +767,131 @@
     </a>
   </nav>
 
+  <!-- PAYE Breakdown Modal -->
+  <div id="payeModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border-radius:18px;padding:28px;width:420px;max-width:90vw;">
+      <h3 style="font-size:1rem;font-weight:700;margin:0 0 16px;">PAYE Breakdown — Lerato Dlamini — March 2026</h3>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+        <div style="display:flex;justify-content:space-between;font-size:.88rem;"><span style="color:var(--text-secondary);">Gross salary</span><span class="td-mono">R 48,500.00</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.88rem;"><span style="color:var(--text-secondary);">Annual equivalent</span><span class="td-mono">R 582,000.00</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.88rem;"><span style="color:var(--text-secondary);">PAYE on annual (7 brackets)</span><span class="td-mono">R 154,167.00</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.88rem;"><span style="color:var(--text-secondary);">Less: primary rebate</span><span class="td-mono" style="color:#27ae60;">−R 17,235.00</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.88rem;font-weight:600;"><span>Monthly PAYE (÷12)</span><span class="td-mono">R 11,411.00</span></div>
+        <hr style="border:none;border-top:1px solid var(--border-subtle);margin:4px 0;">
+        <div style="display:flex;justify-content:space-between;font-size:.88rem;"><span style="color:var(--text-secondary);">Medical Tax Credit (Sec 6A, code 4116)<br><span style="font-size:.75rem;">Principal member · No dependants</span></span><span class="td-mono" style="color:#27ae60;">−R 364.00</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.88rem;font-weight:700;color:var(--danger);"><span>Net PAYE Withheld (code 4102)</span><span class="td-mono">R 11,047.00</span></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="document.getElementById('payeModal').style.display='none'">Close</button>
+    </div>
+  </div>
+
+  <!-- EMP201 Preview Modal -->
+  <div id="emp201Modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border-radius:18px;padding:28px;width:460px;max-width:90vw;">
+      <h3 style="font-size:1rem;font-weight:700;margin:0 0 4px;">EMP201 Preview — March 2026</h3>
+      <p style="font-size:.78rem;color:var(--text-secondary);margin-bottom:20px;">Review before downloading the CSV for e@syFile submission.</p>
+      <div style="background:var(--surface-hover);border-radius:10px;padding:16px;margin-bottom:16px;font-size:.83rem;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div><div style="color:var(--text-muted);font-size:.72rem;font-weight:600;text-transform:uppercase;margin-bottom:2px;">Employer PAYE Ref</div><div class="td-mono">7010123456</div></div>
+          <div><div style="color:var(--text-muted);font-size:.72rem;font-weight:600;text-transform:uppercase;margin-bottom:2px;">Period</div><div class="td-mono">03/2026</div></div>
+          <div><div style="color:var(--text-muted);font-size:.72rem;font-weight:600;text-transform:uppercase;margin-bottom:2px;">Total PAYE (4102)</div><div class="td-mono" style="color:var(--danger);">R 645,230.50</div></div>
+          <div><div style="color:var(--text-muted);font-size:.72rem;font-weight:600;text-transform:uppercase;margin-bottom:2px;">Total UIF (4141)</div><div class="td-mono">R 43,712.16</div></div>
+          <div><div style="color:var(--text-muted);font-size:.72rem;font-weight:600;text-transform:uppercase;margin-bottom:2px;">Total SDL (4142)</div><div class="td-mono">R 30,000.00</div></div>
+          <div><div style="color:var(--text-muted);font-size:.72rem;font-weight:600;text-transform:uppercase;margin-bottom:2px;">Total Employees</div><div class="td-mono">247</div></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="document.getElementById('emp201Modal').style.display='none'">Cancel</button>
+        <button class="btn btn-primary" onclick="alert('EMP201 CSV downloaded.')"><i data-lucide="download" style="width:13px;height:13px;"></i> Download CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calculation Review Drawer -->
+  <div id="calcReviewDrawer" style="display:none;position:fixed;top:0;right:0;bottom:0;width:680px;max-width:100vw;background:var(--surface);border-left:1px solid var(--border-subtle);z-index:500;overflow-y:auto;box-shadow:-4px 0 24px rgba(0,0,0,.12);">
+    <div style="padding:20px 24px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:flex-start;position:sticky;top:0;background:var(--surface);z-index:1;">
+      <div>
+        <div style="font-size:1rem;font-weight:700;">Calculation Review</div>
+        <div style="font-size:.8rem;color:var(--text-secondary);margin-top:2px;">Lerato Dlamini · March 2026 · Monthly</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span id="overrideIndicator" style="display:none;padding:3px 10px;background:#fef3e2;border-radius:6px;font-size:.72rem;font-weight:700;color:#b86b00;">⚠ Overridden</span>
+        <button onclick="document.getElementById('calcReviewDrawer').style.display='none';document.getElementById('calcReviewOverlay').style.display='none';" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--text-secondary);font-size:1.2rem;">✕</button>
+      </div>
+    </div>
+    <div style="padding:24px;">
+      <div style="margin-bottom:24px;">
+        <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:12px;">Payroll Inputs — Edit to correct</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label style="font-size:.78rem;font-weight:600;display:block;margin-bottom:5px;">Gross Salary</label>
+            <input type="text" value="R 48,500.00" style="width:100%;padding:8px 12px;border:1px solid var(--border-subtle);border-radius:8px;font-family:var(--font-mono);font-size:.88rem;">
+            <div style="font-size:.72rem;color:var(--text-muted);margin-top:3px;">Contract: R 48,500/month</div>
+          </div>
+          <div>
+            <label style="font-size:.78rem;font-weight:600;display:block;margin-bottom:5px;">Pension Contribution</label>
+            <input type="text" value="R 3,395.00" style="width:100%;padding:8px 12px;border:1px solid var(--border-subtle);border-radius:8px;font-family:var(--font-mono);font-size:.88rem;">
+            <div style="font-size:.72rem;color:var(--text-muted);margin-top:3px;">7% of gross salary</div>
+          </div>
+          <div>
+            <label style="font-size:.78rem;font-weight:600;display:block;margin-bottom:5px;">Medical Scheme Dependants</label>
+            <select style="width:100%;padding:8px 12px;border:1px solid var(--border-subtle);border-radius:8px;font-size:.85rem;">
+              <option value="0" selected>0 — Principal only (R364 credit)</option>
+              <option value="1">1 dependant (R610 credit)</option>
+              <option value="2">2 dependants (R856 credit)</option>
+              <option value="3">3 dependants (R1,102 credit)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:.78rem;font-weight:600;display:block;margin-bottom:5px;">ETI Eligible</label>
+            <select style="width:100%;padding:8px 12px;border:1px solid var(--border-subtle);border-radius:8px;font-size:.85rem;">
+              <option>Not eligible (age 35 — above threshold)</option>
+              <option>Year 1 (first 12 months of employment)</option>
+              <option>Year 2 (months 13–24)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-sm" style="margin-bottom:20px;" onclick="alert('Recalculating with updated inputs…')"><i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Recalculate</button>
+      <div style="margin-bottom:24px;">
+        <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:12px;">PAYE Calculation Waterfall</div>
+        <div style="background:var(--surface-hover);border-radius:12px;padding:16px;font-size:.83rem;display:flex;flex-direction:column;gap:8px;">
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-secondary);">① Gross salary (period)</span><span class="td-mono">R 48,500.00</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-secondary);">② Annual equivalent (× 12)</span><span class="td-mono">R 582,000.00</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-secondary);">③ Gross tax on annual (bracket 4: 31%)</span><span class="td-mono">R 171,402.00</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-secondary);">④ Less: primary rebate (u/58 years)</span><span class="td-mono" style="color:#27ae60;">−R 17,235.00</span></div>
+          <div style="display:flex;justify-content:space-between;font-weight:600;"><span>⑤ Net annual PAYE</span><span class="td-mono">R 154,167.00</span></div>
+          <div style="display:flex;justify-content:space-between;"><span style="color:var(--text-secondary);">⑥ Monthly PAYE (÷ 12)</span><span class="td-mono">R 12,847.25</span></div>
+          <hr style="border:none;border-top:1px solid var(--border-subtle);">
+          <div style="display:flex;justify-content:space-between;color:#27ae60;"><span>⑦ Less: Medical Tax Credit (Sec 6A, code 4116) — 0 dependants</span><span class="td-mono">−R 364.00</span></div>
+          <div style="display:flex;justify-content:space-between;font-weight:700;font-size:.9rem;"><span>⑧ Net PAYE withheld (code 4102)</span><span class="td-mono" style="color:var(--danger);">R 12,483.25</span></div>
+        </div>
+      </div>
+      <div style="margin-bottom:24px;">
+        <div style="font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-muted);margin-bottom:12px;">Other Deductions</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:.82rem;">
+          <div style="background:var(--surface-hover);border-radius:8px;padding:10px;"><div style="color:var(--text-muted);font-size:.7rem;font-weight:600;text-transform:uppercase;margin-bottom:3px;">UIF (4141)</div><div class="td-mono" style="font-weight:600;">R 177.12</div><div style="font-size:.7rem;color:var(--text-muted);">1% · ceiling applied</div></div>
+          <div style="background:var(--surface-hover);border-radius:8px;padding:10px;"><div style="color:var(--text-muted);font-size:.7rem;font-weight:600;text-transform:uppercase;margin-bottom:3px;">SDL (4142)</div><div class="td-mono" style="font-weight:600;">R 485.00</div><div style="font-size:.7rem;color:var(--text-muted);">1% employer</div></div>
+          <div style="background:var(--surface-hover);border-radius:8px;padding:10px;"><div style="color:var(--text-muted);font-size:.7rem;font-weight:600;text-transform:uppercase;margin-bottom:3px;">Pension (4001)</div><div class="td-mono" style="font-weight:600;">R 3,395.00</div><div style="font-size:.7rem;color:var(--text-muted);">7% employee</div></div>
+        </div>
+      </div>
+      <div style="background:var(--brand-primary);color:#fff;border-radius:12px;padding:16px 20px;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;">
+        <div><div style="font-size:.75rem;opacity:.8;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Net Pay</div><div style="font-size:.72rem;opacity:.7;margin-top:2px;">Gross R48,500 − PAYE R12,483.25 − UIF R177.12 − Pension R3,395.00</div></div>
+        <div class="td-mono" style="font-size:1.4rem;font-weight:700;">R 32,444.63</div>
+      </div>
+      <div id="overrideReasonSection" style="display:none;margin-bottom:20px;">
+        <label style="font-size:.8rem;font-weight:600;display:block;margin-bottom:6px;color:#b86b00;">⚠ Override Reason (required — will be recorded in audit trail)</label>
+        <textarea rows="3" placeholder="Explain why the auto-calculated value was changed…" style="width:100%;padding:10px 12px;border:1px solid rgba(212,137,14,.5);border-radius:8px;font-size:.82rem;resize:vertical;background:rgba(212,137,14,.04);"></textarea>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <button class="btn btn-ghost" onclick="document.getElementById('calcReviewDrawer').style.display='none';document.getElementById('calcReviewOverlay').style.display='none';">Discard Changes</button>
+        <button class="btn btn-primary" onclick="document.getElementById('overrideReasonSection').style.display='block';document.getElementById('overrideIndicator').style.display='inline-flex';">Save Adjustments</button>
+      </div>
+      <p style="font-size:.72rem;color:var(--text-muted);margin-top:16px;line-height:1.5;">All saved adjustments are recorded in the audit trail with the HR Manager's name, timestamp, original values, new values, and reason. Finalized payroll runs are immutable — adjustments can only be made while the run is in Draft status.</p>
+    </div>
+  </div>
+  <div id="calcReviewOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.2);z-index:499;" onclick="document.getElementById('calcReviewDrawer').style.display='none';this.style.display='none';"></div>
+
   <script>
     function toggleSidebar() {
       const sidebar = document.getElementById('sidebar');
@@ -776,6 +906,10 @@
       html.setAttribute('data-theme', isDark ? 'light' : 'dark');
       document.getElementById('sun-icon').style.display = isDark ? 'block' : 'none';
       document.getElementById('moon-icon').style.display = isDark ? 'none' : 'block';
+    }
+    function openCalcReview(employeeId) {
+      document.getElementById('calcReviewDrawer').style.display = 'block';
+      document.getElementById('calcReviewOverlay').style.display = 'block';
     }
   </script>
 </body>

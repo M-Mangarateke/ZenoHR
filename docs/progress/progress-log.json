@@ -1,8 +1,8 @@
 {
   "project": "ZenoHR",
   "current_phase": "Phase 1 — Domain Core + Payroll Engine",
-  "last_updated": "2026-02-27T10:00:00.000000+00:00",
-  "last_session_summary": "Phase 1 payroll calculation engines complete. TASK-053: PayeCalculationEngine — monthly, weekly, mid-period joiner PAYE via SARS annual equivalent method (PRD-16 Sections 1–3). TASK-054: UifSdlCalculationEngine — monthly and weekly UIF ceiling, SDL exemption. TASK-055: EtiCalculationEngine — GetTier, CalendarMonthsBetween, IsEligible, CalculateMonthlyEti with hours proration; all three band formula types (percentage, fixed, taper). StatutoryDataConverter handles Firestore long/double → decimal safely. SarsPayeRuleSet/SarsUifSdlRuleSet/SarsEtiRuleSet typed adaptors with From() and CreateForTesting() factories. TASK-059+060: 117 unit tests passing — deterministic 2025/2026 bracket values + FsCheck property-based tests (non-negative, monotonic, ceiling invariants, tier2≤tier1). InternalsVisibleTo added to expose internal helpers to test project.",
+  "last_updated": "2026-02-28T16:00:00.000000+00:00",
+  "last_session_summary": "SARS frontend UX session (TASK-100). Added IRP5 code 4008 to seed data (v2026.1.2). Updated 6 mockups and created 17-irp5-certificate.html. Compliance screen: ITREG risk item, EMP601/EMP701 filing rows, tax year activation panel, 5 modals (ITREG, EMP601, tax table import, BCEA OT verification, IRP5 batch review), score card additions, Mark Reviewed on all risk items. Payroll screen: MSFTC column, PAYE waterfall modal, EMP201 preview modal, full Calculation Review drawer with 8-step PAYE waterfall + editable inputs + override reason + audit trail note. Leave screen: monthly accrual review banner + approval modal. My Analytics: IRP5 certificate section with all source codes, Download PDF, ITR12 Support Pack. Payslip template: MSFTC credit line (code 4116), tax ref in employee block, IRP5 code column in YTD. Employees screen: tax ref compliance badge on missing-ref employee, Income Tax Ref + ETI Status in Employment Details, MSFTC monthly credit in Benefits. NEW 17-irp5-certificate.html: A4-style cert viewer, income/deductions/tax code tables, sidebar download/cancel/audit actions, HR-only EMP601 cancel modal, dark mode support.",
   "phases": [
     {
       "id": "phase-0",
@@ -1161,7 +1161,7 @@
     },
     {
       "id": "TASK-093",
-      "title": "TaxDirective repository",
+      "title": "TaxDirective repository — all 4 IRP3 directive types",
       "phase": "phase-3",
       "status": "pending",
       "priority": 3,
@@ -1170,7 +1170,8 @@
       ],
       "requirements": [
         "CTL-SARS-004"
-      ]
+      ],
+      "notes": "TaxDirective domain entity and Firestore repository covering all 4 IRP3 directive types. IRP3(a): Retirement/pension withdrawal directive — applied before lump sum payments from pension/provident/retirement annuity funds. IRP3(b): Death/disability benefit directive — for lump sums paid on death or permanent disability. IRP3(c): Withdrawal benefit directive — early withdrawal from fund before retirement. IRP3(s): Severance benefit directive — for retrenchment/dismissal payments. Workflow: HR Manager initiates directive application → system generates required employee/employer data package → Compliance Officer submits to SARS via eFiling → SARS returns directive number and withholding instruction → HR Manager enters directive number → payroll applies instructed tax rate instead of standard PAYE for that payment. Firestore collection: tax_directives (root, tenant-scoped). Domain: TaxDirective aggregate with directive_type (IRP3a/b/c/s), employee_id, directive_number, effective_date, lump_sum_amount, withholding_rate, status (pending/approved/applied)."
     },
     {
       "id": "TASK-094",
@@ -1185,6 +1186,93 @@
       "requirements": [
         "TC-PAY-010"
       ]
+    },
+    {
+      "id": "TASK-095",
+      "title": "MSFTC calculation engine + PAYE integration (Section 6A, IRP5 code 4116)",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-053"
+      ],
+      "blockers": [],
+      "requirements": [
+        "REQ-HR-003",
+        "CTL-SARS-001"
+      ],
+      "notes": "Create MsfTcCalculationEngine: CalculateMonthlyMsftc(int numberOfDependants, SarsMsfTcRuleSet). Formula: 364 + (246 × dependants). PayrollOrchestrationService applies after PAYE: net_paye = max(0, paye - msftc). PayrollResult gains msftc_credit_applied field. IRP5 reports code 4116 = annual sum. Seed: docs/seed-data/sars-medical-scheme-tax-credit.json. Employee profile needs medical_scheme_dependants integer field. New FsCheck properties: MSFTC never creates negative PAYE liability; MSFTC = 0 when employee not on medical scheme. Unit test: 2 dependants + PAYE R1,000 → MSFTC R856 → net PAYE R144. Unit test: 2 dependants + PAYE R300 → net PAYE R0."
+    },
+    {
+      "id": "TASK-096",
+      "title": "EMP601 certificate cancellation declaration generator",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-090"
+      ],
+      "blockers": [],
+      "requirements": [
+        "CTL-SARS-005"
+      ],
+      "notes": "EMP601 is used to cancel a previously submitted IRP5/IT3(a) certificate (e.g., incorrect values, duplicate). ZenoHR must: (1) Allow HR Manager to mark an issued certificate for cancellation with a mandatory reason; (2) Generate EMP601 package (same field structure as IRP5 but with cancellation indicator set); (3) Store cancellation record in compliance_submissions with original_certificate_id reference; (4) Prevent re-issuance until cancellation is acknowledged. Domain: CertificateCancellation entity with original_certificate_id, certificate_year, employee_id, cancellation_reason, status (pending/submitted/acknowledged). Required for e@syFile Employer import."
+    },
+    {
+      "id": "TASK-097",
+      "title": "EMP701 prior-year reconciliation adjustment workflow",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-089"
+      ],
+      "blockers": [],
+      "requirements": [
+        "CTL-SARS-004"
+      ],
+      "notes": "EMP701 is for adjustments to reconciliations from prior tax years (not the current year). Triggered when: (1) SARS issues a correction notice for a prior period; (2) Employer discovers an error in a finalized prior-year EMP501. ZenoHR must: store prior-year adjustment records referencing original reconciliation period and tax year; generate EMP701 package; apply double-entry principle (original + adjustment = corrected position); immutable — once submitted, only new correction adjustments allowed. Firestore collection: payroll_runs/{id}/adjustments already exists in schema. Domain entity: PriorYearAdjustment with tax_year, adjustment_type (paye/uif/sdl/eti), original_amount, adjustment_amount, corrected_amount, reason, submitted_at."
+    },
+    {
+      "id": "TASK-098",
+      "title": "IRP5/IT3(a) seed data — add 11 missing source codes",
+      "phase": "phase-3",
+      "status": "completed",
+      "priority": 1,
+      "depends_on": [],
+      "blockers": [],
+      "requirements": [
+        "CTL-SARS-005"
+      ],
+      "completed_at": "2026-02-28",
+      "notes": "Updated docs/seed-data/sars-filing-formats/irp5-it3a-source-codes.json v2026.1.1. Added to normal_income: 3603 (pension PAYE), 3604 (pension excl). Added to lump_sums: 3611 (purchased annuity taxable), 3612 (purchased annuity excl), 3614 (other retirement lump sums). Added to allowances: 3706 (entertainment), 3709 (uniform), 3711 (computer), 3712 (phone). Added to fringe_benefits: 3813 (other medical fringe), 3817 (housing/accommodation fringe benefit — confirmed on actual IRP5 sample). Source: SARS Guide for Codes Applicable to Employees Tax Certificates 2026."
+    },
+    {
+      "id": "TASK-099",
+      "title": "ITREG employee income tax registration assistance workflow",
+      "phase": "phase-3",
+      "status": "pending",
+      "priority": 2,
+      "depends_on": [
+        "TASK-064"
+      ],
+      "blockers": [],
+      "requirements": [
+        "CTL-SARS-006",
+        "REQ-HR-001"
+      ],
+      "notes": "Process for employees who do not yet have an income tax reference number. ZenoHR must: (1) Employee profile shows 'Tax Number Required' badge when income_tax_reference is null/invalid (CTL-SARS-006 already blocks payroll); (2) HR Manager sees bulk list of employees with missing/invalid tax refs on Compliance screen; (3) 'Register for Tax' workflow: exports employee details (SA ID, full name, DOB, residential address, employment start date, employer PAYE reference) in SARS ITREG-compatible format for manual submission via eFiling or e@syFile; (4) HR Manager enters assigned SARS tax reference number once received; (5) System validates format (10-digit, prefix 0/1/2), updates employee profile, clears the blocking flag. API endpoint: GET /compliance/employees/missing-tax-reference. UI: compliance screen badge + remediation modal with export button. Does NOT call SARS API directly (requires ISV accreditation — Phase 6)."
+    },
+    {
+      "id": "TASK-100",
+      "title": "Update 5 mockups + create 17-irp5-certificate.html for full SARS data UX",
+      "phase": "phase-3",
+      "status": "completed",
+      "priority": 1,
+      "depends_on": [],
+      "blockers": [],
+      "requirements": ["CTL-SARS-005", "REQ-HR-003"],
+      "notes": "Completed 2026-02-28. (1) 06-compliance.html: ITREG risk item, EMP601/EMP701 filing rows, tax year activation panel (v2026.1.2), 5 modals (itregModal, emp601Modal, taxTableImportModal, bceaverifyModal, irp5ReviewModal), SARS score card additions (medical credits, missing tax ref, IRP5 batch review), Mark Reviewed on risk items; (2) 04-payroll.html: MSFTC column (Med Credit) with per-employee values, PAYE waterfall modal, EMP201 preview modal, Calculation Review drawer with full 8-step PAYE waterfall + editable inputs + override reason, Review button per row, openCalcReview() function; (3) 05-leave.html: leave accrual review banner + accrualReviewModal; (4) 13-my-analytics.html: IRP5 certificate section with all source codes (3601/4001/4005/4116/4102/4141/4472/4474), Download PDF, ITR12 Support Pack; (5) 16-payslip-template.html: MSFTC credit line (code 4116, green), tax ref in employee details, IRP5 code column in YTD table; (6) 03-employees.html: tax ref compliance badge on Sipho Khumalo, Income Tax Ref + ETI Status in Employment Details, MSFTC/dependants/monthly credit in Benefits section; (7) CREATED 17-irp5-certificate.html: A4-style certificate viewer with employer/employee blocks, income/deductions/tax code tables, sidebar actions (Download PDF/CSV, Email, ITR12 pack, Cancel EMP601), HR-only cancel modal, audit trail card, dark mode."
     }
   ],
   "phase4_tasks": [
@@ -1561,7 +1649,7 @@
     },
     {
       "id": "TASK-136",
-      "title": "Data archival background job (5-year retention → archive status)",
+      "title": "Data archival background job (5-year retention from termination_date)",
       "phase": "phase-5",
       "status": "pending",
       "priority": 3,
@@ -1569,8 +1657,10 @@
         "TASK-064"
       ],
       "requirements": [
-        "CTL-POPIA-009"
-      ]
+        "CTL-POPIA-009",
+        "CTL-BCEA-004"
+      ],
+      "notes": "Retention rule: active employees — records retained indefinitely while employed; terminated employees — retain for 5 years from termination_date (SARS Tax Administration Act s29 + BCEA s31 + POPIA s14). Retention clock starts from termination_date NOT from record creation date. After 5 years from termination_date: payslips, payroll_results, leave_requests, audit_events move to archived status (read-only, not deleted). After 7 years from termination_date: records may be purged only with formal legal sign-off per CTL-POPIA-006. Background service: nightly job queries employees with status=terminated AND termination_date <= (today - 5 years). Sets archived=true, archived_at=now on affected documents. Does NOT delete — POPIA requires formal erasure process. Legal hold override: employees with open disputes have hold extended until case_closed_at. Firestore field to add: archived_at (timestamp, null = active). UI: Compliance screen shows 'X records pending archival this month' banner. Admins can view archived records with reason log."
     },
     {
       "id": "TASK-137",
@@ -1585,6 +1675,22 @@
       "requirements": [
         "TC-PAY-020"
       ]
+    },
+    {
+      "id": "TASK-138",
+      "title": "Annual SARS tax year table import + regression + activation workflow",
+      "phase": "phase-5",
+      "status": "pending",
+      "priority": 1,
+      "depends_on": [
+        "TASK-081"
+      ],
+      "blockers": [],
+      "requirements": [
+        "CTL-SARS-001",
+        "REQ-COMP-015"
+      ],
+      "notes": "Triggered each February/March after SARS Budget Speech. Full workflow: (1) SaasAdmin or Director imports new JSON rule set file via /admin or /settings/compliance; (2) System validates schema, checksums, effective_from/effective_to dates; (3) Auto-runs regression pack against new tables: boundary salary bands (bracket minimums/maximums), UIF/SDL cap checks, ETI eligibility edge cases — same test scenarios as unit tests but run live against new StatutoryRuleSet; (4) Regression report shown to Compliance Officer (pass/fail per test); (5) Compliance Officer approves activation; (6) System sets new StatutoryRuleSet as active_version in Firestore — previous version archived; (7) Emits TaxTableVersionActivated domain event (invalidates caches, triggers notification to HR Manager); (8) AuditEvent created (actor=approver, action=TaxTableActivated, resource=statutory_rule_set). Regression pack must be runnable from Compliance screen UI — not just from command line. Applies to: PAYE bracket changes, rebate changes, UIF ceiling increases, SDL rate changes, ETI rate/band changes, BCEA threshold changes, MSFTC credit amount changes. Urgency: next required for 2026/2027 tax year starting 1 March 2026."
     }
   ],
   "phase6_tasks": [

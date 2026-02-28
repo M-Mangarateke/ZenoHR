@@ -1,0 +1,75 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "SARS_MSFTC",
+  "version": "2026.1.0",
+  "effective_from": "2025-03-01",
+  "effective_to": "2026-02-28",
+  "tax_year": "2026",
+  "source": "SARS Income Tax Act No. 58 of 1962 — Section 6A (Medical Scheme Fees Tax Credit)",
+  "source_url": "https://www.sars.gov.za/types-of-tax/personal-income-tax/tax-season/medical-credits/",
+  "irp5_code": 4116,
+
+  "description": "The Medical Scheme Fees Tax Credit (MSFTC) is a non-refundable tax credit that directly reduces PAYE withheld from an employee's salary. It is based on the employee being a contributing member of a registered medical scheme. Excess credit (where MSFTC > PAYE) is NOT paid out by the employer — the employee claims the balance on their annual ITR12 return.",
+
+  "monthly_credits": {
+    "principal_member": 364.00,
+    "first_dependant": 246.00,
+    "each_additional_dependant": 246.00
+  },
+
+  "annual_credits": {
+    "principal_member": 4368.00,
+    "first_dependant": 2952.00,
+    "each_additional_dependant": 2952.00
+  },
+
+  "formula": {
+    "monthly": "monthly_msftc = 364 + (246 × total_number_of_dependants)",
+    "example_1_dependant": "364 + 246 = R610/month",
+    "example_2_dependants": "364 + 246 + 246 = R856/month",
+    "example_0_dependants": "364 + 0 = R364/month (principal only)"
+  },
+
+  "paye_application": {
+    "rule": "net_paye_withheld = max(0, calculated_paye - monthly_msftc)",
+    "floor": "PAYE cannot go below zero. If MSFTC > calculated_paye, net PAYE = R0.",
+    "excess": "Excess credit is NOT refundable by the employer. Employee claims it on ITR12.",
+    "timing": "Applied in the same pay period. Not carried forward by employer to next month.",
+    "applied_by": "PayrollOrchestrationService — after calling PayeCalculationEngine, before building PayrollResult"
+  },
+
+  "irp5_reporting": {
+    "code": 4116,
+    "section": "Tax Withheld section of IRP5",
+    "annual_value": "Sum of monthly MSFTC credits applied across all pay periods in the tax year",
+    "note": "Reported as a credit (positive value) in the tax withheld section. Reduces total employees tax shown on certificate."
+  },
+
+  "payslip_display": {
+    "label": "Medical Tax Credit (Sec 6A)",
+    "placement": "Shown as a credit in the PAYE deduction line — reduces PAYE withheld",
+    "example_format": "PAYE before credit: R1,000 | Medical Tax Credit: (R856) | PAYE withheld: R144"
+  },
+
+  "employee_requirements": {
+    "medical_scheme_membership": "Employee must be a contributing member of a registered medical aid scheme (registered under the Medical Schemes Act)",
+    "dependant_declaration": "Employee must declare number of registered dependants to HR via written declaration (medical_scheme_dependants field in employee profile)",
+    "change_notification": "Employee must notify HR when dependant count changes (new dependant, dependant removed). Change applies from the following pay period.",
+    "field_in_employee_profile": "medical_scheme_dependants: integer (0 = principal only; 1 = +1 dependant; etc.)"
+  },
+
+  "validation_rules": [
+    "MSFTC applies only when employee is on a registered medical scheme (medical_scheme_name not null)",
+    "medical_scheme_dependants must be >= 0 (null treated as 0 if on scheme, 0 MSFTC if not on scheme)",
+    "net_paye >= 0 always — MSFTC cannot create a negative tax liability",
+    "Excess MSFTC is NOT carried forward or refunded by employer",
+    "On IRP5, code 4116 annual total must equal sum of monthly MSFTC credits applied"
+  ],
+
+  "notes": {
+    "engine_architecture": "MsfTcCalculationEngine is a separate pure static class. Takes: int numberOfDependants, SarsMsfTcRuleSet. Returns: MoneyZAR monthlyCredit. PayrollOrchestrationService applies result after calling PayeCalculationEngine.",
+    "no_changes_2026": "Monthly credit amounts unchanged for 2025/2026 tax year. Budget Speech 12 March 2025 confirmed no changes.",
+    "history": "Section 6A introduced 2013. Replaced the percentage-based medical deduction. Provides equal rand-value benefit regardless of tax bracket.",
+    "it3a_note": "If employee has zero PAYE (IT3(a) certificate), MSFTC is still reported as code 4116 on the certificate. Employee uses it to reduce tax on ITR12."
+  }
+}
