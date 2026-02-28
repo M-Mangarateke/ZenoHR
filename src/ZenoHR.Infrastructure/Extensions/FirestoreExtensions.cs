@@ -48,9 +48,12 @@ public static class FirestoreExtensions
         services.AddSingleton<AuditEventRepository>();
         services.AddSingleton<AuditEventWriter>();
 
-        // REQ-HR-001: Employee + contract repositories (TASK-064, TASK-065)
+        // REQ-HR-001: Employee + contract + subcollection repositories (TASK-064, TASK-065, TASK-066)
         services.AddSingleton<EmployeeRepository>();
         services.AddSingleton<EmploymentContractRepository>();
+        services.AddSingleton<BankAccountRepository>();
+        services.AddSingleton<NextOfKinRepository>();
+        services.AddSingleton<EmployeeBenefitRepository>();
 
         // REQ-HR-002: Leave repositories (TASK-068, TASK-069)
         services.AddSingleton<LeaveBalanceRepository>();

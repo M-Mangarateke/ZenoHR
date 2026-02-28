@@ -27,6 +27,8 @@ public enum ZenoHrErrorCode
     ContractNotFound = 2003,
     ContractAlreadyActive = 2004,
     BankAccountNotFound = 2005,
+    NextOfKinNotFound = 2006,
+    BenefitNotFound = 2007,
 
     // ── 3xxx — Payroll ───────────────────────────────────────────────────────
     PayrollRunNotFound = 3000,
