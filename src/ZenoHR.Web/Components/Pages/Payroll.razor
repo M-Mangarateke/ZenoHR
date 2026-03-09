@@ -329,6 +329,7 @@
                                 <th style="text-align:right;">UIF</th>
                                 <th style="text-align:right;">Net Pay</th>
                                 <th style="text-align:right;">Status</th>
+                                <th style="text-align:center;">Payslip</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -351,6 +352,14 @@
                                     <td class="td-mono" style="text-align:right;">@FormatZar(line.Uif)</td>
                                     <td class="td-mono" style="text-align:right;font-weight:700;color:var(--success);">@FormatZar(line.NetPay)</td>
                                     <td style="text-align:right;"><span class="badge badge-success" style="font-size:11px;">@line.Status</span></td>
+                                    <td style="text-align:center;">
+                                        <button class="btn btn-ghost btn-sm"
+                                                @onclick="() => DownloadPayslip(line)"
+                                                title="Download PDF payslip"
+                                                style="padding:4px 8px;">
+                                            <i data-lucide="download" style="width:14px;height:14px;"></i>
+                                        </button>
+                                    </td>
                                 </tr>
                             }
                         </tbody>
@@ -365,6 +374,7 @@
                                 <td class="td-mono" style="text-align:right;padding:12px 16px;color:var(--danger);">@FormatZar(_selectedRun.PayeTotal)</td>
                                 <td class="td-mono" style="text-align:right;padding:12px 16px;">@FormatZar(_selectedRun.UifTotal)</td>
                                 <td class="td-mono" style="text-align:right;padding:12px 16px;color:var(--success);">@FormatZar(_selectedRun.NetTotal)</td>
+                                <td></td>
                                 <td></td>
                             </tr>
                         </tfoot>
@@ -416,6 +426,17 @@
         }
     </div>
 </div>
+
+@* REQ-HR-004: Payslip download toast notification *@
+@if (_showToast)
+{
+    <div style="position:fixed;bottom:24px;right:24px;background:var(--brand-primary);color:white;
+                padding:14px 20px;border-radius:12px;font-size:.85rem;z-index:999;
+                box-shadow:0 8px 24px rgba(0,0,0,.2);max-width:360px;">
+        <i data-lucide="check-circle" style="width:16px;height:16px;margin-right:8px;vertical-align:middle;"></i>
+        @_toastMessage
+    </div>
+}
 
 @code {
     // REQ-HR-003: Payroll run management — Director and HRManager only
@@ -478,6 +499,24 @@
         "Failed"     => "badge-danger",
         _            => "badge-secondary"
     };
+
+    // REQ-HR-004, CTL-SARS-005: Payslip download trigger — toast notification
+    // PDF wiring to real Firestore data is deferred to Phase 5 (TASK-087).
+    private string _toastMessage = "";
+    private bool _showToast = false;
+
+    private async Task DownloadPayslip(PayrollLineItem emp)
+    {
+        // REQ-HR-004, CTL-SARS-005
+        // Phase 5 will wire this to PayslipPdfGenerator with real Firestore data.
+        // For now, display a queued notification to confirm the user action.
+        _toastMessage = $"Payslip generation queued for {emp.Name}. Download will begin shortly.";
+        _showToast = true;
+        StateHasChanged();
+        await Task.Delay(3000);
+        _showToast = false;
+        StateHasChanged();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

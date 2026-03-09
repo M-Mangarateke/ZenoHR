@@ -22,6 +22,15 @@ window.zenohr = {
     initLucide: function() {
         if (window.lucide) lucide.createIcons();
     },
+    // REQ-HR-004: Trigger browser file download from base64 content (payslip PDFs, CSV exports)
+    downloadFile: function(filename, contentType, base64Content) {
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = `data:${contentType};base64,${base64Content}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    },
     renderPayrollChart: function(canvasId, labels, data, isDark) {
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;

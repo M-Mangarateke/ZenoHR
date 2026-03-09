@@ -1,9 +1,806 @@
-@* REQ-SEC-002, PRD-15 S6: Compliance Scoring — Director and HRManager only. *@
+@* REQ-COMP-001, REQ-COMP-002, REQ-SEC-002, CTL-POPIA-001 *@
+@* PRD-15 S6: Compliance Scoring — Director and HRManager only. *@
 @* Manager and Employee: None — route blocked, nav item absent. *@
 @page "/compliance"
 @attribute [Authorize(Roles = "Director,HRManager")]
 @using Microsoft.AspNetCore.Authorization
+@inject IJSRuntime JS
+@inject NavigationManager Nav
 
 <PageTitle>Compliance — ZenoHR</PageTitle>
-<h1>Compliance</h1>
-<p>SARS filings, BCEA checks, and POPIA controls for Zenowethu (Pty) Ltd.</p>
+
+<style>
+    /* ── Score rings ──────────────────────────────────────────────── */
+    .score-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    @@media (max-width: 900px) {
+        .score-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    .score-card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 18px;
+        padding: 24px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .score-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+    }
+
+    .score-card.sars::before {
+        background: var(--brand-primary);
+    }
+
+    .score-card.bcea::before {
+        background: #27ae60;
+    }
+
+    .score-card.popia::before {
+        background: var(--brand-accent);
+    }
+
+    .score-ring-wrap {
+        position: relative;
+        width: 110px;
+        height: 110px;
+        margin: 0 auto 14px;
+    }
+
+    .score-ring-svg {
+        transform: rotate(-90deg);
+    }
+
+    .score-ring-track {
+        fill: none;
+        stroke: var(--surface-hover);
+        stroke-width: 10;
+    }
+
+    .score-ring-fill {
+        fill: none;
+        stroke-width: 10;
+        stroke-linecap: round;
+        transition: stroke-dashoffset .6s ease;
+    }
+
+    .score-ring-fill.sars-fill {
+        stroke: var(--brand-primary);
+    }
+
+    .score-ring-fill.bcea-fill {
+        stroke: #27ae60;
+    }
+
+    .score-ring-fill.popia-fill {
+        stroke: var(--brand-accent);
+    }
+
+    .score-center {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .score-pct {
+        font-size: 1.6rem;
+        font-weight: 800;
+        font-family: var(--font-mono);
+        line-height: 1;
+    }
+
+    .score-pct.sars-col { color: var(--brand-primary); }
+    .score-pct.bcea-col { color: #27ae60; }
+    .score-pct.popia-col { color: var(--brand-accent); }
+
+    .score-label-sm {
+        font-size: .62rem;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        margin-top: 2px;
+    }
+
+    .score-title {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .score-subtitle {
+        font-size: .78rem;
+        color: var(--text-secondary);
+        margin-bottom: 14px;
+    }
+
+    .score-items { text-align: left; }
+
+    .score-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: .78rem;
+        color: var(--text-secondary);
+        padding: 4px 0;
+    }
+
+    .score-item-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .score-item-dot.pass { background: #27ae60; }
+    .score-item-dot.warn { background: var(--brand-accent); }
+    .score-item-dot.fail { background: #e74c3c; }
+
+    /* ── Filing schedule ──────────────────────────────────────────── */
+    .filing-status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: .75rem;
+        font-weight: 600;
+    }
+
+    .chip-submitted { background: #e8f7ef; color: #1a7a44; }
+    .chip-upcoming  { background: var(--surface-hover); color: var(--text-secondary); }
+    .chip-overdue   { background: #fdecea; color: #c0392b; }
+    .chip-draft     { background: #fef3e2; color: #b86b00; }
+
+    [data-theme="dark"] .chip-submitted { background: rgba(26,122,68,.25); color: #3ddc82; }
+    [data-theme="dark"] .chip-upcoming  { background: rgba(255,255,255,.08); color: var(--text-muted); }
+    [data-theme="dark"] .chip-overdue   { background: rgba(192,57,43,.25); color: #ff6b6b; }
+    [data-theme="dark"] .chip-draft     { background: rgba(212,137,14,.2); color: #f0a83a; }
+
+    /* ── Control checklist ────────────────────────────────────────── */
+    .control-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 11px 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .control-row:last-child { border-bottom: none; }
+
+    .control-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .control-icon.pass { background: #e8f7ef; color: #1a7a44; }
+    .control-icon.warn { background: #fef3e2; color: #b86b00; }
+    .control-icon.fail { background: #fdecea; color: #c0392b; }
+
+    [data-theme="dark"] .control-icon.pass { background: rgba(26,122,68,.25); color: #3ddc82; }
+    [data-theme="dark"] .control-icon.warn { background: rgba(212,137,14,.2); color: #f0a83a; }
+    [data-theme="dark"] .control-icon.fail { background: rgba(192,57,43,.25); color: #ff6b6b; }
+
+    .control-meta { flex: 1; min-width: 0; }
+
+    .control-id {
+        font-size: .68rem;
+        font-family: var(--font-mono);
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+
+    .control-name {
+        font-size: .82rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .control-note {
+        font-size: .72rem;
+        color: var(--text-secondary);
+        margin-top: 2px;
+    }
+
+    .control-cat {
+        font-size: .65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        padding: 2px 7px;
+        border-radius: 4px;
+        flex-shrink: 0;
+    }
+
+    .cat-sars  { background: var(--brand-primary-subtle); color: var(--brand-primary); }
+    .cat-bcea  { background: #e8f7ef; color: #1a7a44; }
+    .cat-popia { background: var(--brand-accent-subtle); color: var(--brand-accent); }
+
+    [data-theme="dark"] .cat-bcea { background: rgba(26,122,68,.25); color: #3ddc82; }
+
+    /* ── BCEA grid ────────────────────────────────────────────────── */
+    .bcea-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .bcea-item {
+        background: var(--surface-hover);
+        border-radius: 10px;
+        padding: 12px 14px;
+    }
+
+    .bcea-item-label {
+        font-size: .72rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 4px;
+    }
+
+    .bcea-item-value {
+        font-size: .9rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        font-family: var(--font-mono);
+    }
+
+    .bcea-item-sub {
+        font-size: .72rem;
+        color: var(--text-secondary);
+        margin-top: 2px;
+    }
+
+    /* ── Risk items ───────────────────────────────────────────────── */
+    .risk-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .risk-item:last-child { border-bottom: none; }
+
+    .risk-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .risk-icon.high   { background: #fdecea; color: #c0392b; }
+    .risk-icon.medium { background: #fef3e2; color: #b86b00; }
+    .risk-icon.low    { background: #e8f7ef; color: #1a7a44; }
+
+    [data-theme="dark"] .risk-icon.high   { background: rgba(192,57,43,.25); color: #ff6b6b; }
+    [data-theme="dark"] .risk-icon.medium { background: rgba(212,137,14,.2); color: #f0a83a; }
+    [data-theme="dark"] .risk-icon.low    { background: rgba(26,122,68,.25); color: #3ddc82; }
+
+    .risk-meta  { flex: 1; }
+    .risk-title { font-size: .88rem; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+    .risk-desc  { font-size: .78rem; color: var(--text-secondary); line-height: 1.4; }
+
+    .risk-severity {
+        font-size: .7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        padding: 2px 8px;
+        border-radius: 4px;
+    }
+
+    .sev-high   { background: #fdecea; color: #c0392b; }
+    .sev-medium { background: #fef3e2; color: #b86b00; }
+
+    [data-theme="dark"] .sev-high   { background: rgba(192,57,43,.25); color: #ff6b6b; }
+    [data-theme="dark"] .sev-medium { background: rgba(212,137,14,.2); color: #f0a83a; }
+
+    .risk-action {
+        padding: 5px 14px;
+        border-radius: 8px;
+        border: 1px solid var(--border-subtle);
+        background: var(--surface-hover);
+        color: var(--text-primary);
+        font-size: .78rem;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    /* ── Responsive ───────────────────────────────────────────────── */
+    @@media (max-width: 768px) {
+        .compliance-2col { grid-template-columns: 1fr !important; }
+    }
+
+    @@media (max-width: 640px) {
+        .score-grid { grid-template-columns: 1fr !important; }
+    }
+</style>
+
+@* REQ-COMP-001: Fail-state alert banner *@
+@if (_controls.Any(c => c.Status == "Fail"))
+{
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 18px;margin-bottom:20px;background:#fdecea;border:1px solid rgba(192,57,43,.25);border-radius:12px;color:#c0392b;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8" style="flex-shrink:0;margin-top:1px;">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+        <div>
+            <div style="font-size:.86rem;font-weight:700;margin-bottom:3px;">
+                @_controls.Count(c => c.Status == "Fail") critical control(s) failing — action required
+            </div>
+            <div style="font-size:.78rem;">
+                @string.Join(" · ", _controls.Where(c => c.Status == "Fail").Select(c => c.Id))
+                — resolve before v1.0 release per security requirements (REQ-COMP-002, VUL-005).
+            </div>
+        </div>
+    </div>
+}
+
+@* REQ-COMP-001: Page header *@
+<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;">
+    <div>
+        <h1 style="font-size:1.5rem;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;margin:0 0 4px;">
+            Compliance
+        </h1>
+        <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">
+            SARS · BCEA · POPIA | Tax year 2025/2026
+        </p>
+    </div>
+    <button class="btn btn-outline" style="font-size:.85rem;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" x2="12" y1="15" y2="3" />
+        </svg>
+        Export Report
+    </button>
+</div>
+
+@* REQ-COMP-001: Score rings grid — SARS, BCEA, POPIA *@
+<div class="score-grid">
+
+    @* SARS score card *@
+    <div class="score-card sars">
+        <div class="score-ring-wrap">
+            <svg class="score-ring-svg" width="110" height="110" viewBox="0 0 110 110">
+                <circle class="score-ring-track" cx="55" cy="55" r="45" />
+                <circle class="score-ring-fill sars-fill" cx="55" cy="55" r="45"
+                        stroke-dasharray="@ScoreDashArray(_sarsScore) 283"
+                        stroke-dashoffset="0" />
+            </svg>
+            <div class="score-center">
+                <span class="score-pct sars-col">@_sarsScore</span>
+                <span class="score-label-sm">SARS</span>
+            </div>
+        </div>
+        <div class="score-title">SARS Compliance</div>
+        <div class="score-subtitle">Tax obligations &amp; filings</div>
+        <div class="score-items">
+            <div class="score-item"><div class="score-item-dot pass"></div>EMP201: Feb submitted</div>
+            <div class="score-item"><div class="score-item-dot pass"></div>PAYE calculations verified</div>
+            <div class="score-item"><div class="score-item-dot warn"></div>2 employees need IRP5 review</div>
+            <div class="score-item"><div class="score-item-dot pass"></div>ETI claims reconciled</div>
+            <div class="score-item"><div class="score-item-dot pass"></div>Medical tax credits: active</div>
+            <div class="score-item"><div class="score-item-dot warn"></div>1 employee missing tax reference</div>
+        </div>
+    </div>
+
+    @* BCEA score card *@
+    <div class="score-card bcea">
+        <div class="score-ring-wrap">
+            <svg class="score-ring-svg" width="110" height="110" viewBox="0 0 110 110">
+                <circle class="score-ring-track" cx="55" cy="55" r="45" />
+                <circle class="score-ring-fill bcea-fill" cx="55" cy="55" r="45"
+                        stroke-dasharray="@ScoreDashArray(_bceaScore) 283"
+                        stroke-dashoffset="0" />
+            </svg>
+            <div class="score-center">
+                <span class="score-pct bcea-col">@_bceaScore</span>
+                <span class="score-label-sm">BCEA</span>
+            </div>
+        </div>
+        <div class="score-title">BCEA Compliance</div>
+        <div class="score-subtitle">Labour law: working time &amp; leave</div>
+        <div class="score-items">
+            <div class="score-item"><div class="score-item-dot pass"></div>Annual leave ≥15 days accrued</div>
+            <div class="score-item"><div class="score-item-dot pass"></div>Sick leave tracked (36 days/3yr)</div>
+            <div class="score-item"><div class="score-item-dot warn"></div>1 timesheet flag this week</div>
+            <div class="score-item"><div class="score-item-dot pass"></div>Maternity leave compliant</div>
+        </div>
+    </div>
+
+    @* POPIA score card *@
+    <div class="score-card popia">
+        <div class="score-ring-wrap">
+            <svg class="score-ring-svg" width="110" height="110" viewBox="0 0 110 110">
+                <circle class="score-ring-track" cx="55" cy="55" r="45" />
+                <circle class="score-ring-fill popia-fill" cx="55" cy="55" r="45"
+                        stroke-dasharray="@ScoreDashArray(_popiaScore) 283"
+                        stroke-dashoffset="0" />
+            </svg>
+            <div class="score-center">
+                <span class="score-pct popia-col">@_popiaScore</span>
+                <span class="score-label-sm">POPIA</span>
+            </div>
+        </div>
+        <div class="score-title">POPIA Compliance</div>
+        <div class="score-subtitle">Data protection &amp; privacy</div>
+        <div class="score-items">
+            <div class="score-item"><div class="score-item-dot pass"></div>Data minimisation policy active</div>
+            <div class="score-item"><div class="score-item-dot pass"></div>PII masking on sensitive fields</div>
+            <div class="score-item"><div class="score-item-dot warn"></div>Consent audit pending</div>
+            <div class="score-item"><div class="score-item-dot fail"></div>Breach register not implemented</div>
+        </div>
+    </div>
+
+</div>
+
+@* REQ-COMP-002, CTL-SARS-002: Filing schedule + Control checklist — 2-column *@
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;" class="compliance-2col">
+
+    @* Filing schedule card *@
+    <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:18px 24px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <h3 style="font-size:.95rem;font-weight:700;margin:0 0 2px;">SARS Filing Schedule</h3>
+                <p style="font-size:.78rem;color:var(--text-secondary);margin:0;">Tax year 1 March 2025 – 28 February 2026</p>
+            </div>
+            <span class="badge badge-warning">@_filings.Count(f => f.Status == "Pending") pending</span>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Filing</th>
+                        <th>Period</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var filing in _filings)
+                    {
+                        <tr>
+                            <td style="font-weight:600;">@filing.Type</td>
+                            <td class="td-mono">@filing.Period</td>
+                            <td class="td-mono">@filing.DueDate</td>
+                            <td>
+                                @switch (filing.Status)
+                                {
+                                    case "Filed":
+                                        <span class="filing-status-chip chip-submitted">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                                <polyline points="22 4 12 14.01 9 11.01" />
+                                            </svg>
+                                            Submitted
+                                        </span>
+                                        break;
+                                    case "Pending":
+                                        <span class="filing-status-chip chip-draft">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <circle cx="12" cy="12" r="10" />
+                                                <polyline points="12 6 12 12 16 14" />
+                                            </svg>
+                                            Pending
+                                        </span>
+                                        break;
+                                    case "Overdue":
+                                        <span class="filing-status-chip chip-overdue">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                                <line x1="12" y1="9" x2="12" y2="13" />
+                                                <line x1="12" y1="17" x2="12.01" y2="17" />
+                                            </svg>
+                                            Overdue
+                                        </span>
+                                        break;
+                                    default:
+                                        <span class="filing-status-chip chip-upcoming">@filing.Status</span>
+                                        break;
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    @* Control checklist card — CTL-SARS-*, CTL-BCEA-*, CTL-POPIA-* *@
+    <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:18px 24px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <h3 style="font-size:.95rem;font-weight:700;margin:0 0 2px;">Compliance Controls</h3>
+                <p style="font-size:.78rem;color:var(--text-secondary);margin:0;">SARS · BCEA · POPIA control checklist</p>
+            </div>
+            <div style="display:flex;gap:6px;">
+                <span style="font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:4px;background:#e8f7ef;color:#1a7a44;">
+                    @_controls.Count(c => c.Status == "Pass") pass
+                </span>
+                <span style="font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:4px;background:#fef3e2;color:#b86b00;">
+                    @_controls.Count(c => c.Status == "Warning") warn
+                </span>
+                <span style="font-size:.72rem;font-weight:600;padding:2px 8px;border-radius:4px;background:#fdecea;color:#c0392b;">
+                    @_controls.Count(c => c.Status == "Fail") fail
+                </span>
+            </div>
+        </div>
+        <div style="padding:0 20px;max-height:480px;overflow-y:auto;">
+            @foreach (var ctrl in _controls)
+            {
+                <div class="control-row">
+                    @* status icon *@
+                    <div class="control-icon @ctrl.Status.ToLowerInvariant()">
+                        @switch (ctrl.Status)
+                        {
+                            case "Pass":
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                    <polyline points="22 4 12 14.01 9 11.01" />
+                                </svg>
+                                break;
+                            case "Warning":
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                                    <line x1="12" y1="9" x2="12" y2="13" />
+                                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                                </svg>
+                                break;
+                            case "Fail":
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10" />
+                                    <line x1="15" y1="9" x2="9" y2="15" />
+                                    <line x1="9" y1="9" x2="15" y2="15" />
+                                </svg>
+                                break;
+                        }
+                    </div>
+                    @* control details *@
+                    <div class="control-meta">
+                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+                            <span class="control-id">@ctrl.Id</span>
+                            <span class="control-cat cat-@ctrl.Category.ToLowerInvariant()">@ctrl.Category</span>
+                        </div>
+                        <div class="control-name">@ctrl.Name</div>
+                        @if (!string.IsNullOrEmpty(ctrl.Note))
+                        {
+                            <div class="control-note">@ctrl.Note</div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+</div>
+
+@* CTL-BCEA-002, CTL-BCEA-003: BCEA Working Time Compliance *@
+<div class="card" style="padding:0;overflow:hidden;margin-bottom:20px;">
+    <div style="padding:18px 24px;border-bottom:1px solid var(--border-subtle);">
+        <h3 style="font-size:.95rem;font-weight:700;margin:0 0 2px;">BCEA Working Time Compliance: March 2026</h3>
+        <p style="font-size:.78rem;color:var(--text-secondary);margin:0;">
+            BCEA Section 9: 45-hour week limit · Section 10: overtime limits
+        </p>
+    </div>
+    <div style="padding:20px 24px;">
+        <div class="bcea-grid" style="margin-bottom:20px;">
+            <div class="bcea-item">
+                <div class="bcea-item-label">Max Weekly Hours</div>
+                <div class="bcea-item-value">45 hrs</div>
+                <div class="bcea-item-sub">BCEA Section 9 limit</div>
+            </div>
+            <div class="bcea-item">
+                <div class="bcea-item-label">Max Daily Hours</div>
+                <div class="bcea-item-value">9 hrs</div>
+                <div class="bcea-item-sub">5-day week (8 hrs for 6-day)</div>
+            </div>
+            <div class="bcea-item">
+                <div class="bcea-item-label">Overtime Rate</div>
+                <div class="bcea-item-value">1.5×</div>
+                <div class="bcea-item-sub">2× on Sundays &amp; public holidays</div>
+            </div>
+            <div class="bcea-item">
+                <div class="bcea-item-label">Max OT per Week</div>
+                <div class="bcea-item-value">10 hrs</div>
+                <div class="bcea-item-sub">BCEA Section 10 limit</div>
+            </div>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Week Hours</th>
+                        <th>OT Hours</th>
+                        <th>Daily Max</th>
+                        <th>BCEA Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _bceaRows)
+                    {
+                        <tr>
+                            <td>
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <div class="avatar avatar-sm"
+                                         style="background:@row.AvatarColor;@(row.AvatarDarkText ? "color:#1a5e35;" : "")">@row.Initials</div>
+                                    <span style="font-weight:500;">@row.Name</span>
+                                </div>
+                            </td>
+                            <td class="td-mono">@row.WeekHours.ToString("F1")</td>
+                            <td class="td-mono">@row.OtHours.ToString("F1")</td>
+                            <td class="td-mono">@row.DailyMax.ToString("F1")</td>
+                            <td>
+                                @if (row.IsViolation)
+                                {
+                                    <span class="filing-status-chip chip-draft">&#9888; Review OT</span>
+                                }
+                                else
+                                {
+                                    <span class="filing-status-chip chip-submitted">✓ Compliant</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@* REQ-COMP-001: Active Tax Tables reference *@
+<div class="card" style="padding:0;overflow:hidden;">
+    <div style="padding:18px 24px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+        <div>
+            <h3 style="font-size:.95rem;font-weight:700;margin:0 0 2px;">Active Tax Tables</h3>
+            <p style="font-size:.78rem;color:var(--text-secondary);margin:0;">Statutory rule set governing all payroll calculations</p>
+        </div>
+        <span class="badge badge-success">Current</span>
+    </div>
+    <div style="padding:20px 24px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+        <div class="bcea-item">
+            <div class="bcea-item-label">Tax Year</div>
+            <div class="bcea-item-value">2025/2026</div>
+            <div class="bcea-item-sub">1 Mar 2025 – 28 Feb 2026</div>
+        </div>
+        <div class="bcea-item">
+            <div class="bcea-item-label">Version</div>
+            <div class="bcea-item-value">2026.1.2</div>
+            <div class="bcea-item-sub">Activated 1 Mar 2025</div>
+        </div>
+        <div class="bcea-item">
+            <div class="bcea-item-label">PAYE Brackets</div>
+            <div class="bcea-item-value">7 bands</div>
+            <div class="bcea-item-sub">R237,100 – R1,817,000</div>
+        </div>
+        <div class="bcea-item">
+            <div class="bcea-item-label">UIF Ceiling</div>
+            <div class="bcea-item-value">R17,712</div>
+            <div class="bcea-item-sub">Max R177.12/month</div>
+        </div>
+    </div>
+    <div style="padding:12px 24px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:.78rem;color:var(--text-secondary);">
+            Next tax year (2026/2027) starts 1 March 2026. Import updated tables after Budget Speech.
+        </span>
+        <button class="btn btn-outline btn-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" x2="12" y1="15" y2="3" />
+            </svg>
+            Import New Tables
+        </button>
+    </div>
+</div>
+
+@code {
+    // REQ-COMP-001: Compliance scores (mock display-only — not real calculations)
+    // Scores will be replaced with Firestore-backed ComplianceService calls in future phases
+    private int _sarsScore = 92;
+    private int _bceaScore = 87;
+    private int _popiaScore = 68; // lower — realistic: 13% POPIA controls implemented (VUL-005)
+
+    // REQ-COMP-001: SVG ring circumference helper — 2π × 45 ≈ 283
+    private static string ScoreDashArray(int score) =>
+        $"{score / 100.0 * 283:F1}";
+
+    // REQ-COMP-002, CTL-SARS-002: EMP201 filing schedule (last 6 months)
+    private record FilingEntry(string Period, string Type, string DueDate, string Status);
+    private readonly List<FilingEntry> _filings = new()
+    {
+        new("March 2026",    "EMP201", "07 Apr 2026", "Pending"),
+        new("February 2026", "EMP201", "07 Mar 2026", "Filed"),
+        new("January 2026",  "EMP201", "07 Feb 2026", "Filed"),
+        new("December 2025", "EMP201", "07 Jan 2026", "Filed"),
+        new("November 2025", "EMP201", "07 Dec 2025", "Filed"),
+        new("October 2025",  "EMP201", "07 Nov 2025", "Filed"),
+    };
+
+    // REQ-COMP-001, REQ-COMP-002: Compliance control checklist
+    private record ComplianceControl(string Id, string Name, string Category, string Status, string? Note = null);
+    private readonly List<ComplianceControl> _controls = new()
+    {
+        // CTL-SARS-*
+        new("CTL-SARS-001", "PAYE registered with SARS",          "SARS",  "Pass"),
+        new("CTL-SARS-002", "EMP201 filed monthly",               "SARS",  "Pass"),
+        new("CTL-SARS-003", "UIF registered with DoL",            "SARS",  "Pass"),
+        new("CTL-SARS-004", "SDL registered (if liable)",         "SARS",  "Pass"),
+        new("CTL-SARS-005", "Payslips meet BCEA §33 requirements","SARS",  "Pass"),
+        // CTL-BCEA-*
+        new("CTL-BCEA-001", "Annual leave ≥15 days accrued",       "BCEA",  "Pass"),
+        new("CTL-BCEA-002", "Sick leave tracked (36 days/3yr cycle)","BCEA","Pass"),
+        new("CTL-BCEA-003", "No BCEA working time violations this month","BCEA","Warning","1 timesheet flag this week"),
+        new("CTL-BCEA-004", "Maternity leave compliance",          "BCEA",  "Pass"),
+        // CTL-POPIA-*
+        new("CTL-POPIA-001", "Data minimisation policy enforced",  "POPIA", "Pass"),
+        new("CTL-POPIA-002", "PII masking on sensitive fields",    "POPIA", "Pass"),
+        new("CTL-POPIA-005", "Consent records maintained",         "POPIA", "Warning","Consent audit pending"),
+        new("CTL-POPIA-011", "Breach register operational",        "POPIA", "Fail",   "Not yet implemented — Sev-1 (VUL-005)"),
+        new("CTL-POPIA-012", "Section 22 notification workflow",   "POPIA", "Fail",   "Not yet implemented"),
+    };
+
+    // CTL-BCEA-002, CTL-BCEA-003: BCEA working time rows (mock data)
+    private record BceaRow(string Name, string Initials, string AvatarColor, bool AvatarDarkText,
+        double WeekHours, double OtHours, double DailyMax, bool IsViolation);
+
+    private readonly List<BceaRow> _bceaRows = new()
+    {
+        new("Lerato Dlamini", "LD",  "#1d4777", false, 43.5, 0.0,  8.5, false),
+        new("Thabo Molefe",   "TM",  "#d4890e", false, 47.0, 2.0,  9.0, false),
+        new("Kobus de Bruyn", "KdB", "#34495e", false, 45.0, 0.0,  9.0, false),
+        new("Sipho Khumalo",  "SK",  "#2ecc71", true,  51.0, 6.0,  9.5, true),
+        new("Priya Naidoo",   "PN",  "#e74c3c", false, 42.0, 0.0,  8.0, false),
+    };
+
+    // REQ-OPS-005: Blazor lifecycle — initialise theme and Lucide icons
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("zenohr.initTheme");
+            await JS.InvokeVoidAsync("zenohr.initLucide");
+        }
+    }
+}

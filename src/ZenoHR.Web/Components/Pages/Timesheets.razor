@@ -1,16 +1,668 @@
-@* REQ-SEC-002, PRD-15 S7: Time and Attendance — Director (read all), HRManager (read all), Manager (team approve). *@
-@* Employee: None — route blocked, nav item absent. *@
+@* REQ-HR-005: Time & Attendance — weekly timesheet grid with BCEA violation detection *@
+@* CTL-BCEA-003: Maximum 45 hrs/week, 9 hrs/day (5-day), max 10 hrs OT/week *@
+@* CTL-BCEA-004: Daily max 11 hours (BCEA violation threshold) *@
+@* REQ-SEC-002: Director/HRManager see all employees; Manager sees own department only *@
 @page "/timesheets"
 @attribute [Authorize(Roles = "Director,HRManager,Manager")]
 @using Microsoft.AspNetCore.Authorization
+@inject IJSRuntime JS
 
 <PageTitle>Timesheets — ZenoHR</PageTitle>
-<h1>Timesheets</h1>
 
-<AuthorizeView Roles="Director,HRManager">
-    <p>Full timesheet view — all employees.</p>
-</AuthorizeView>
+<style>
+    /* ── Week strip ───────────────────────────────────────────────── */
+    .week-strip {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+    }
 
-<AuthorizeView Roles="Manager">
-    <p>Team timesheet approval queue — your department(s) only.</p>
-</AuthorizeView>
+    .week-day-btn {
+        flex: 1;
+        border: 1.5px solid var(--border-subtle);
+        border-radius: 12px;
+        padding: 10px 8px;
+        text-align: center;
+        cursor: pointer;
+        background: var(--surface);
+        transition: all .15s;
+        user-select: none;
+    }
+
+    .week-day-btn:hover {
+        border-color: var(--brand-primary);
+        background: var(--surface-hover);
+    }
+
+    .week-day-btn.today {
+        border-color: var(--brand-primary);
+        background: var(--brand-primary-subtle);
+    }
+
+    .week-day-btn.today .wd-num {
+        color: var(--brand-primary);
+        font-weight: 800;
+    }
+
+    .wd-name {
+        font-size: .68rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: .05em;
+    }
+
+    .wd-num {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 2px 0;
+        font-family: var(--font-mono);
+    }
+
+    .wd-total {
+        font-size: .72rem;
+        color: var(--text-secondary);
+        font-family: var(--font-mono);
+    }
+
+    .wd-total.over {
+        color: var(--brand-accent);
+        font-weight: 600;
+    }
+
+    /* ── Timesheet grid ───────────────────────────────────────────── */
+    .ts-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .ts-table th {
+        font-size: .72rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        padding: 10px 12px;
+        background: var(--surface-hover);
+        border-bottom: 1px solid var(--border-subtle);
+        text-align: center;
+    }
+
+    .ts-table th.left {
+        text-align: left;
+    }
+
+    .ts-table td {
+        padding: 0;
+        border-bottom: 1px solid var(--border-subtle);
+        vertical-align: middle;
+    }
+
+    .ts-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .ts-table tr:hover td {
+        background: var(--surface-hover);
+    }
+
+    .emp-cell {
+        padding: 12px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 180px;
+    }
+
+    .emp-name {
+        font-size: .85rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .emp-role {
+        font-size: .72rem;
+        color: var(--text-secondary);
+    }
+
+    .hour-cell {
+        text-align: center;
+        padding: 0;
+        position: relative;
+    }
+
+    .hour-input {
+        width: 100%;
+        height: 100%;
+        min-height: 52px;
+        border: none;
+        background: transparent;
+        text-align: center;
+        font-family: var(--font-mono);
+        font-size: .88rem;
+        font-weight: 500;
+        color: var(--text-primary);
+        cursor: text;
+        padding: 0;
+    }
+
+    .hour-input:focus {
+        outline: none;
+        background: var(--surface-hover);
+    }
+
+    .hour-input.ot {
+        color: var(--brand-accent);
+        font-weight: 700;
+    }
+
+    .hour-input.max {
+        color: #e74c3c;
+        font-weight: 700;
+    }
+
+    .hour-input:disabled {
+        color: var(--text-disabled);
+        background: var(--surface-hover);
+    }
+
+    .total-cell {
+        text-align: center;
+        padding: 12px;
+        font-family: var(--font-mono);
+        font-size: .88rem;
+        font-weight: 700;
+        min-width: 60px;
+    }
+
+    .total-cell.over {
+        color: var(--brand-accent);
+    }
+
+    .total-cell.violation {
+        color: #e74c3c;
+    }
+
+    .ot-cell {
+        text-align: center;
+        padding: 12px;
+        font-family: var(--font-mono);
+        font-size: .82rem;
+        min-width: 50px;
+    }
+
+    .ot-cell.has-ot {
+        color: var(--brand-accent);
+        font-weight: 600;
+    }
+
+    .ot-cell.no-ot {
+        color: var(--text-disabled);
+    }
+
+    .status-cell {
+        text-align: center;
+        padding: 12px;
+    }
+
+    /* ── Action bar ───────────────────────────────────────────────── */
+    .action-bar {
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--surface);
+        border-top: 1.5px solid var(--border-subtle);
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, .06);
+        margin: 0 -24px;
+        z-index: 50;
+    }
+
+    .action-bar-label {
+        font-size: .82rem;
+        color: var(--text-secondary);
+        flex: 1;
+    }
+
+    .action-bar-label strong {
+        color: var(--text-primary);
+    }
+
+    .bcea-note {
+        background: var(--brand-primary-subtle);
+        border: 1px solid rgba(29, 71, 119, .2);
+        border-radius: 10px;
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 16px;
+        font-size: .8rem;
+        color: var(--brand-primary);
+    }
+
+    [data-theme="dark"] .bcea-note {
+        background: rgba(29, 71, 119, .25);
+        border-color: rgba(29, 71, 119, .4);
+        color: #7fafd6;
+    }
+
+    /* ── KPI summary ──────────────────────────────────────────────── */
+    .ts-kpi-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    @@media (max-width: 900px) {
+        .ts-kpi-row {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    .ts-kpi {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        padding: 14px 16px;
+    }
+
+    .ts-kpi-label {
+        font-size: .72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+    }
+
+    .ts-kpi-value {
+        font-size: 1.4rem;
+        font-weight: 800;
+        font-family: var(--font-mono);
+        color: var(--text-primary);
+    }
+
+    .ts-kpi-sub {
+        font-size: .75rem;
+        color: var(--text-secondary);
+        margin-top: 2px;
+    }
+
+    /* Week nav */
+    .week-nav {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 20px;
+    }
+
+    .week-nav button {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid var(--border-subtle);
+        background: var(--surface);
+        color: var(--text-primary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .week-nav button:hover {
+        background: var(--surface-hover);
+    }
+
+    .week-label {
+        font-size: .88rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    /* ── Mobile responsive ───────────────────────────── */
+    @@media (max-width: 768px) {
+        .ts-kpi-row {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .ts-kpi-row {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .week-strip {
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            padding-bottom: 4px;
+        }
+
+        .week-day-btn {
+            flex: 0 0 64px;
+        }
+
+        .ts-table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .ts-table {
+            min-width: 600px;
+        }
+
+        .action-bar {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .action-bar-label {
+            order: -1;
+        }
+
+        .action-bar .btn {
+            justify-content: center;
+        }
+    }
+</style>
+
+<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+    <div>
+        <h1 style="font-size:1.5rem;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;margin:0 0 4px;">Timesheets</h1>
+        <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">Weekly time entries and BCEA compliance tracking</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-outline" style="font-size:.85rem;">
+            <i data-lucide="download" style="width:15px;height:15px;"></i> Export
+        </button>
+    </div>
+</div>
+
+<!-- KPI summary — REQ-HR-005, CTL-BCEA-003 -->
+<div class="ts-kpi-row">
+    <div class="ts-kpi">
+        <div class="ts-kpi-label">Total Hours (Week)</div>
+        <div class="ts-kpi-value">@TotalHours.ToString("F1")</div>
+        <div class="ts-kpi-sub">across @_employees.Count employees</div>
+    </div>
+    <div class="ts-kpi">
+        <div class="ts-kpi-label">Overtime Hours</div>
+        <div class="ts-kpi-value" style="color:var(--brand-accent);">@TotalOT.ToString("F1")</div>
+        <div class="ts-kpi-sub">@_employees.Count(e => WeeklyTotal(e.Hours) > 45m) employees with OT</div>
+    </div>
+    <div class="ts-kpi">
+        <div class="ts-kpi-label">Awaiting Approval</div>
+        <div class="ts-kpi-value" style="color:var(--brand-primary);">@PendingCount</div>
+        <div class="ts-kpi-sub">timesheets pending</div>
+    </div>
+    <div class="ts-kpi">
+        <div class="ts-kpi-label">BCEA Violations</div>
+        <div class="ts-kpi-value" style="color:#e74c3c;">@ViolationCount</div>
+        <div class="ts-kpi-sub">@(ViolationCount > 0 ? _employees.First(e => HasViolation(e.Hours)).Name.Split(' ')[0] + " - daily limit" : "No violations this week")</div>
+    </div>
+</div>
+
+<!-- Week navigation -->
+<div class="week-nav">
+    <button @onclick="PrevWeek" title="Previous week">
+        <i data-lucide="chevron-left" style="width:14px;height:14px;"></i>
+    </button>
+    <span class="week-label">Week of @_weekStart.ToString("d MMM yyyy")</span>
+    <button @onclick="NextWeek" title="Next week">
+        <i data-lucide="chevron-right" style="width:14px;height:14px;"></i>
+    </button>
+</div>
+
+<!-- Week strip — CTL-BCEA-003: 7-day view with weekend disabled -->
+<div class="week-strip">
+    @for (int i = 0; i < 7; i++)
+    {
+        var dayIndex = i;
+        var dayDate = _weekStart.AddDays(dayIndex);
+        var isToday = IsToday(dayIndex);
+        var isWeekend = IsWeekend(dayIndex);
+        var dayTotal = _employees.Sum(e => e.Hours[dayIndex]);
+        <div class="week-day-btn @(isToday ? "today" : "")" style="@(isWeekend ? "opacity:.5;" : "")">
+            <div class="wd-name">@ShortDayNames[dayIndex]</div>
+            <div class="wd-num">@dayDate.Day</div>
+            <div class="wd-total @(dayTotal > 45m ? "over" : "")">
+                @(isWeekend ? "-" : dayTotal.ToString("F0") + "h")
+            </div>
+        </div>
+    }
+</div>
+
+<!-- BCEA note banner — CTL-BCEA-003, CTL-BCEA-004 -->
+<div class="bcea-note">
+    <i data-lucide="info" style="width:16px;height:16px;flex-shrink:0;"></i>
+    <span><strong>BCEA limits:</strong> 45 hrs/week · 9 hrs/day (5-day) · Max 10 hrs overtime/week · Overtime: 1.5× normal, 2× on Sundays and public holidays. Highlighted cells indicate limit proximity or breach.</span>
+</div>
+
+<!-- Timesheet grid card — REQ-HR-005 -->
+<div class="card" style="padding:0;overflow:hidden;margin-bottom:0;">
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;gap:8px;">
+            <button class="chip chip-active">All Employees</button>
+            <button class="chip">Pending Only</button>
+            <button class="chip">Violations</button>
+        </div>
+        <span style="font-size:.78rem;color:var(--text-secondary);">Showing @_employees.Count employees</span>
+    </div>
+
+    <div class="ts-table-wrap" style="overflow-x:auto;">
+        <table class="ts-table">
+            <thead>
+                <tr>
+                    <th class="left" style="min-width:190px;">Employee</th>
+                    @for (int i = 0; i < 7; i++)
+                    {
+                        <th>@DayLabels[i]</th>
+                    }
+                    <th>Total</th>
+                    <th>OT</th>
+                    <th>Clock</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var emp in _employees)
+                {
+                    var empTotal = WeeklyTotal(emp.Hours);
+                    var empOT = Math.Max(0m, empTotal - 45m);
+                    var empViolation = HasViolation(emp.Hours);
+                    <tr style="@(emp.OnLeave ? "opacity:.6;" : "")">
+                        <td>
+                            <div class="emp-cell">
+                                <div class="avatar avatar-sm av-@emp.AvatarClass">@emp.Initials</div>
+                                <div>
+                                    <div class="emp-name">@emp.Name</div>
+                                    <div class="emp-role">@emp.Role</div>
+                                </div>
+                            </div>
+                        </td>
+                        @for (int i = 0; i < 7; i++)
+                        {
+                            var dayIndex = i;
+                            var hours = emp.Hours[dayIndex];
+                            var isWeekend = IsWeekend(dayIndex);
+                            var inputClass = HourInputClass(hours, dayIndex);
+                            var isDisabled = isWeekend || emp.OnLeave;
+                            <td class="hour-cell">
+                                <input class="@inputClass"
+                                       value="@(hours == 0 ? "" : hours.ToString("F1"))"
+                                       disabled="@isDisabled"
+                                       readonly />
+                            </td>
+                        }
+                        <td class="total-cell @(empTotal > 51m ? "violation" : empTotal > 45m ? "over" : "")">
+                            @empTotal.ToString("F1")
+                        </td>
+                        <td class="ot-cell @(empOT > 0m ? "has-ot" : "no-ot")">
+                            @empOT.ToString("F1")
+                        </td>
+                        <td class="status-cell">
+                            @if (emp.OnLeave)
+                            {
+                                <span style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;background:var(--warning-subtle);color:var(--warning);padding:2px 7px;border-radius:99px;">— Leave</span>
+                            }
+                            else if (emp.ClockedIn)
+                            {
+                                <span style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;background:var(--success-subtle);color:var(--success);padding:2px 7px;border-radius:99px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                                    In
+                                </span>
+                            }
+                            else
+                            {
+                                <span style="display:inline-flex;align-items:center;gap:4px;font-size:.72rem;background:var(--surface-hover);color:var(--text-muted);padding:2px 7px;border-radius:99px;">Out</span>
+                            }
+                        </td>
+                        <td class="status-cell">
+                            @switch (emp.Status)
+                            {
+                                case "Approved":
+                                    <span class="badge badge-success" style="font-size:.72rem;">Approved</span>
+                                    break;
+                                case "Violation":
+                                    <span class="badge badge-danger" style="font-size:.72rem;">Violation</span>
+                                    break;
+                                case "On Leave":
+                                    <span class="badge" style="background:#f3eafd;color:#7b2fbe;font-size:.72rem;">On Leave</span>
+                                    break;
+                                default:
+                                    <span class="badge badge-warning" style="font-size:.72rem;">Pending</span>
+                                    break;
+                            }
+                        </td>
+                        <td class="status-cell">
+                            @if (empViolation)
+                            {
+                                <button class="btn btn-ghost btn-sm" style="padding:3px 6px;color:var(--brand-accent);" title="BCEA violation — resolve before approving">
+                                    <i data-lucide="flag" style="width:12px;height:12px;"></i>
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-ghost btn-sm" style="padding:3px 6px;opacity:.4;" title="No concern" disabled>
+                                    <i data-lucide="flag" style="width:12px;height:12px;"></i>
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Action bar — REQ-HR-005, CTL-BCEA-003 -->
+<div class="action-bar">
+    <div class="action-bar-label">
+        <strong>@PendingCount timesheet(s)</strong> awaiting approval
+        @if (ViolationCount > 0)
+        {
+            <span style="color:#e74c3c;margin-left:8px;">· @ViolationCount BCEA violation(s) must be resolved first</span>
+        }
+    </div>
+    <button class="btn btn-outline btn-sm" style="font-size:.85rem;">
+        <i data-lucide="check-square" style="width:15px;height:15px;"></i> Select All Pending
+    </button>
+    <button class="btn btn-primary" style="font-size:.85rem;" disabled="@(!CanApproveAll)">
+        <i data-lucide="check" style="width:15px;height:15px;"></i>
+        Approve Selected (@_selectedIds.Count)
+    </button>
+</div>
+
+@code {
+    // REQ-HR-005: Timesheet employee record with BCEA-relevant fields
+    private record TimesheetEmployee(
+        string Id, string Name, string Role, string Initials, int AvatarClass,
+        decimal[] Hours,  // 7 values: Mon–Sun
+        string Status,    // "Pending", "Approved", "Violation", "On Leave"
+        bool ClockedIn,
+        bool OnLeave = false
+    );
+
+    // CTL-BCEA-003: BCEA thresholds — loaded from StatutoryRuleSet in production
+    private const decimal DailyOtThreshold = 9.0m;   // OT starts above 9h
+    private const decimal DailyMaxThreshold = 11.0m;  // BCEA daily limit (flag as violation)
+    private const decimal WeeklyMaxThreshold = 45.0m; // BCEA weekly standard hours
+
+    // Helper methods — CTL-BCEA-003, CTL-BCEA-004
+    private static decimal WeeklyTotal(decimal[] hours) => hours.Sum();
+    private static bool HasViolation(decimal[] hours) =>
+        hours.Any(h => h > DailyMaxThreshold) || hours.Sum() > 51.0m;
+
+    // Mock data — REQ-HR-005
+    private readonly List<TimesheetEmployee> _employees = new()
+    {
+        new("1", "Lerato Dlamini", "Senior Developer", "LD", 4,
+            new[] { 8.5m, 9.0m, 8.0m, 8.5m, 9.0m, 0m, 0m }, "Pending", true),
+        new("2", "Thabo Molefe", "Operations Manager", "TM", 7,
+            new[] { 9.0m, 10.5m, 9.0m, 10.0m, 8.5m, 0m, 0m }, "Approved", true),
+        new("3", "Nandi Zulu", "HR Officer", "NZ", 5,
+            new[] { 0m, 0m, 0m, 0m, 0m, 0m, 0m }, "On Leave", false, true),
+        new("4", "Kobus de Bruyn", "Junior Developer", "KdB", 4,
+            new[] { 9.0m, 9.0m, 0m, 9.0m, 9.0m, 0m, 0m }, "Pending", true),
+        new("5", "Priya Naidoo", "Financial Analyst", "PN", 6,
+            new[] { 8.0m, 8.0m, 8.0m, 8.0m, 8.0m, 0m, 0m }, "Approved", true),
+        new("6", "Sipho Khumalo", "Sales Representative", "SK", 7,
+            new[] { 9.5m, 10.5m, 10.0m, 11.0m, 10.0m, 0m, 0m }, "Violation", true), // CTL-BCEA-004 daily limit exceeded
+        new("7", "Fatima Osman", "Compliance Officer", "FO", 2,
+            new[] { 8.5m, 9.0m, 8.5m, 8.5m, 8.5m, 0m, 0m }, "Pending", true),
+        new("8", "Andre van Wyk", "Driver", "AvW", 1,
+            new[] { 9.0m, 9.0m, 9.0m, 9.0m, 8.0m, 0m, 0m }, "Pending", true),
+    };
+
+    // Week navigation state — REQ-HR-005
+    private DateOnly _weekStart = new DateOnly(2026, 3, 9); // Monday
+
+    private string[] DayLabels => Enumerable.Range(0, 7)
+        .Select(i => _weekStart.AddDays(i).ToString("ddd d"))
+        .ToArray();
+
+    private static readonly string[] ShortDayNames = new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
+
+    private DateOnly Today => DateOnly.FromDateTime(DateTime.Today);
+    private bool IsToday(int dayIndex) => _weekStart.AddDays(dayIndex) == Today;
+    private static bool IsWeekend(int dayIndex) => dayIndex >= 5;
+
+    private void PrevWeek() => _weekStart = _weekStart.AddDays(-7);
+    private void NextWeek() => _weekStart = _weekStart.AddDays(7);
+
+    // CSS class for hour input cell — CTL-BCEA-003, CTL-BCEA-004
+    private string HourInputClass(decimal hours, int dayIndex)
+    {
+        if (IsWeekend(dayIndex)) return "hour-input";
+        if (hours > DailyMaxThreshold) return "hour-input max";
+        if (hours > DailyOtThreshold) return "hour-input ot";
+        return "hour-input";
+    }
+
+    // KPI computed values — REQ-HR-005
+    private decimal TotalHours => _employees.Sum(e => e.Hours.Sum());
+    private decimal TotalOT => _employees.Sum(e => Math.Max(0m, e.Hours.Sum() - 45m));
+    private int PendingCount => _employees.Count(e => e.Status == "Pending");
+    private int ViolationCount => _employees.Count(e => e.Status == "Violation");
+
+    // Selection state — REQ-HR-005
+    private readonly HashSet<string> _selectedIds = new();
+    private bool CanApproveAll => ViolationCount == 0;
+
+    // REQ-OPS-005: Init theme and Lucide icons after render
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("zenohr.initTheme");
+            await JS.InvokeVoidAsync("zenohr.initLucide");
+        }
+    }
+}

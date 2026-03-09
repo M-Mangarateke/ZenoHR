@@ -1,16 +1,769 @@
-@* REQ-SEC-002, PRD-15 S8: Audit Trail — Director, HRManager (full), SaasAdmin (platform read only). *@
-@* Manager and Employee: None — route blocked, nav item absent. *@
+@* REQ-COMP-004: Audit trail — tamper-evident hash-chained event log *@
+@* CTL-SEC-008: SHA-256 hash-chained audit events with integrity verification *@
+@* REQ-SEC-002: Director/HRManager see full tenant audit; SaasAdmin sees platform-level only *@
 @page "/audit"
 @attribute [Authorize(Roles = "Director,HRManager,SaasAdmin")]
 @using Microsoft.AspNetCore.Authorization
+@inject IJSRuntime JS
 
 <PageTitle>Audit Trail — ZenoHR</PageTitle>
-<h1>Audit Trail</h1>
 
-<AuthorizeView Roles="Director,HRManager">
-    <p>Full tenant audit trail with SHA-256 hash-chained events.</p>
-</AuthorizeView>
+<style>
+    /* ── Audit event types ────────────────────────────────────────── */
+    .event-type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: .72rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
 
-<AuthorizeView Roles="SaasAdmin">
-    <p>Platform-level audit log. Tenant data is not accessible.</p>
-</AuthorizeView>
+    .evt-payroll {
+        background: #e8f0fb;
+        color: #1d4777;
+    }
+
+    .evt-employee {
+        background: #e8f7ef;
+        color: #1a7a44;
+    }
+
+    .evt-leave {
+        background: #fef3e2;
+        color: #b86b00;
+    }
+
+    .evt-auth {
+        background: #f3eafd;
+        color: #7b2fbe;
+    }
+
+    .evt-compliance {
+        background: #fdecea;
+        color: #c0392b;
+    }
+
+    .evt-config {
+        background: var(--surface-hover);
+        color: var(--text-secondary);
+    }
+
+    .evt-data {
+        background: #e0f7fa;
+        color: #006064;
+    }
+
+    [data-theme="dark"] .evt-payroll {
+        background: rgba(29, 71, 119, .3);
+        color: #7fafd6;
+    }
+
+    [data-theme="dark"] .evt-employee {
+        background: rgba(26, 122, 68, .25);
+        color: #3ddc82;
+    }
+
+    [data-theme="dark"] .evt-leave {
+        background: rgba(212, 137, 14, .2);
+        color: #f0a83a;
+    }
+
+    [data-theme="dark"] .evt-auth {
+        background: rgba(123, 47, 190, .25);
+        color: #c084fc;
+    }
+
+    [data-theme="dark"] .evt-compliance {
+        background: rgba(192, 57, 43, .25);
+        color: #ff6b6b;
+    }
+
+    [data-theme="dark"] .evt-config {
+        background: rgba(255, 255, 255, .08);
+        color: var(--text-muted);
+    }
+
+    [data-theme="dark"] .evt-data {
+        background: rgba(0, 96, 100, .3);
+        color: #4dd0e1;
+    }
+
+    /* ── Hash chain ───────────────────────────────────────────────── */
+    .hash-cell {
+        font-family: var(--font-mono);
+        font-size: .72rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .hash-value {
+        letter-spacing: .02em;
+    }
+
+    .copy-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-disabled);
+        padding: 2px 4px;
+        border-radius: 4px;
+        line-height: 1;
+        transition: color .15s;
+        display: flex;
+        align-items: center;
+    }
+
+    .copy-btn:hover {
+        color: var(--brand-primary);
+    }
+
+    .chain-indicator {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: .7rem;
+        font-weight: 600;
+        justify-content: center;
+    }
+
+    .chain-ok {
+        color: #27ae60;
+    }
+
+    .chain-broken {
+        color: #e74c3c;
+    }
+
+    /* ── Filter panel ─────────────────────────────────────────────── */
+    .filter-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 14px 20px;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .filter-select {
+        padding: 6px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--border-subtle);
+        background: var(--surface);
+        color: var(--text-primary);
+        font-size: .82rem;
+        font-family: var(--font-sans);
+        cursor: pointer;
+        outline: none;
+    }
+
+    .filter-select:focus {
+        border-color: var(--brand-primary);
+    }
+
+    [data-theme="dark"] .filter-select {
+        background: var(--surface-hover);
+    }
+
+    .search-input {
+        flex: 1;
+        min-width: 200px;
+        padding: 7px 12px 7px 36px;
+        border-radius: 8px;
+        border: 1px solid var(--border-subtle);
+        background: var(--surface);
+        color: var(--text-primary);
+        font-size: .82rem;
+        font-family: var(--font-sans);
+        outline: none;
+    }
+
+    .search-input:focus {
+        border-color: var(--brand-primary);
+    }
+
+    [data-theme="dark"] .search-input {
+        background: var(--surface-hover);
+    }
+
+    .search-wrap {
+        position: relative;
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .search-wrap .search-icon {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+    }
+
+    /* ── Integrity banner ─────────────────────────────────────────── */
+    .integrity-banner {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        padding: 12px 16px;
+        border-radius: 10px;
+        font-size: .82rem;
+        margin-bottom: 16px;
+    }
+
+    .integrity-banner.ok {
+        background: #e8f7ef;
+        color: #1a7a44;
+        border: 1px solid rgba(26, 122, 68, .2);
+    }
+
+    .integrity-banner.broken {
+        background: #fdecea;
+        color: #c0392b;
+        border: 1px solid rgba(192, 57, 43, .2);
+    }
+
+    [data-theme="dark"] .integrity-banner.ok {
+        background: rgba(26, 122, 68, .2);
+        color: #3ddc82;
+        border-color: rgba(26, 122, 68, .3);
+    }
+
+    [data-theme="dark"] .integrity-banner.broken {
+        background: rgba(192, 57, 43, .2);
+        color: #ff6b6b;
+        border-color: rgba(192, 57, 43, .3);
+    }
+
+    .integrity-banner-top {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .integrity-timestamp {
+        margin-left: auto;
+        font-size: .75rem;
+        opacity: .8;
+        white-space: nowrap;
+    }
+
+    /* ── Audit KPIs ───────────────────────────────────────────────── */
+    .audit-kpis {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 14px;
+        margin-bottom: 20px;
+    }
+
+    @@media (max-width: 900px) {
+        .audit-kpis {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    .audit-kpi {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        padding: 14px 16px;
+    }
+
+    .audit-kpi-label {
+        font-size: .72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+    }
+
+    .audit-kpi-value {
+        font-size: 1.4rem;
+        font-weight: 800;
+        font-family: var(--font-mono);
+        color: var(--text-primary);
+    }
+
+    .audit-kpi-sub {
+        font-size: .75rem;
+        color: var(--text-secondary);
+        margin-top: 2px;
+    }
+
+    /* ── Actor cell ───────────────────────────────────────────────── */
+    .actor-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .actor-name {
+        font-size: .82rem;
+        font-weight: 500;
+    }
+
+    .actor-role {
+        font-size: .7rem;
+        color: var(--text-muted);
+    }
+
+    /* ── Entity cell ──────────────────────────────────────────────── */
+    .entity-label {
+        font-size: .78rem;
+        font-family: var(--font-mono);
+        color: var(--text-secondary);
+        background: var(--surface-hover);
+        padding: 2px 7px;
+        border-radius: 5px;
+        display: inline-block;
+    }
+
+    /* Description cell */
+    .desc-cell {
+        font-size: .82rem;
+        color: var(--text-primary);
+        max-width: 260px;
+    }
+
+    .desc-cell .desc-sub {
+        font-size: .72rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+
+    .ts-text {
+        font-family: var(--font-mono);
+        font-size: .78rem;
+        color: var(--text-secondary);
+        white-space: nowrap;
+    }
+
+    /* Filter chips */
+    .filter-chips {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        padding: 12px 20px;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    /* Expanded row detail */
+    .audit-expand-row td {
+        padding: 0 14px 14px 14px;
+        background: var(--surface-hover);
+    }
+
+    .audit-expand-inner {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        padding: 12px 14px;
+        font-family: var(--font-mono);
+        font-size: .75rem;
+        color: var(--text-secondary);
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    /* ── Mobile responsive ───────────────────────────── */
+    @@media (max-width: 768px) {
+        .audit-kpis {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .filter-row {
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .search-wrap {
+            width: 100%;
+        }
+
+        .filter-select {
+            width: 100%;
+        }
+
+        .integrity-banner-top {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .integrity-timestamp {
+            margin-left: 0;
+        }
+    }
+</style>
+
+<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+    <div>
+        <h1 style="font-size:1.5rem;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;margin:0 0 4px;">Audit Trail</h1>
+        <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">Tamper-evident hash-chained event log</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-outline" style="font-size:.85rem;">
+            <i data-lucide="download" style="width:15px;height:15px;"></i> Export
+        </button>
+    </div>
+</div>
+
+<!-- Chain integrity banner — CTL-SEC-008, REQ-COMP-004 -->
+<div class="integrity-banner @(AllChainValid ? "ok" : "broken")">
+    <div class="integrity-banner-top">
+        @if (AllChainValid)
+        {
+            <i data-lucide="shield-check" style="width:17px;height:17px;flex-shrink:0;"></i>
+            <span><strong>Tamper-proof log verified</strong> — All @_events.Count records are authentic and unmodified.</span>
+        }
+        else
+        {
+            <i data-lucide="shield-x" style="width:17px;height:17px;flex-shrink:0;"></i>
+            <span><strong>Chain integrity breach detected</strong> — One or more records may have been tampered with.</span>
+        }
+        <span class="integrity-timestamp">Last checked: @DateTime.Now.ToString("d MMM yyyy HH:mm") SAST</span>
+    </div>
+</div>
+
+<!-- KPI row — REQ-COMP-004 -->
+<div class="audit-kpis">
+    <div class="audit-kpi">
+        <div class="audit-kpi-label">Total Events</div>
+        <div class="audit-kpi-value">@_events.Count</div>
+        <div class="audit-kpi-sub">since 1 Jan 2026</div>
+    </div>
+    <div class="audit-kpi">
+        <div class="audit-kpi-label">Today</div>
+        <div class="audit-kpi-value">@_events.Count(e => e.Timestamp.Date == DateTime.Today)</div>
+        <div class="audit-kpi-sub">events logged</div>
+    </div>
+    <div class="audit-kpi">
+        <div class="audit-kpi-label">Chain Status</div>
+        <div class="audit-kpi-value" style="color:@(AllChainValid ? "#27ae60" : "#e74c3c");">
+            @(AllChainValid ? "✓ Valid" : "⚠ Broken")
+        </div>
+        <div class="audit-kpi-sub">@_events.Count(e => e.ChainValid) of @_events.Count verified</div>
+    </div>
+    <div class="audit-kpi">
+        <div class="audit-kpi-label">Unique Actors</div>
+        <div class="audit-kpi-value">@_events.Select(e => e.Actor).Distinct().Count()</div>
+        <div class="audit-kpi-sub">users + system</div>
+    </div>
+</div>
+
+<!-- Event log table — REQ-COMP-004, CTL-SEC-008 -->
+<div class="card" style="padding:0;overflow:hidden;">
+
+    <!-- Filter chips -->
+    <div class="filter-chips">
+        @foreach (var filterType in _filterTypes)
+        {
+            <button class="chip @(_activeFilter == filterType ? "chip-active" : "")"
+                    @onclick="() => _activeFilter = filterType">
+                @filterType
+            </button>
+        }
+    </div>
+
+    <!-- Search and filter row -->
+    <div class="filter-row">
+        <div class="search-wrap">
+            <i data-lucide="search" class="search-icon" style="width:14px;height:14px;"></i>
+            <input class="search-input" type="text" placeholder="Search events, actors, entities…"
+                   @bind="_searchQuery" @bind:event="oninput" />
+        </div>
+        <select class="filter-select" @bind="_actorFilter">
+            <option value="">All Actors</option>
+            @foreach (var actor in _events.Select(e => e.Actor).Distinct().OrderBy(a => a))
+            {
+                <option value="@actor">@actor</option>
+            }
+        </select>
+        <span style="font-size:.78rem;color:var(--text-muted);white-space:nowrap;">@FilteredEvents.Count() events</span>
+    </div>
+
+    <!-- Table -->
+    <div style="overflow-x:auto;">
+        <table class="audit-table" style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr style="background:var(--surface-hover);border-bottom:1px solid var(--border-subtle);">
+                    <th style="padding:10px 14px;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;white-space:nowrap;">#</th>
+                    <th style="padding:10px 14px;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;white-space:nowrap;">Timestamp</th>
+                    <th style="padding:10px 14px;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;">Actor</th>
+                    <th style="padding:10px 14px;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;">Event Type</th>
+                    <th style="padding:10px 14px;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;">Entity</th>
+                    <th style="padding:10px 14px;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;">Description</th>
+                    <th style="padding:10px 14px;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:left;white-space:nowrap;">Record Fingerprint</th>
+                    <th style="padding:10px 14px;font-size:.72rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;text-align:center;">Integrity</th>
+                </tr>
+            </thead>
+            <tbody>
+                @{ int rowNum = FilteredEvents.Count(); }
+                @foreach (var evt in FilteredEvents)
+                {
+                    var currentRow = rowNum--;
+                    var isExpanded = _expandedId == evt.Id;
+                    <tr style="border-bottom:1px solid var(--border-subtle);cursor:pointer;" @onclick="() => ToggleExpand(evt.Id)">
+                        <td style="padding:12px 14px;">
+                            <span class="ts-text">@currentRow</span>
+                        </td>
+                        <td style="padding:12px 14px;">
+                            <div class="ts-text">@evt.Timestamp.ToString("yyyy-MM-dd")</div>
+                            <div class="ts-text" style="opacity:.7;">@evt.Timestamp.ToString("HH:mm:ss") SAST</div>
+                        </td>
+                        <td style="padding:12px 14px;">
+                            <div class="actor-cell">
+                                @{
+                                    var initials = GetActorInitials(evt.Actor);
+                                    var avatarClass = GetActorAvatarClass(evt.Actor);
+                                }
+                                <div class="avatar avatar-sm @avatarClass">@initials</div>
+                                <div>
+                                    <div class="actor-name">@GetActorDisplayName(evt.Actor)</div>
+                                    <div class="actor-role">@GetActorRole(evt.Actor)</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="padding:12px 14px;">
+                            <span class="event-type-badge @EventTypeCss(evt.EventType)">
+                                <i data-lucide="@EventTypeIcon(evt.EventType)" style="width:11px;height:11px;"></i>
+                                @CapitalizeFirst(evt.EventType)
+                            </span>
+                        </td>
+                        <td style="padding:12px 14px;">
+                            <span class="entity-label">@evt.EntityType/@evt.EntityId</span>
+                        </td>
+                        <td style="padding:12px 14px;">
+                            <div class="desc-cell">
+                                @evt.EventName
+                                <div class="desc-sub">@evt.Summary</div>
+                            </div>
+                        </td>
+                        <td style="padding:12px 14px;">
+                            <div class="hash-cell">
+                                <code title="@evt.Hash" style="font-family:var(--font-mono);font-size:.75rem;cursor:help;">
+                                    @ShortHash(evt.Hash)
+                                </code>
+                                @if (evt.ChainValid)
+                                {
+                                    <i data-lucide="link" style="width:12px;height:12px;color:var(--success);margin-left:4px;"></i>
+                                }
+                                else
+                                {
+                                    <i data-lucide="link-2-off" style="width:12px;height:12px;color:var(--error);margin-left:4px;"></i>
+                                }
+                            </div>
+                        </td>
+                        <td style="padding:12px 14px;text-align:center;">
+                            @if (evt.ChainValid)
+                            {
+                                <div class="chain-indicator chain-ok">
+                                    <i data-lucide="link" style="width:12px;height:12px;"></i>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="chain-indicator chain-broken">
+                                    <i data-lucide="link-2-off" style="width:12px;height:12px;"></i>
+                                </div>
+                            }
+                        </td>
+                    </tr>
+                    @if (isExpanded)
+                    {
+                        <tr class="audit-expand-row" style="border-bottom:1px solid var(--border-subtle);">
+                            <td colspan="8">
+                                <div class="audit-expand-inner">
+                                    <strong style="font-family:var(--font-sans);font-size:.75rem;color:var(--text-primary);">Event Details</strong><br/>
+                                    ID:              @evt.Id
+                                    Timestamp:       @evt.Timestamp.ToString("o")
+                                    Actor:           @evt.Actor
+                                    Event:           @evt.EventName (@evt.EventType)
+                                    Entity:          @evt.EntityType / @evt.EntityId
+                                    Summary:         @evt.Summary
+                                    Hash:            @evt.Hash
+                                    Previous Hash:   @evt.PreviousHash
+                                    Chain Valid:     @evt.ChainValid
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    // REQ-COMP-004: Audit event record with hash-chain fields
+    private record AuditEvent(
+        string Id,
+        DateTime Timestamp,
+        string Actor,
+        string EventType,
+        string EventName,
+        string EntityType,
+        string EntityId,
+        string Summary,
+        string Hash,
+        string PreviousHash,
+        bool ChainValid = true
+    );
+
+    // Mock data — REQ-COMP-004, CTL-SEC-008
+    private readonly List<AuditEvent> _events = new()
+    {
+        new("ae-001", new DateTime(2026,3,9,14,32,11), "sarah.nkosi@zenowethu.co.za",
+            "payroll", "PayrollRunFinalized", "PayrollRun", "run-2026-03",
+            "Payroll run finalized: March 2026. 42 employees. Gross: R 1,247,830.00",
+            "a3f2e1d9c8b7a654", "9f8e7d6c5b4a3210", true),
+        new("ae-002", new DateTime(2026,3,9,11,15,42), "sarah.nkosi@zenowethu.co.za",
+            "employee", "EmployeeProfileUpdated", "Employee", "emp-sipho-k",
+            "Bank details updated: Sipho Khumalo (FNB → Standard Bank)",
+            "b5c6d7e8f9a0b1c2", "a3f2e1d9c8b7a654", true),
+        new("ae-003", new DateTime(2026,3,9,9,1,33), "thabo.molefe@zenowethu.co.za",
+            "leave", "LeaveApproved", "LeaveRequest", "lr-2026-0042",
+            "Leave approved: Kobus de Bruyn — Annual leave 18 Mar–20 Mar 2026",
+            "c7d8e9f0a1b2c3d4", "b5c6d7e8f9a0b1c2", true),
+        new("ae-004", new DateTime(2026,3,8,16,44,7), "system@zenowethu.co.za",
+            "compliance", "Emp201Filed", "ComplianceSubmission", "emp201-2026-02",
+            "EMP201 filed successfully: February 2026. PAYE: R 187,420.00",
+            "d9e0f1a2b3c4d5e6", "c7d8e9f0a1b2c3d4", true),
+        new("ae-005", new DateTime(2026,3,8,10,22,18), "sarah.nkosi@zenowethu.co.za",
+            "auth", "UserLogin", "UserSession", "user-sarah",
+            "Successful login: sarah.nkosi@zenowethu.co.za from 196.25.x.x (MFA verified)",
+            "e1f2a3b4c5d6e7f8", "d9e0f1a2b3c4d5e6", true),
+        new("ae-006", new DateTime(2026,3,7,13,55,9), "sarah.nkosi@zenowethu.co.za",
+            "employee", "EmployeeCreated", "Employee", "emp-andre-vw",
+            "New employee added: Andre van Wyk — Driver, Operations dept",
+            "f3a4b5c6d7e8f9a0", "e1f2a3b4c5d6e7f8", true),
+        new("ae-007", new DateTime(2026,3,7,9,11,33), "system@zenowethu.co.za",
+            "config", "StatutoryRuleSetActivated", "StatutoryRuleSet", "srs-2025-2026",
+            "Tax table activated: 2025–2026 SARS PAYE brackets",
+            "a1b2c3d4e5f6a7b8", "f3a4b5c6d7e8f9a0", true),
+        new("ae-008", new DateTime(2026,3,6,15,30,0), "sarah.nkosi@zenowethu.co.za",
+            "data", "DataExportGenerated", "ExportJob", "exp-2026-03-06",
+            "Employee data export (CSV) — 42 records. POPIA consent: verified",
+            "b2c3d4e5f6a7b8c9", "a1b2c3d4e5f6a7b8", true),
+    };
+
+    // Filtering state — REQ-COMP-004
+    private string _activeFilter = "All";
+    private string _searchQuery = "";
+    private string _actorFilter = "";
+
+    private static readonly string[] _filterTypes = new[] { "All", "Payroll", "Employee", "Leave", "Auth", "Compliance", "Config", "Data" };
+
+    private IEnumerable<AuditEvent> FilteredEvents
+    {
+        get
+        {
+            var result = _activeFilter == "All"
+                ? _events.AsEnumerable()
+                : _events.Where(e => e.EventType.Equals(_activeFilter, StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrWhiteSpace(_actorFilter))
+                result = result.Where(e => e.Actor.Equals(_actorFilter, StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrWhiteSpace(_searchQuery))
+                result = result.Where(e =>
+                    e.EventName.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                    e.Actor.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                    e.Summary.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                    e.EntityId.Contains(_searchQuery, StringComparison.OrdinalIgnoreCase));
+
+            return result;
+        }
+    }
+
+    // Chain integrity check — CTL-SEC-008
+    private bool AllChainValid => _events.All(e => e.ChainValid);
+
+    // Expanded row state — REQ-COMP-004
+    private string? _expandedId;
+    private void ToggleExpand(string id) => _expandedId = _expandedId == id ? null : id;
+
+    // Hash display helper — CTL-SEC-008
+    private static string ShortHash(string hash) =>
+        hash.Length > 12 ? hash[..12] + "…" : hash;
+
+    // Event type CSS class map — REQ-COMP-004
+    private static string EventTypeCss(string type) => type.ToLower() switch
+    {
+        "payroll" => "evt-payroll",
+        "employee" => "evt-employee",
+        "leave" => "evt-leave",
+        "auth" => "evt-auth",
+        "compliance" => "evt-compliance",
+        "config" => "evt-config",
+        "data" => "evt-data",
+        _ => "evt-config"
+    };
+
+    // Event type Lucide icon map — REQ-COMP-004
+    private static string EventTypeIcon(string type) => type.ToLower() switch
+    {
+        "payroll" => "banknote",
+        "employee" => "user",
+        "leave" => "calendar-days",
+        "auth" => "lock",
+        "compliance" => "shield-check",
+        "config" => "settings",
+        "data" => "database",
+        _ => "circle"
+    };
+
+    // Actor display helpers — REQ-COMP-004
+    private static string GetActorDisplayName(string actor)
+    {
+        if (actor.StartsWith("system@")) return "System";
+        var local = actor.Split('@')[0];
+        var parts = local.Split('.');
+        if (parts.Length >= 2)
+            return char.ToUpper(parts[0][0]) + parts[0][1..] + " " + char.ToUpper(parts[1][0]) + parts[1][1..];
+        return local;
+    }
+
+    private static string GetActorInitials(string actor)
+    {
+        if (actor.StartsWith("system@")) return "SYS";
+        var name = GetActorDisplayName(actor);
+        var parts = name.Split(' ');
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[1][0]}"
+            : name[..Math.Min(2, name.Length)].ToUpper();
+    }
+
+    private static string GetActorAvatarClass(string actor) => actor.StartsWith("system@") ? "" : "av-7";
+
+    private static string GetActorRole(string actor)
+    {
+        if (actor.StartsWith("system@")) return "Scheduler";
+        if (actor.Contains("sarah")) return "HR Manager";
+        if (actor.Contains("thabo")) return "Operations Manager";
+        return "Staff";
+    }
+
+    private static string CapitalizeFirst(string s) =>
+        string.IsNullOrEmpty(s) ? s : char.ToUpper(s[0]) + s[1..];
+
+    // REQ-OPS-005: Init theme and Lucide icons after render
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("zenohr.initTheme");
+            await JS.InvokeVoidAsync("zenohr.initLucide");
+        }
+    }
+}
