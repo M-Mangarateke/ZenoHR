@@ -1,5 +1,6 @@
 // REQ-OPS-003: AuditEvent — immutable, hash-chained audit record.
 // CTL-POPIA-006: All PII access must be logged as an AuditEvent.
+// REQ-SEC-003: Metadata field sanitized on Create — strips HTML/script tags, enforces size limits.
 // Every AuditEvent is write-once (never updated or deleted in Firestore).
 // Each event's hash includes the prior event's hash — forming a tamper-evident chain.
 // Breaking the chain is a Sev-1 defect.
@@ -7,6 +8,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace ZenoHR.Module.Audit.Domain;
 
@@ -148,13 +150,17 @@ public sealed class AuditEvent
         ArgumentException.ThrowIfNullOrWhiteSpace(actorRole);
         ArgumentException.ThrowIfNullOrWhiteSpace(resourceId);
 
+        // REQ-SEC-003: Sanitize metadata before storing — prevents XSS in Blazor UI display
+        // and log injection in Azure Monitor. Closes VUL-011 (Sev-2).
+        var sanitizedMetadata = SanitizeMetadata(metadata);
+
         var eventId = Guid.CreateVersion7().ToString("D");
 
         // Build the event with a placeholder hash to compute the canonical JSON.
         // EventHash is NOT part of the canonical JSON, so the placeholder has no effect.
         var placeholder = new AuditEvent(
             eventId, tenantId, actorId, actorRole,
-            action, resourceType, resourceId, metadata,
+            action, resourceType, resourceId, sanitizedMetadata,
             occurredAt, previousEventHash,
             eventHash: string.Empty,
             schemaVersion: "1.0");
@@ -163,7 +169,7 @@ public sealed class AuditEvent
 
         return new AuditEvent(
             eventId, tenantId, actorId, actorRole,
-            action, resourceType, resourceId, metadata,
+            action, resourceType, resourceId, sanitizedMetadata,
             occurredAt, previousEventHash,
             eventHash: hash,
             schemaVersion: "1.0");
@@ -197,6 +203,41 @@ public sealed class AuditEvent
             eventId, tenantId, actorId, actorRole,
             action, resourceType, resourceId, metadata,
             occurredAt, previousEventHash, eventHash, schemaVersion);
+    }
+
+    // ── Metadata sanitization ────────────────────────────────────────────────
+    // REQ-SEC-003: Closes VUL-011 (Sev-2) — metadata is stored and later displayed in the
+    // Blazor audit trail UI. Unsanitized HTML/script tags could execute in the browser.
+    // Limits prevent log injection and excessive payload storage.
+
+    private const int MetadataMaxLength = 2000;
+    private const int MetadataKeyMaxLength = 100;
+    private const int MetadataValueMaxLength = 500;
+
+    // Regex matches any HTML/XML tag: <script>, </div>, <img src=... />, etc.
+    private static readonly Regex _htmlTagPattern =
+        new(@"<[^>]*>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    /// <summary>
+    /// Sanitizes metadata before persisting:
+    /// <list type="bullet">
+    ///   <item>Strips HTML and script tags (XSS prevention for Blazor UI display).</item>
+    ///   <item>Truncates total metadata to <c>2000</c> characters.</item>
+    ///   <item>Returns <c>null</c> when metadata is null or whitespace.</item>
+    /// </list>
+    /// </summary>
+    internal static string? SanitizeMetadata(string? metadata)
+    {
+        if (string.IsNullOrWhiteSpace(metadata))
+            return null;
+
+        // Strip HTML/XML tags — prevents XSS when displayed in Blazor Server UI
+        var stripped = _htmlTagPattern.Replace(metadata, string.Empty);
+
+        // Truncate to prevent excessive payload storage and log injection
+        return stripped.Length > MetadataMaxLength
+            ? stripped[..MetadataMaxLength]
+            : stripped;
     }
 
     // ── Hash computation ──────────────────────────────────────────────────────

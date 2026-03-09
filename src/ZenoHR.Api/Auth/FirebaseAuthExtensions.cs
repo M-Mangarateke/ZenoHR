@@ -1,8 +1,10 @@
 // REQ-SEC-001: Firebase JWT validation — authenticates requests using Firebase Auth OIDC tokens.
 // REQ-SEC-002: Role-based authorization policies enforce screen access matrix (PRD-15 Section 4).
 // REQ-SEC-003: All API endpoints require authentication (AllowAnonymous only on /health and /auth/login).
+// REQ-SEC-004: MFA enforcement on privileged operations — closes VUL-003 (Sev-1).
 // TC-SEC-001: JWT Bearer middleware validates issuer, audience, and token lifetime.
 
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,6 +32,14 @@ public static class ZenoHrPolicies
 
     /// <summary>SaasAdmin only — platform operations (/admin/* routes).</summary>
     public const string IsSaasAdmin = "ZenoHR.IsSaasAdmin";
+
+    /// <summary>
+    /// Privileged operations that require a verified MFA session.
+    /// Firebase sets <c>firebase.sign_in_second_factor</c> claim when MFA was satisfied.
+    /// Applies to: payroll finalize, role changes, compliance approvals, employee termination.
+    /// REQ-SEC-004: closes VUL-003 — a stolen JWT alone cannot execute these operations.
+    /// </summary>
+    public const string RequiresMfa = "ZenoHR.RequiresMfa";
 }
 
 /// <summary>
@@ -104,6 +114,22 @@ public static class FirebaseAuthExtensions
             // SaasAdmin only: /admin/* routes
             options.AddPolicy(ZenoHrPolicies.IsSaasAdmin, policy =>
                 policy.RequireRole("SaasAdmin"));
+
+            // MFA-required: privileged mutations (payroll finalize, role changes, terminations)
+            // REQ-SEC-004: Firebase sets "firebase.sign_in_second_factor" = "phone" (or "totp")
+            // when the session included a second factor. A missing or non-"phone"/"totp" value
+            // means the user authenticated with password only — reject privileged operations.
+            // Closes VUL-003 (Sev-1): stolen JWT cannot finalize payroll or escalate privileges.
+            options.AddPolicy(ZenoHrPolicies.RequiresMfa, policy =>
+                policy.RequireAuthenticatedUser()
+                      .RequireRole("Director", "HRManager")
+                      .RequireAssertion(ctx =>
+                      {
+                          // Firebase includes second-factor info in the "firebase" nested claim.
+                          // The claim name after JWT parsing is "firebase.sign_in_second_factor".
+                          var secondFactor = ctx.User.FindFirstValue("firebase.sign_in_second_factor");
+                          return secondFactor is "phone" or "totp";
+                      }));
         });
 
         return services;

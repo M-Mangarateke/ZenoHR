@@ -1,8 +1,11 @@
 // REQ-OPS-001: ZenoHR API entry point — ASP.NET Core 10 modular monolith host.
 // REQ-SEC-001: Authentication middleware wired here (TASK-024).
+// REQ-SEC-003, REQ-SEC-007: Security headers, CORS, HSTS, rate limiting wired here.
 // REQ-OPS-005: OpenTelemetry tracing + metrics wired here (TASK-032).
 // REQ-OPS-006: Azure Monitor export configured via AddZenoHrTelemetry() (TASK-032).
 
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using ZenoHR.Api.Auth;
 using ZenoHR.Api.Endpoints;
 using ZenoHR.Api.Middleware;
@@ -34,16 +37,68 @@ builder.Services.AddZenoHrFirestore(builder.Configuration);
 // MediatR + pipeline behaviours (TASK-048)
 builder.Services.AddZenoHrMediatR();
 
+// HSTS — 1 year max-age, include subdomains (REQ-SEC-003, closes VUL-023)
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.IncludeSubDomains = true;
+});
+
+// CORS — allowed origins from config; production value from Azure Key Vault (REQ-SEC-007)
+// Closes VUL-002: no CORS policy previously configured.
+builder.Services.AddZenoHrCors(builder.Configuration);
+
+// Rate limiting — closes VUL-007: no rate limiting on API endpoints.
+// REQ-SEC-003: protect against DoS and credential-stuffing at the API layer.
+builder.Services.AddRateLimiter(options =>
+{
+    // General API: 120 requests per minute per IP (sliding window, no queue).
+    options.AddSlidingWindowLimiter("api", config =>
+    {
+        config.PermitLimit = 120;
+        config.Window = TimeSpan.FromMinutes(1);
+        config.SegmentsPerWindow = 6;
+        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        config.QueueLimit = 0;
+    });
+    // Payroll operations: stricter — 10 per minute per IP (payroll runs are heavy).
+    options.AddFixedWindowLimiter("payroll", config =>
+    {
+        config.PermitLimit = 10;
+        config.Window = TimeSpan.FromMinutes(1);
+    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, ct) =>
+    {
+        context.HttpContext.Response.Headers["Retry-After"] = "60";
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new Microsoft.AspNetCore.Mvc.ProblemDetails
+            {
+                Status = StatusCodes.Status429TooManyRequests,
+                Title = "Too many requests",
+                Detail = "Rate limit exceeded. Please retry after 60 seconds."
+            }, ct);
+    };
+});
+
 // ── App pipeline ─────────────────────────────────────────────────────────────
 var app = builder.Build();
 
-app.UseCorrelationId();         // REQ-OPS-008: assigns X-Correlation-Id to every request (first — before logging)
-app.UseGlobalExceptionHandler(); // REQ-OPS-008: structured error response + logging for all unhandled exceptions
-app.UseHttpsRedirection();
-app.UseAuthentication();   // TASK-024: validate Firebase JWT on every request
-app.UseAuthorization();    // TASK-025: enforce [Authorize(Roles = ...)] on endpoints
+app.UseCorrelationId();          // 1st: assigns X-Correlation-Id before everything (REQ-OPS-008)
+app.UseGlobalExceptionHandler(); // 2nd: outermost exception catch (REQ-OPS-008)
+app.UseZenoHrSecurityHeaders();  // 3rd: CSP, X-Frame-Options, nosniff, Referrer-Policy (REQ-SEC-003)
+if (!app.Environment.IsDevelopment())
+{
+    // 4th: HSTS — only in production (dev uses HTTP/localhost) — closes VUL-023
+    app.UseHsts();
+}
+app.UseHttpsRedirection();       // 5th: redirect HTTP → HTTPS
+app.UseCors("ZenoHrPolicy");     // 6th: CORS before auth (REQ-SEC-007)
+app.UseAuthentication();         // 7th: validate Firebase JWT (TASK-024)
+app.UseAuthorization();          // 8th: enforce policies (TASK-025)
+app.UseRateLimiter();            // 9th: rate limiting (REQ-SEC-003)
 
-// Health check endpoint — anonymous, no auth required
+// Health check endpoint — anonymous, no auth, no rate limit required
 // REQ-OPS-007: Health endpoint for Azure Container Apps liveness probe
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "ZenoHR.Api" }))
    .WithName("HealthCheck")

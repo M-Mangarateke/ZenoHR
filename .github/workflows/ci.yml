@@ -40,8 +40,10 @@ jobs:
           key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
           restore-keys: ${{ runner.os }}-nuget-
 
-      - name: Restore
-        run: dotnet restore ZenoHR.slnx
+      - name: Restore (locked mode — supply chain integrity)
+        # REQ-SEC-010: --locked-mode verifies packages.lock.json is up-to-date.
+        # Prevents unintended dependency changes from sneaking into CI builds.
+        run: dotnet restore ZenoHR.slnx --locked-mode
 
       - name: Build (TreatWarningsAsErrors=true)
         run: dotnet build ZenoHR.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore --no-incremental
@@ -295,3 +297,25 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:csharp"
+
+  # ─── Secret Scanning ───────────────────────────────────────────────────────
+  # Detects accidentally committed secrets, API keys, connection strings.
+  # REQ-SEC-010: Supply chain — no secrets in source code or git history.
+  # Closes supply chain gap: no secret scanning previously in CI.
+  secret-scan:
+    name: Secret Scan (TruffleHog)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history required for git log scanning
+
+      - name: TruffleHog secret scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          # Scan only the commits introduced by this push/PR (not entire history on every run)
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified --fail

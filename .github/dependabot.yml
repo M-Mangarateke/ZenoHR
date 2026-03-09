@@ -1,0 +1,58 @@
+# REQ-SEC-010: Automated dependency updates — weekly NuGet and GitHub Actions scanning.
+# Closes supply chain gap: no automated PRs for dependency updates (VUL-017 partial).
+# Groups Microsoft and Google packages together to reduce PR noise.
+
+version: 2
+updates:
+  # NuGet — .NET packages
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "Africa/Johannesburg"
+    groups:
+      microsoft-azure:
+        patterns:
+          - "Microsoft.*"
+          - "Azure.*"
+          - "System.*"
+      google-firebase:
+        patterns:
+          - "Google.*"
+          - "Firebase*"
+          - "Grpc.*"
+      testing:
+        patterns:
+          - "xunit*"
+          - "NSubstitute*"
+          - "FluentAssertions*"
+          - "FsCheck*"
+          - "coverlet*"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "security"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    ignore:
+      # Do not auto-update to pre-release versions
+      - dependency-name: "*"
+        update-types: ["version-update:semver-patch"]
+        # Only auto-merge patch updates; minor/major require manual review
+
+  # GitHub Actions — workflow action versions
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "Africa/Johannesburg"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"

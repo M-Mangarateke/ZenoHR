@@ -26,6 +26,7 @@ public static class PayrollEndpoints
     {
         var group = app.MapGroup("/api/payroll")
             .RequireAuthorization(p => p.RequireRole("Director", "HRManager"))
+            .RequireRateLimiting("payroll")  // REQ-SEC-003: strict limit — payroll runs are heavy (closes VUL-007)
             .WithTags("Payroll");
 
         // GET /api/payroll/runs — list all runs (newest first)
@@ -46,15 +47,19 @@ public static class PayrollEndpoints
             .Produces<ProblemDetails>(400);
 
         // PUT /api/payroll/runs/{id}/finalize — finalize (lock) the run
+        // REQ-SEC-004: MFA required — a stolen JWT alone cannot finalize payroll (closes VUL-003).
         group.MapPut("/runs/{id}/finalize", FinalizeRunAsync)
             .WithName("FinalizePayrollRun")
+            .RequireAuthorization(ZenoHrPolicies.RequiresMfa)
             .Produces<PayrollRunDetailDto>(200)
             .Produces<ProblemDetails>(400)
             .Produces(404);
 
         // PUT /api/payroll/runs/{id}/file — mark run as filed after EMP201 download
+        // REQ-SEC-004: MFA required — filing is irreversible (closes VUL-003).
         group.MapPut("/runs/{id}/file", MarkFiledAsync)
             .WithName("MarkPayrollRunFiled")
+            .RequireAuthorization(ZenoHrPolicies.RequiresMfa)
             .Produces(200)
             .Produces<ProblemDetails>(400)
             .Produces(404);

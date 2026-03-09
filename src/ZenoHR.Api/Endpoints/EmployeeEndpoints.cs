@@ -22,6 +22,7 @@ public static class EmployeeEndpoints
     {
         var group = app.MapGroup("/api/employees")
             .RequireAuthorization()
+            .RequireRateLimiting("api")   // REQ-SEC-003: closes VUL-007
             .WithTags("Employees");
 
         // GET /api/employees — list all (Director/HRManager) or own dept (Manager)
