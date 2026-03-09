@@ -127,6 +127,20 @@ PRD_MAP = {
 
 
 # ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _all_tasks(progress: dict) -> list:
+    """Collect tasks from active_tasks and all phase-specific task arrays."""
+    tasks: list = list(progress.get("active_tasks", []))
+    skip = {"active_tasks", "completed_tasks"}
+    for key, value in progress.items():
+        if key.endswith("_tasks") and key not in skip and isinstance(value, list):
+            tasks.extend(value)
+    return tasks
+
+
+# ---------------------------------------------------------------------------
 # MCP Tools
 # ---------------------------------------------------------------------------
 
@@ -139,7 +153,8 @@ def get_context() -> str:
     claude_md = _read("CLAUDE.md")
     progress = _read_json("docs/progress/progress-log.json")
 
-    active = [t for t in progress.get("active_tasks", []) if t.get("status") != "completed"]
+    all_tasks = _all_tasks(progress)
+    active = [t for t in all_tasks if t.get("status") != "completed"]
     pending = [t for t in active if t.get("status") == "pending"]
     in_progress = [t for t in active if t.get("status") == "in_progress"]
     blocked = [t for t in active if t.get("blockers")]
@@ -177,15 +192,12 @@ def get_next_tasks() -> str:
     Use this after completing a task to know what to work on next.
     """
     progress = _read_json("docs/progress/progress-log.json")
+    all_tasks = _all_tasks(progress)
     completed_ids = {t["id"] for t in progress.get("completed_tasks", [])}
-    completed_ids |= {
-        t["id"]
-        for t in progress.get("active_tasks", [])
-        if t.get("status") == "completed"
-    }
+    completed_ids |= {t["id"] for t in all_tasks if t.get("status") == "completed"}
 
     candidates = [
-        t for t in progress.get("active_tasks", [])
+        t for t in all_tasks
         if t.get("status") == "pending"
         and not t.get("blockers")
         and all(dep in completed_ids for dep in t.get("depends_on", []))
@@ -225,7 +237,7 @@ def update_task_status(task_id: str, status: str, notes: str = "") -> str:
     progress["last_updated"] = datetime.now(timezone.utc).isoformat()
 
     found = False
-    for task in progress.get("active_tasks", []):
+    for task in _all_tasks(progress):
         if task["id"] == task_id:
             task["status"] = status
             if notes:
@@ -236,7 +248,7 @@ def update_task_status(task_id: str, status: str, notes: str = "") -> str:
             break
 
     if not found:
-        return f"Task '{task_id}' not found in active_tasks."
+        return f"Task '{task_id}' not found in any task array."
 
     _write_json("docs/progress/progress-log.json", progress)
     return f"Task {task_id} updated to '{status}'. {notes}"
