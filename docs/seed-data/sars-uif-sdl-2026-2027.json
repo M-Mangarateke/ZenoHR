@@ -1,0 +1,45 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "SARS_UIF_SDL",
+  "version": "2027.1.0",
+  "effective_from": "2026-03-01",
+  "effective_to": "2027-02-28",
+  "tax_year": "2027",
+
+  "uif": {
+    "source": "Unemployment Insurance Contributions Act, 2002 (Act No. 4 of 2002)",
+    "source_url": "https://www.sars.gov.za/types-of-tax/unemployment-insurance-fund/",
+    "employee_rate": 0.01,
+    "employer_rate": 0.01,
+    "total_rate": 0.02,
+    "monthly_ceiling": 17712.00,
+    "annual_ceiling": 212544.00,
+    "max_employee_monthly": 177.12,
+    "max_employer_monthly": 177.12,
+    "max_total_monthly": 354.24,
+    "applies_to": "All employees except: those working less than 24 hours per month, learners under Learnership Agreement contemplated in Skills Development Act, public servants under Public Service Act 1994, foreigners on contract working under permit (in certain categories)",
+    "notes": {
+      "ty2027_changes": "No changes for TY2027. Contribution rates and ceiling remain unchanged (R17,712/month, 1% + 1%). Budget Speech 25 February 2026 confirmed no amendments.",
+      "calculation": "UIF = min(remuneration, monthly_ceiling) × rate. Both employee and employer contribute.",
+      "weekly_payroll": "For weekly payroll: weekly ceiling = R17,712 / 4.333 = R4,087.74 (approximate). Use monthly ceiling pro-rated."
+    }
+  },
+
+  "sdl": {
+    "source": "Skills Development Levies Act, 1999 (Act No. 9 of 1999)",
+    "rate": 0.01,
+    "exemption_threshold_annual": 500000.00,
+    "contribution_by": "employer_only",
+    "applies_to": "Employers with annual payroll exceeding R500,000. Employer-only contribution; cannot be deducted from employee salary.",
+    "exempt_employers": [
+      "Employers with total annual leviable remuneration not exceeding R500,000",
+      "Public benefit organisations (certain categories)",
+      "National or provincial public entities (certain categories)"
+    ],
+    "notes": {
+      "ty2027_changes": "No changes for TY2027. SDL rate and exemption threshold remain unchanged. Budget Speech 25 February 2026 confirmed no amendments.",
+      "calculation": "SDL = total_leviable_remuneration × 0.01. Employer bears full cost.",
+      "leviable_remuneration": "Includes salaries, wages, overtime, leave pay, bonuses, commissions, and allowances. Excludes reimbursive travel allowances."
+    }
+  }
+}

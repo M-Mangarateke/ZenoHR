@@ -1,0 +1,9 @@
+@* REQ-SEC-002, PRD-15 S15: Security Operations Centre — SaasAdmin only. *@
+@* OWASP coverage, vulnerability tracking, incidents, and POPIA controls. *@
+@page "/admin/security"
+@attribute [Authorize(Roles = "SaasAdmin")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Security Ops — ZenoHR Platform</PageTitle>
+<h1>Security Operations Centre</h1>
+<p>Platform-level OWASP coverage, vulnerability status, active incidents, and POPIA control status.</p>

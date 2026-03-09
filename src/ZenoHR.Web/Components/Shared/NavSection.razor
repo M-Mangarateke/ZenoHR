@@ -1,0 +1,19 @@
+@* REQ-SEC-002: Navigation section grouping component. *@
+@* Used by NavMenu.razor to group nav items under a labelled section header. *@
+
+@if (!string.IsNullOrEmpty(Label))
+{
+    <div class="nav-section">
+        <span class="nav-section-label">@Label</span>
+        @ChildContent
+    </div>
+}
+else
+{
+    <div class="nav-section">@ChildContent</div>
+}
+
+@code {
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

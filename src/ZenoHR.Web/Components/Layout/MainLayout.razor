@@ -1,23 +1,34 @@
-﻿@inherits LayoutComponentBase
+@* REQ-OPS-001: ZenoHR main layout — sidebar navigation + content area. *@
+@* REQ-SEC-002: NavMenu is role-aware; sidebar items are absent for unauthorized roles. *@
+@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
+<div class="zenohr-shell">
+    <aside class="zenohr-sidebar" role="navigation" aria-label="Main navigation">
         <NavMenu />
-    </div>
+    </aside>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+    <div class="zenohr-body">
+        <header class="zenohr-topbar" role="banner">
+            <div class="topbar-breadcrumb"></div>
+            <div class="topbar-actions">
+                <AuthorizeView>
+                    <Authorized>
+                        <span class="topbar-role-badge">
+                            @context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                        </span>
+                    </Authorized>
+                </AuthorizeView>
+            </div>
+        </header>
 
-        <article class="content px-4">
+        <main class="zenohr-content" role="main">
             @Body
-        </article>
-    </main>
+        </main>
+    </div>
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
     <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    <span class="dismiss">&#x2715;</span>
 </div>

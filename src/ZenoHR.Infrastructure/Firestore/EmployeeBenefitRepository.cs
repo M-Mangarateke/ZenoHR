@@ -2,6 +2,7 @@
 // Subcollection: employees/{emp_id}/benefits.
 // Contribution rates feed payroll deduction calculations (REQ-HR-003).
 
+using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;

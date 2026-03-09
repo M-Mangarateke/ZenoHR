@@ -29,15 +29,31 @@ public sealed class StatutoryRuleSetLoader
     private static readonly Assembly _assembly = typeof(StatutoryRuleSetLoader).Assembly;
 
     // Logical resource names embedded in ZenoHR.Infrastructure.csproj
+    // CTL-SARS-001: TY2026 entries kept for historical payroll run queries.
+    // TY2027 entries are active for pay periods from 1 March 2026.
     private static readonly string[] _resourceNames =
     [
+        // TY2026 — historical (expired 28 Feb 2026, kept for audit trail)
         "ZenoHR.Infrastructure.SeedData.sars-paye.json",
         "ZenoHR.Infrastructure.SeedData.sars-uif-sdl.json",
+
+        // TY2027 — active from 1 March 2026 (Budget Speech 25 Feb 2026)
+        "ZenoHR.Infrastructure.SeedData.sars-paye-2027.json",
+        "ZenoHR.Infrastructure.SeedData.sars-uif-sdl-2027.json",
+        "ZenoHR.Infrastructure.SeedData.sars-msftc-2027.json",
+        "ZenoHR.Infrastructure.SeedData.sars-travel-2027.json",
+        "ZenoHR.Infrastructure.SeedData.nmw-2027.json",
+        "ZenoHR.Infrastructure.SeedData.bcea-earnings-threshold-2027.json",
+
+        // Perpetual — no tax-year expiry
         "ZenoHR.Infrastructure.SeedData.sars-eti.json",
         "ZenoHR.Infrastructure.SeedData.bcea-leave.json",
         "ZenoHR.Infrastructure.SeedData.bcea-working-time.json",
         "ZenoHR.Infrastructure.SeedData.bcea-notice-severance.json",
+
+        // Public holidays — calendar year files (cover payroll periods across tax years)
         "ZenoHR.Infrastructure.SeedData.sa-public-holidays.json",
+        "ZenoHR.Infrastructure.SeedData.sa-public-holidays-2027.json",
     ];
 
     private readonly FirestoreDb _db;

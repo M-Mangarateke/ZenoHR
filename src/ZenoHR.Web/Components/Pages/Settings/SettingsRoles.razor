@@ -1,0 +1,9 @@
+@* REQ-SEC-002, PRD-15 S9: Role Management — Director and HRManager only. *@
+@* Create/manage Manager role variants and Employee types. *@
+@page "/settings/roles"
+@attribute [Authorize(Roles = "Director,HRManager")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Role Management — ZenoHR</PageTitle>
+<h1>Role Management</h1>
+<p>Create and manage Manager role variants and Employee types for Zenowethu (Pty) Ltd.</p>

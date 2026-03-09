@@ -1,0 +1,17 @@
+@* REQ-SEC-002, REQ-ANA-001, REQ-ANA-002: Company Analytics *@
+@* Director/HRManager: full. Manager: server-side filtered to managed department(s). *@
+@* Employee: None — route blocked, nav item absent. *@
+@page "/analytics"
+@attribute [Authorize(Roles = "Director,HRManager,Manager")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Analytics — ZenoHR</PageTitle>
+<h1>Analytics</h1>
+
+<AuthorizeView Roles="Director,HRManager">
+    <p>Company-wide analytics — headcount, payroll trends, leave patterns, compliance scores.</p>
+</AuthorizeView>
+
+<AuthorizeView Roles="Manager">
+    <p>Team analytics — filtered to your department(s). Payroll and compliance sub-views are not available.</p>
+</AuthorizeView>

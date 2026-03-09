@@ -1,0 +1,9 @@
+@* REQ-SEC-002, PRD-15 S11: Admin Platform UI — SaasAdmin only. *@
+@* SaasAdmin cannot access any tenant data. This page is platform operations only. *@
+@page "/admin"
+@attribute [Authorize(Roles = "SaasAdmin")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Admin — ZenoHR Platform</PageTitle>
+<h1>Platform Administration</h1>
+<p>Manage tenants, system health, seed data, and feature flags for the ZenoHR platform.</p>

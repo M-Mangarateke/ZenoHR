@@ -1,0 +1,16 @@
+@* REQ-SEC-002, PRD-15 S8: Audit Trail — Director, HRManager (full), SaasAdmin (platform read only). *@
+@* Manager and Employee: None — route blocked, nav item absent. *@
+@page "/audit"
+@attribute [Authorize(Roles = "Director,HRManager,SaasAdmin")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Audit Trail — ZenoHR</PageTitle>
+<h1>Audit Trail</h1>
+
+<AuthorizeView Roles="Director,HRManager">
+    <p>Full tenant audit trail with SHA-256 hash-chained events.</p>
+</AuthorizeView>
+
+<AuthorizeView Roles="SaasAdmin">
+    <p>Platform-level audit log. Tenant data is not accessible.</p>
+</AuthorizeView>

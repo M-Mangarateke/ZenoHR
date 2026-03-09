@@ -1,0 +1,9 @@
+@* REQ-SEC-002, PRD-15 S6: Compliance Scoring — Director and HRManager only. *@
+@* Manager and Employee: None — route blocked, nav item absent. *@
+@page "/compliance"
+@attribute [Authorize(Roles = "Director,HRManager")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Compliance — ZenoHR</PageTitle>
+<h1>Compliance</h1>
+<p>SARS filings, BCEA checks, and POPIA controls for Zenowethu (Pty) Ltd.</p>

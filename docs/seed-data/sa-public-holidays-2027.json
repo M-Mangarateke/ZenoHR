@@ -1,0 +1,111 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "SA_PUBLIC_HOLIDAYS",
+  "version": "2027.1.0",
+  "calendar_year": 2027,
+  "source": "Public Holidays Act 36 of 1994",
+  "source_url": "https://www.gov.za/documents/public-holidays-act",
+
+  "substitution_rule": "When a public holiday falls on a Sunday, the following Monday is a public holiday (Section 2 of the Act). Saturday holidays are observed on Saturday with no substitute.",
+
+  "holidays": [
+    {
+      "date": "2027-01-01",
+      "name": "New Year's Day",
+      "day_of_week": "Friday",
+      "observed": "2027-01-01"
+    },
+    {
+      "date": "2027-03-21",
+      "name": "Human Rights Day",
+      "day_of_week": "Sunday",
+      "observed": "2027-03-22",
+      "substitute": true,
+      "substitute_note": "Falls on Sunday; Monday 22 March 2027 is the observed public holiday"
+    },
+    {
+      "date": "2027-03-22",
+      "name": "Human Rights Day (Observed)",
+      "day_of_week": "Monday",
+      "observed": "2027-03-22",
+      "is_substitute": true
+    },
+    {
+      "date": "2027-03-26",
+      "name": "Good Friday",
+      "day_of_week": "Friday",
+      "observed": "2027-03-26"
+    },
+    {
+      "date": "2027-03-29",
+      "name": "Family Day",
+      "day_of_week": "Monday",
+      "observed": "2027-03-29"
+    },
+    {
+      "date": "2027-04-27",
+      "name": "Freedom Day",
+      "day_of_week": "Tuesday",
+      "observed": "2027-04-27"
+    },
+    {
+      "date": "2027-05-01",
+      "name": "Workers' Day",
+      "day_of_week": "Saturday",
+      "observed": "2027-05-01",
+      "note": "Falls on Saturday; no Monday substitute for Saturday holidays under the Public Holidays Act"
+    },
+    {
+      "date": "2027-06-16",
+      "name": "Youth Day",
+      "day_of_week": "Wednesday",
+      "observed": "2027-06-16"
+    },
+    {
+      "date": "2027-08-09",
+      "name": "National Women's Day",
+      "day_of_week": "Monday",
+      "observed": "2027-08-09"
+    },
+    {
+      "date": "2027-09-24",
+      "name": "Heritage Day",
+      "day_of_week": "Friday",
+      "observed": "2027-09-24"
+    },
+    {
+      "date": "2027-12-16",
+      "name": "Day of Reconciliation",
+      "day_of_week": "Thursday",
+      "observed": "2027-12-16"
+    },
+    {
+      "date": "2027-12-25",
+      "name": "Christmas Day",
+      "day_of_week": "Saturday",
+      "observed": "2027-12-25",
+      "note": "Falls on Saturday; no Monday substitute for Saturday holidays under the Public Holidays Act"
+    },
+    {
+      "date": "2027-12-26",
+      "name": "Day of Goodwill",
+      "day_of_week": "Sunday",
+      "observed": "2027-12-27",
+      "substitute": true,
+      "substitute_note": "Falls on Sunday; Monday 27 December 2027 is the observed public holiday"
+    },
+    {
+      "date": "2027-12-27",
+      "name": "Day of Goodwill (Observed)",
+      "day_of_week": "Monday",
+      "observed": "2027-12-27",
+      "is_substitute": true
+    }
+  ],
+
+  "overtime_impact": {
+    "rule": "Employee who works on a public holiday must be paid at least double their normal wage (BCEA Section 18)",
+    "if_not_ordinarily_working": "Employer must pay at least double the daily wage for the hours worked",
+    "if_ordinarily_working_and_does_not_work": "Employee entitled to normal daily pay"
+  }
+}

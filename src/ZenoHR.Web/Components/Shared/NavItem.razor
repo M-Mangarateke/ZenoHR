@@ -1,0 +1,30 @@
+@* REQ-SEC-002: Single navigation link item with Lucide icon (20px, 1.5px stroke per design tokens). *@
+@* Renders an active highlight when the current route matches Href. *@
+@inject NavigationManager Nav
+
+<NavLink class="nav-item-link" href="@Href" Match="@Match">
+    <span class="nav-icon" aria-hidden="true">
+        @* Icon name maps to a Lucide SVG sprite. The sprite sheet is loaded in App.razor. *@
+        <svg width="20" height="20" stroke-width="1.5" aria-hidden="true">
+            <use href="/icons/lucide-sprite.svg#@Icon" />
+        </svg>
+    </span>
+    <span class="nav-label">@Label</span>
+</NavLink>
+
+@code {
+    /// <summary>The href for the nav link (e.g. "/dashboard").</summary>
+    [Parameter, EditorRequired] public string Href { get; set; } = "/";
+
+    /// <summary>Lucide icon name (e.g. "layout-dashboard", "users", "banknote").</summary>
+    [Parameter, EditorRequired] public string Icon { get; set; } = "circle";
+
+    /// <summary>Display label for the nav item.</summary>
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+
+    /// <summary>
+    /// NavLink match mode. Defaults to Prefix so child routes also highlight the parent item.
+    /// Use NavLinkMatch.All for exact matches (e.g. dashboard root).
+    /// </summary>
+    [Parameter] public NavLinkMatch Match { get; set; } = NavLinkMatch.Prefix;
+}

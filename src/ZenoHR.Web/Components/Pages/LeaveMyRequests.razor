@@ -1,0 +1,8 @@
+@* REQ-SEC-002, PRD-15 S5: My Leave Requests — own requests for all tenant users. *@
+@page "/leave/my-requests"
+@attribute [Authorize(Roles = "Director,HRManager,Manager,Employee")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>My Leave Requests — ZenoHR</PageTitle>
+<h1>My Leave Requests</h1>
+<p>Submit and track your personal leave requests.</p>

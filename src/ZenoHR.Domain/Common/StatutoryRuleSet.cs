@@ -57,8 +57,12 @@ public static class RuleDomains
     public const string SarsPaye = "SARS_PAYE";
     public const string SarsUifSdl = "SARS_UIF_SDL";
     public const string SarsEti = "SARS_ETI";
+    public const string SarsMsftc = "SARS_MSFTC";
+    public const string SarsTravel = "SARS_TRAVEL";
     public const string BceaLeave = "BCEA_LEAVE";
     public const string BceaWorkingTime = "BCEA_WORKING_TIME";
     public const string BceaNoticeSeverance = "BCEA_NOTICE_SEVERANCE";
+    public const string BceaEarningsThreshold = "BCEA_EARNINGS_THRESHOLD";
+    public const string Nmw = "NMW";
     public const string SaPublicHolidays = "SA_PUBLIC_HOLIDAYS";
 }

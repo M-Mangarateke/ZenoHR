@@ -1,0 +1,50 @@
+@* REQ-SEC-001: Login page — Firebase JS SDK authenticates the user in the browser. *@
+@* On successful Firebase auth, the ID token is exchanged for an ASP.NET Core session cookie *@
+@* via POST /auth/exchange. The user is then redirected to their intended destination. *@
+@page "/login"
+@attribute [AllowAnonymous]
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<PageTitle>Sign In — ZenoHR</PageTitle>
+
+<div class="login-shell">
+    <div class="login-card">
+        <div class="login-logo">
+            <img src="/images/Zenologo2.png" alt="Zenowethu" class="logo-img" />
+            <span class="logo-wordmark">ZenoHR</span>
+        </div>
+
+        <h1 class="login-title">Welcome back</h1>
+        <p class="login-subtitle">Sign in to your Zenowethu account</p>
+
+        @if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="alert alert-danger" role="alert">@_errorMessage</div>
+        }
+
+        <div id="firebaseui-auth-container"></div>
+
+        <p class="login-footer">
+            Powered by <strong>ZenoHR</strong> &mdash; built for Zenowethu (Pty) Ltd.
+        </p>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery] private string? ReturnUrl { get; set; }
+
+    private string? _errorMessage = null;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Initialise Firebase Auth UI via JS interop.
+            // The JS module handles email/password and Google sign-in,
+            // then calls window.zenoHrExchangeToken(idToken) which POSTs to /auth/exchange.
+            var returnUrl = string.IsNullOrWhiteSpace(ReturnUrl) ? "/dashboard" : ReturnUrl;
+            await JS.InvokeVoidAsync("zenoHrInitLogin", returnUrl);
+        }
+    }
+}

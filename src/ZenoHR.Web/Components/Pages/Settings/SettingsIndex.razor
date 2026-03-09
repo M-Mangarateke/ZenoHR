@@ -1,0 +1,10 @@
+@* REQ-SEC-002, PRD-15 S10: Settings — Director and HRManager only. *@
+@* Five admin tabs: Role Management, Departments, Users, Company Settings, Archival. *@
+@* Manager and Employee: None — route blocked, nav item absent. *@
+@page "/settings"
+@attribute [Authorize(Roles = "Director,HRManager")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Settings — ZenoHR</PageTitle>
+<h1>Settings</h1>
+<p>Manage roles, departments, users, company details, and data archival for Zenowethu (Pty) Ltd.</p>

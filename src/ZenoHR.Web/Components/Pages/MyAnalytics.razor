@@ -1,0 +1,9 @@
+@* REQ-SEC-002, REQ-ANA-003: My Analytics — personal earnings, leave, and tax summary. *@
+@* All tenant users (self-access guarantee, PRD-15 §1.6). *@
+@page "/my-analytics"
+@attribute [Authorize(Roles = "Director,HRManager,Manager,Employee")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>My Analytics — ZenoHR</PageTitle>
+<h1>My Analytics</h1>
+<p>Your personal earnings history, leave usage, and PAYE summary for the current tax year.</p>

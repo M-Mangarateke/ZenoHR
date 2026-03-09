@@ -1,0 +1,10 @@
+@* REQ-SEC-003: Redirects authenticated users who lack the required role to /unauthorized. *@
+@* This is NOT a login redirect — the user is authenticated but the wrong role accessed the route. *@
+@inject NavigationManager Nav
+
+@code {
+    protected override void OnInitialized()
+    {
+        Nav.NavigateTo("/unauthorized", replace: true);
+    }
+}

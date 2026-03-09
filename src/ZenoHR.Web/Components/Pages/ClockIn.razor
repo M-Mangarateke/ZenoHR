@@ -1,0 +1,21 @@
+@* REQ-SEC-002, PRD-15 S14: Clock In / Out *@
+@* Employee: self-service clock in/out. Manager: team attendance status + flag absences. *@
+@* Director/HRManager: read all clock entries. SaasAdmin: None. *@
+@page "/clock-in"
+@attribute [Authorize(Roles = "Director,HRManager,Manager,Employee")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Clock In / Out — ZenoHR</PageTitle>
+<h1>Clock In / Out</h1>
+
+<AuthorizeView Roles="Employee">
+    <p>Clock in or out for today's shift.</p>
+</AuthorizeView>
+
+<AuthorizeView Roles="Manager">
+    <p>Team attendance status — today's clock-in state per team member. Flag suspected absences.</p>
+</AuthorizeView>
+
+<AuthorizeView Roles="Director,HRManager">
+    <p>Full organisation clock entry view.</p>
+</AuthorizeView>

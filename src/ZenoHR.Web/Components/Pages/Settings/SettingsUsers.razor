@@ -1,0 +1,9 @@
+@* REQ-SEC-002, PRD-15 S10: User Management — Director and HRManager only. *@
+@* Assign and revoke role assignments for tenant users. *@
+@page "/settings/users"
+@attribute [Authorize(Roles = "Director,HRManager")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Users — ZenoHR</PageTitle>
+<h1>User Management</h1>
+<p>Assign roles, manage user access, and review active role assignments.</p>

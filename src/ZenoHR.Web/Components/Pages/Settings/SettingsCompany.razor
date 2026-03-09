@@ -1,0 +1,8 @@
+@* REQ-SEC-002, PRD-15 S10: Company Settings — Director and HRManager only. *@
+@page "/settings/company"
+@attribute [Authorize(Roles = "Director,HRManager")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Company Settings — ZenoHR</PageTitle>
+<h1>Company Settings</h1>
+<p>Configure Zenowethu (Pty) Ltd company details, SARS registration numbers, and statutory defaults.</p>

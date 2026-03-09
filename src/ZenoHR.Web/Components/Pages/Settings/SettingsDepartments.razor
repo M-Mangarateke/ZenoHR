@@ -1,0 +1,8 @@
+@* REQ-SEC-002, PRD-15 S10: Departments — Director and HRManager only. *@
+@page "/settings/departments"
+@attribute [Authorize(Roles = "Director,HRManager")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Departments — ZenoHR</PageTitle>
+<h1>Departments</h1>
+<p>Create and manage departments, assign department heads, and configure cost-centre codes.</p>

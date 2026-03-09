@@ -50,6 +50,47 @@ public sealed class StatutoryRuleSetRepository : BaseFirestoreRepository<Statuto
     // ─── Public Query Methods ────────────────────────────────────────────────
 
     /// <summary>
+    /// Returns all statutory rule sets (cross-tenant SYSTEM scope).
+    /// Used by the Settings UI to display the full list for HR Manager / Director review.
+    /// CTL-SARS-001, REQ-SEC-002
+    /// </summary>
+    public async Task<IReadOnlyList<StatutoryRuleSet>> GetAllAsync(CancellationToken ct = default)
+    {
+        var snapshot = await Db.Collection("statutory_rule_sets")
+            .WhereEqualTo("tenant_id", "SYSTEM")
+            .GetSnapshotAsync(ct);
+        return snapshot.Documents.Select(FromSnapshot).ToList();
+    }
+
+    /// <summary>
+    /// Partially updates named fields within the <c>rule_data</c> map of a statutory rule set.
+    /// Only touches explicitly specified fields — does NOT overwrite metadata (rule_domain, version, etc.).
+    /// Called exclusively from the Settings UI after Director / HRManager authorisation.
+    /// CTL-SARS-001, REQ-HR-003, REQ-OPS-005
+    /// </summary>
+    public async Task<Result> UpdateRuleDataAsync(
+        string documentId,
+        IReadOnlyDictionary<string, object?> fieldUpdates,
+        string updatedBy,
+        CancellationToken ct = default)
+    {
+        var docRef = Db.Collection("statutory_rule_sets").Document(documentId);
+
+        // Firestore UpdateAsync uses dot-notation strings for nested field paths.
+        // "rule_data.{field}" targets only that sub-field without touching the rest of rule_data.
+        var updates = new Dictionary<string, object?>(fieldUpdates.Count + 2);
+        foreach (var (field, value) in fieldUpdates)
+            updates[$"rule_data.{field}"] = value;
+
+        // Stamp who last updated and when
+        updates["last_updated_by"] = updatedBy;
+        updates["last_updated_at"] = Timestamp.GetCurrentTimestamp();
+
+        await docRef.UpdateAsync(updates, cancellationToken: ct);
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Gets the statutory rule set for a given domain that is effective on the specified date.
     /// Returns the most recently effective version if multiple overlap.
     /// CTL-SARS-001

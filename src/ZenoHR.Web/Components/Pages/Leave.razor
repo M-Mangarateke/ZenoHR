@@ -1,0 +1,20 @@
+@* REQ-SEC-002, PRD-15 S5: Leave Management. *@
+@* Director/HRManager: full team. Manager: team approval queue + own requests. Employee: own requests. *@
+@page "/leave"
+@attribute [Authorize(Roles = "Director,HRManager,Manager,Employee")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Leave — ZenoHR</PageTitle>
+<h1>Leave</h1>
+
+<AuthorizeView Roles="Director,HRManager">
+    <p>Full leave management — all employees and approval queues.</p>
+</AuthorizeView>
+
+<AuthorizeView Roles="Manager">
+    <p>Team approval queue and your own leave requests.</p>
+</AuthorizeView>
+
+<AuthorizeView Roles="Employee">
+    <p>Your leave requests and balance. <a href="/leave/my-requests">View My Requests</a></p>
+</AuthorizeView>

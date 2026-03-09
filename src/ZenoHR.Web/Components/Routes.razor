@@ -1,6 +1,29 @@
-﻿<Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
-    <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
-        <FocusOnNavigate RouteData="routeData" Selector="h1" />
-    </Found>
-</Router>
+@* REQ-SEC-002: CascadingAuthenticationState makes the auth principal available to all child components. *@
+@* REQ-SEC-003: AuthorizeRouteView enforces [Authorize] on every Blazor page — users without the required *@
+@* role are redirected to /unauthorized (authenticated but wrong role) or /login (not authenticated). *@
+@* TC-SEC-001: Route guard prevents any role from accessing a page they are not authorized for. *@
+<CascadingAuthenticationState>
+    <Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+                <NotAuthorized>
+                    @if (context.User.Identity?.IsAuthenticated != true)
+                    {
+                        @* Not authenticated — redirect to login *@
+                        <RedirectToLogin />
+                    }
+                    else
+                    {
+                        @* Authenticated but wrong role — redirect to unauthorized *@
+                        <RedirectToUnauthorized />
+                    }
+                </NotAuthorized>
+                <Authorizing>
+                    @* Shown briefly while auth state is being determined (Blazor Server circuit startup). *@
+                    <div class="auth-loading" aria-busy="true">Checking permissions...</div>
+                </Authorizing>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="routeData" Selector="h1" />
+        </Found>
+    </Router>
+</CascadingAuthenticationState>

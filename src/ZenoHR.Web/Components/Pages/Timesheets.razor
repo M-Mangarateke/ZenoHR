@@ -1,0 +1,16 @@
+@* REQ-SEC-002, PRD-15 S7: Time and Attendance — Director (read all), HRManager (read all), Manager (team approve). *@
+@* Employee: None — route blocked, nav item absent. *@
+@page "/timesheets"
+@attribute [Authorize(Roles = "Director,HRManager,Manager")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Timesheets — ZenoHR</PageTitle>
+<h1>Timesheets</h1>
+
+<AuthorizeView Roles="Director,HRManager">
+    <p>Full timesheet view — all employees.</p>
+</AuthorizeView>
+
+<AuthorizeView Roles="Manager">
+    <p>Team timesheet approval queue — your department(s) only.</p>
+</AuthorizeView>

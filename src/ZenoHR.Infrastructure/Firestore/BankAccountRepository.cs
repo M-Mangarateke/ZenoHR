@@ -2,6 +2,7 @@
 // Subcollection: employees/{emp_id}/bank_accounts.
 // Invariant: only one account may be is_primary=true per employee at any time.
 
+using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;

@@ -1,0 +1,9 @@
+@* REQ-SEC-002, PRD-15 S4 footnote 1: My Payslips — all tenant users (self-access guarantee). *@
+@* Manager and Employee see ONLY their own payslip. No cross-employee payroll data is returned. *@
+@page "/payroll/my-payslips"
+@attribute [Authorize(Roles = "Director,HRManager,Manager,Employee")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>My Payslips — ZenoHR</PageTitle>
+<h1>My Payslips</h1>
+<p>Your personal payslip history. All amounts are your own employment records only.</p>

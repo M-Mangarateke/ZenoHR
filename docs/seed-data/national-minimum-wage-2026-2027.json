@@ -1,0 +1,58 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "NMW",
+  "version": "2027.1.0",
+  "effective_from": "2026-03-01",
+  "effective_to": "2027-02-28",
+  "tax_year": "2027",
+  "source": "National Minimum Wage Act 9 of 2018 — 2026 determination by Minister of Employment and Labour",
+  "source_url": "https://www.gov.za/documents/national-minimum-wage-act",
+
+  "data_status": "CONFIRMED — sourced from Department of Employment and Labour official NMW flyer, Revised February 2026. Effective 1 March 2026.",
+
+  "general_workers": {
+    "hourly_rate": 30.23,
+    "daily_rate_8h": 241.84,
+    "daily_rate_9h": 272.07,
+    "weekly_rate_40h": 1209.20,
+    "weekly_rate_45h": 1360.35,
+    "monthly_rate_40h_week": 5239.46,
+    "monthly_rate_45h_week": 5894.40,
+    "monthly_rate_160h": 4836.80,
+    "note": "CONFIRMED. Applies to all workers including farm workers and domestic workers. Source: Dept of Employment and Labour NMW flyer revised February 2026."
+  },
+
+  "domestic_workers": {
+    "hourly_rate": 30.23,
+    "note": "CONFIRMED. Equalised to general NMW rate. Same R30.23/hour as all other workers."
+  },
+
+  "farm_workers": {
+    "hourly_rate": 30.23,
+    "note": "CONFIRMED. Equalised to general NMW rate. Same R30.23/hour as all other workers."
+  },
+
+  "expanded_public_works_programme": {
+    "hourly_rate": 16.62,
+    "note": "CONFIRMED. EPWP exempted sector rate R16.62/hour. Source: Dept of Employment and Labour NMW flyer revised February 2026."
+  },
+
+  "eti_relevance": {
+    "description": "The ETI qualification check requires the employee to be paid at least the NMW applicable to their sector. Use general_workers.hourly_rate for standard employees at Zenowethu.",
+    "eti_minimum_monthly_qualifying_160h": 4836.80,
+    "note": "CONFIRMED. R30.23 × 160 hours = R4,836.80/month. An employee earning below this amount does not qualify for ETI even if they meet age criteria (18-29). The ETI tier floor of R2,500 is a separate Act schedule amount, not the NMW."
+  },
+
+  "hours_reference": {
+    "standard_weekly": 45,
+    "standard_monthly_statutory": 195,
+    "eti_standard_monthly": 160,
+    "note": "195 hours/month = 45h/week × 52/12. 160 hours/month is the ETI standard used for pro-ration."
+  },
+
+  "enforcement": {
+    "employer_obligation": "Employer may not pay below NMW. NMW applies regardless of how remuneration is structured (hourly, weekly, monthly).",
+    "sectoral_determinations": "Where a sectoral minimum wage under the Employment Conditions Commission is higher than NMW, the sectoral rate prevails.",
+    "bcea_link": "Failure to pay NMW constitutes an unfair labour practice and a BCEA violation."
+  }
+}

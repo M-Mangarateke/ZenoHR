@@ -1,0 +1,12 @@
+@* REQ-SEC-002, PRD-15 S16: My Profile — own employee record + account settings. *@
+@* All tenant users (self-access guarantee). SaasAdmin: None (no employee record). *@
+@page "/profile"
+@attribute [Authorize(Roles = "Director,HRManager,Manager,Employee")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>My Profile — ZenoHR</PageTitle>
+<h1>My Profile</h1>
+<p>
+    View and update your employee details and account preferences
+    (photo, display name, theme, notifications, MFA).
+</p>

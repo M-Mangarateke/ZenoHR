@@ -1,30 +1,113 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">ZenoHR.Web</a>
+@* REQ-SEC-002, PRD-15 Section 5: Role-aware navigation. *@
+@* Navigation items are ABSENT ENTIRELY for roles without access — not greyed out, not disabled. *@
+@* PRD-15 rule: "Users see only what their role permits." *@
+@* Every AuthorizeView block maps exactly to the Screen Access Matrix in PRD-15 Section 4. *@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+
+<div class="nav-sidebar">
+    <div class="nav-brand">
+        <img src="/images/Zenologo2.png" alt="Zenowethu" class="brand-logo" />
+        <span class="brand-name">ZenoHR</span>
     </div>
-</div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+    <nav class="nav-menu" aria-label="Main navigation">
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
-            </NavLink>
-        </div>
+        @* ══════════════════════════════════════════════════════════════════════
+           SaasAdmin Navigation — Platform operations only (/admin/*)
+           SaasAdmin CANNOT see any tenant routes.
+        ══════════════════════════════════════════════════════════════════════ *@
+        <AuthorizeView Roles="SaasAdmin">
+            <NavSection Label="Platform">
+                <NavItem Href="/admin"          Icon="layout-dashboard" Label="Admin Dashboard" />
+                <NavItem Href="/admin/security" Icon="shield-check"     Label="Security Ops" />
+            </NavSection>
+            @* SaasAdmin also sees Audit at platform level *@
+            <NavSection Label="Monitoring">
+                <NavItem Href="/audit" Icon="file-clock" Label="Platform Audit Log" />
+            </NavSection>
+        </AuthorizeView>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
-        </div>
+        @* ══════════════════════════════════════════════════════════════════════
+           Director / HRManager Navigation — Full tenant access (identical)
+        ══════════════════════════════════════════════════════════════════════ *@
+        <AuthorizeView Roles="Director,HRManager">
+            <NavSection Label="Main">
+                <NavItem Href="/dashboard"   Icon="layout-dashboard" Label="Dashboard" />
+                <NavItem Href="/employees"   Icon="users"            Label="Employees" />
+                <NavItem Href="/payroll"     Icon="banknote"         Label="Payroll" />
+                <NavItem Href="/leave"       Icon="calendar-days"    Label="Leave" />
+                <NavItem Href="/compliance"  Icon="shield-check"     Label="Compliance" />
+                <NavItem Href="/timesheets"  Icon="clock"            Label="Timesheets" />
+                <NavItem Href="/audit"       Icon="file-clock"       Label="Audit Trail" />
+            </NavSection>
+            <NavSection Label="Settings">
+                <NavItem Href="/settings/roles"       Icon="key-round"   Label="Role Management" />
+                <NavItem Href="/settings/departments" Icon="building-2"  Label="Departments" />
+                <NavItem Href="/settings/users"       Icon="user-cog"    Label="Users" />
+                <NavItem Href="/settings/company"     Icon="settings"    Label="Company Settings" />
+                <NavItem Href="/settings/statutory"   Icon="landmark"    Label="Statutory Rates" />
+            </NavSection>
+            <NavSection Label="Insights">
+                <NavItem Href="/analytics"    Icon="bar-chart-3"  Label="Analytics" />
+                <NavItem Href="/my-analytics" Icon="trending-up"  Label="My Analytics" />
+            </NavSection>
+            <NavSection Label="Account">
+                <NavItem Href="/profile" Icon="circle-user" Label="My Profile" />
+            </NavSection>
+        </AuthorizeView>
 
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
-        </div>
+        @* ══════════════════════════════════════════════════════════════════════
+           Manager Navigation — Department-scoped access
+           Also receives: My Payslips, My Profile, My Analytics (self-access guarantee)
+        ══════════════════════════════════════════════════════════════════════ *@
+        <AuthorizeView Roles="Manager">
+            <NavSection Label="Main">
+                <NavItem Href="/dashboard"         Icon="layout-dashboard" Label="Dashboard" />
+                <NavItem Href="/employees"         Icon="users"            Label="Employees" />
+                <NavItem Href="/leave"             Icon="calendar-days"    Label="Leave" />
+                <NavItem Href="/timesheets"        Icon="clock"            Label="Timesheets" />
+                <NavItem Href="/clock-in"          Icon="timer"            Label="Clock In / Out" />
+                <NavItem Href="/payroll/my-payslips" Icon="receipt"        Label="My Payslips" />
+            </NavSection>
+            <NavSection Label="Insights">
+                <NavItem Href="/analytics"    Icon="bar-chart-3"  Label="Team Analytics" />
+                <NavItem Href="/my-analytics" Icon="trending-up"  Label="My Analytics" />
+            </NavSection>
+            <NavSection Label="Account">
+                <NavItem Href="/profile" Icon="circle-user" Label="My Profile" />
+            </NavSection>
+        </AuthorizeView>
+
+        @* ══════════════════════════════════════════════════════════════════════
+           Employee Navigation — Self-service only
+           Payroll, Compliance, Timesheets, Audit, Settings: ABSENT
+        ══════════════════════════════════════════════════════════════════════ *@
+        <AuthorizeView Roles="Employee">
+            <NavSection Label="Main">
+                <NavItem Href="/dashboard"           Icon="layout-dashboard" Label="Dashboard" />
+                <NavItem Href="/profile"             Icon="circle-user"      Label="My Profile" />
+                <NavItem Href="/payroll/my-payslips" Icon="receipt"          Label="My Payslips" />
+                <NavItem Href="/leave/my-requests"   Icon="calendar-days"    Label="My Leave" />
+                <NavItem Href="/clock-in"            Icon="timer"            Label="Clock In / Out" />
+            </NavSection>
+            <NavSection Label="Insights">
+                <NavItem Href="/my-analytics" Icon="trending-up" Label="My Analytics" />
+            </NavSection>
+        </AuthorizeView>
+
     </nav>
-</div>
 
+    @* ── User info + sign-out (shown for all authenticated users) ── *@
+    <AuthorizeView>
+        <Authorized>
+            <div class="nav-user-panel">
+                <span class="nav-user-name">@context.User.Identity?.Name</span>
+                <form method="post" action="/auth/logout">
+                    <AntiForgeryToken />
+                    <button type="submit" class="nav-signout-btn">Sign out</button>
+                </form>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+</div>

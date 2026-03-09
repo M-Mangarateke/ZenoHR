@@ -1,0 +1,54 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "BCEA_EARNINGS_THRESHOLD",
+  "version": "2027.1.0",
+  "effective_from": "2026-03-01",
+  "effective_to": "2027-02-28",
+  "tax_year": "2027",
+  "source": "Basic Conditions of Employment Act 75 of 1997 — Section 6(3) — annual determination by Minister of Employment and Labour",
+  "source_url": "https://www.gov.za/documents/basic-conditions-employment-act",
+
+  "data_status": "PROVISIONAL — figure estimated at approximately +5.4% above the 2025 threshold of R254,371.67/year. MUST be replaced with confirmed figure from Government Gazette published by the Department of Employment and Labour (typically February/March 2026). Update this file and re-run StatutoryRuleSetLoader.LoadAllAsync() to overwrite the Firestore document.",
+
+  "annual_threshold": 268000.00,
+  "monthly_threshold": 22333.33,
+  "weekly_threshold": 5153.85,
+  "daily_threshold": 1031.28,
+
+  "history": {
+    "threshold_2024": 241110.59,
+    "threshold_2025": 254371.67,
+    "threshold_2026_provisional": 268000.00,
+    "note": "2024→2025 increase was +5.5%. 2026 provisional assumes similar CPI uplift."
+  },
+
+  "bcea_protections_below_threshold": {
+    "ctl_id": "CTL-BCEA-001",
+    "description": "Employees earning BELOW the threshold are entitled to all BCEA protections. Employees earning AT OR ABOVE the threshold may contract out of certain protections with their employer.",
+    "protections_applicable": [
+      "Section 9: Maximum ordinary hours of work (45 hours/week)",
+      "Section 10: Overtime — written agreement required, 1.5× rate for OT, 2× for Sundays/public holidays",
+      "Section 11: Compressed working week agreement limits",
+      "Section 12: Averaging of hours agreement limits",
+      "Section 14: Meal interval (30-60 minutes after 5 continuous hours)",
+      "Section 15: Daily and weekly rest periods",
+      "Section 16: Pay for work on Sundays",
+      "Section 17(2): Night work compensation",
+      "Section 18(3): Public holiday work — must pay agreed wage plus ordinary day's pay"
+    ],
+    "protections_that_can_be_varied_above_threshold": [
+      "Ordinary hours of work can exceed 45 hours/week by written agreement",
+      "Overtime limits can be varied by written agreement",
+      "Meal interval can be reduced below 30 minutes by written agreement"
+    ]
+  },
+
+  "compliance_rules": [
+    "Always use the MONTHLY threshold for monthly payroll employees",
+    "For weekly payroll: use weekly_threshold per pay period",
+    "Compare employee's TOTAL monthly remuneration (including allowances, overtime, etc.) against monthly_threshold",
+    "If employee earns at or above threshold, note that BCEA protections may be varied — but must still be by written agreement",
+    "Even above-threshold employees retain all LRA rights (unfair dismissal, unfair labour practice)",
+    "NMW always applies regardless of threshold — no employee may earn below NMW"
+  ]
+}

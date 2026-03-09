@@ -1,0 +1,33 @@
+@* REQ-SEC-002: Dashboard — all authenticated tenant users. Widget rendering is role-conditional. *@
+@* PRD-15 Section 6: widgets rendered conditionally; absent entirely for roles without access. *@
+@page "/dashboard"
+@attribute [Authorize]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Dashboard — ZenoHR</PageTitle>
+<h1>Dashboard</h1>
+
+@* Role-conditional widget rendering (PRD-15 Section 6) *@
+<AuthorizeView Roles="Director,HRManager">
+    <div class="widget-row">
+        <div class="widget">Headcount</div>
+        <div class="widget">Payroll Run Status</div>
+        <div class="widget">SARS Compliance Score</div>
+        <div class="widget">Pending Approvals</div>
+    </div>
+</AuthorizeView>
+
+<AuthorizeView Roles="Manager">
+    <div class="widget-row">
+        <div class="widget">Team Headcount</div>
+        <div class="widget">Pending Team Approvals</div>
+    </div>
+</AuthorizeView>
+
+@* Every tenant user: own leave balance + next payslip date (self-access guarantee, PRD-15 §1.6) *@
+<AuthorizeView Roles="Director,HRManager,Manager,Employee">
+    <div class="widget-row">
+        <div class="widget">My Leave Balance</div>
+        <div class="widget">My Next Payslip Date</div>
+    </div>
+</AuthorizeView>

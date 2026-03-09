@@ -1,0 +1,657 @@
+@* REQ-SEC-002, PRD-15 S10: Statutory Rates Settings — Director and HRManager only.       *@
+@* CTL-SARS-001, REQ-HR-003: HR Manager / Director can update all annually-published      *@
+@* statutory figures (SARS PAYE brackets, rebates, thresholds, medical credits, travel     *@
+@* rates, UIF/SDL, NMW) when the Budget Speech or gazette is published each March —        *@
+@* without requiring a code change or redeployment.                                        *@
+@* REQ-OPS-005: Every save is written to the hash-chained audit trail.                    *@
+
+@page "/settings/statutory"
+@attribute [Authorize(Roles = "Director,HRManager")]
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using ZenoHR.Domain.Common
+@using ZenoHR.Domain.Errors
+@using ZenoHR.Infrastructure.Audit
+@using ZenoHR.Infrastructure.Firestore
+@using ZenoHR.Module.Audit.Domain
+@using System.Security.Claims
+@using System.Text.Json
+@using System.Globalization
+
+@inject StatutoryRuleSetRepository Repo
+@inject AuditEventWriter AuditWriter
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>Statutory Rates — ZenoHR</PageTitle>
+
+<div class="page-header">
+    <div class="page-header-content">
+        <h1 class="page-title">Statutory Rates</h1>
+        <p class="page-subtitle">
+            Update statutory figures directly when SARS publishes the annual Budget Speech or the
+            DoEL publishes a new gazette — no developer intervention required.
+            Every change is recorded in the audit trail.
+        </p>
+    </div>
+</div>
+
+@* ── Settings tab bar ─────────────────────────────────────────────────────────── *@
+<div class="settings-tabs">
+    <a href="/settings/roles"       class="settings-tab">Role Management</a>
+    <a href="/settings/departments" class="settings-tab">Departments</a>
+    <a href="/settings/users"       class="settings-tab">Users</a>
+    <a href="/settings/company"     class="settings-tab">Company Settings</a>
+    <a href="/settings/statutory"   class="settings-tab settings-tab-active">Statutory Rates</a>
+</div>
+
+@* ── Content ──────────────────────────────────────────────────────────────────── *@
+@if (_loading)
+{
+    <div class="loading-state">
+        <i data-lucide="loader-2" style="width:24px;height:24px;stroke-width:1.5"></i>
+        <span>Loading statutory rule sets…</span>
+    </div>
+}
+else if (_errorMessage is not null)
+{
+    <div class="alert alert-danger">@_errorMessage</div>
+}
+else
+{
+    @if (_successMessage is not null)
+    {
+        <div class="alert alert-success" style="margin-bottom:1rem;">@_successMessage</div>
+    }
+
+    <div class="rule-set-list">
+        @foreach (var rs in _ruleSets)
+        {
+            var specs      = StatutoryFieldPermissions.GetFieldSpecs(rs.RuleDomain);
+            var isEditing  = _editMode.Contains(rs.Id);
+            var isSaving   = _savingId == rs.Id;
+            var hasSpecs   = specs.Count > 0;
+            var isProvisional = IsProvisional(rs);
+
+            <div class="card rule-set-card @(isProvisional ? "rule-set-card-provisional" : "")">
+
+                @* ── Card header ──────────────────────────────────────── *@
+                <div class="card-header rule-set-header">
+                    <div class="rule-set-title-row">
+                        <h3 class="rule-set-title">@ToLabel(rs.RuleDomain)</h3>
+                        <span class="badge @(isProvisional ? "badge-warning" : "badge-success")">
+                            @(isProvisional ? "PROVISIONAL" : "CONFIRMED")
+                        </span>
+                        @if (!string.IsNullOrWhiteSpace(rs.TaxYear))
+                        {
+                            <span class="badge badge-muted badge-nodot">TY@rs.TaxYear</span>
+                        }
+                    </div>
+                    <div class="rule-set-meta">
+                        <span class="meta-item">
+                            <i data-lucide="calendar" style="width:13px;height:13px;stroke-width:1.5"></i>
+                            @rs.EffectiveFrom.ToString("d MMM yyyy", CultureInfo.InvariantCulture)
+                            @if (rs.EffectiveTo.HasValue)
+                            { <text> – @rs.EffectiveTo.Value.ToString("d MMM yyyy", CultureInfo.InvariantCulture)</text> }
+                            else
+                            { <text> onwards</text> }
+                        </span>
+                        <span class="meta-item">v@rs.Version</span>
+                    </div>
+                    @if (hasSpecs)
+                    {
+                        <div class="card-header-actions">
+                            @if (!isEditing)
+                            {
+                                <button class="btn btn-outline btn-sm" @onclick="() => EnterEditMode(rs)">
+                                    <i data-lucide="pencil" style="width:14px;height:14px;stroke-width:1.5"></i>
+                                    Edit
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-primary btn-sm"
+                                        disabled="@isSaving"
+                                        @onclick="() => SaveChangesAsync(rs)">
+                                    @if (isSaving)
+                                    {
+                                        <i data-lucide="loader-2" style="width:14px;height:14px;stroke-width:1.5"></i>
+                                        <text> Saving…</text>
+                                    }
+                                    else
+                                    {
+                                        <i data-lucide="save" style="width:14px;height:14px;stroke-width:1.5"></i>
+                                        <text> Save Changes</text>
+                                    }
+                                </button>
+                                <button class="btn btn-ghost btn-sm" @onclick="() => CancelEdit(rs.Id)">
+                                    Cancel
+                                </button>
+                            }
+                        </div>
+                    }
+                </div>
+
+                @* ── Card body ────────────────────────────────────────── *@
+                <div class="card-body">
+
+                    @if (!hasSpecs)
+                    {
+                        @* ETI, BCEA Leave, Public Holidays — data_status only *@
+                        <p class="confirmed-note">
+                            <i data-lucide="lock" style="width:13px;height:13px;stroke-width:1.5"></i>
+                            This rule set is managed programmatically. Contact your system administrator to update.
+                        </p>
+                    }
+                    else if (!isEditing)
+                    {
+                        @* ── Read-only preview ───────────────────────── *@
+                        @foreach (var spec in specs)
+                        {
+                            var rawVal = rs.RuleData.TryGetValue(spec.Key, out var v) ? v : null;
+                            <div class="field-preview">
+                                <span class="field-preview-label">@spec.Label</span>
+                                @switch (spec.EditType)
+                                {
+                                    case FieldEditType.Scalar:
+                                        <span class="field-preview-value mono">@(rawVal?.ToString() ?? "—")</span>
+                                        break;
+
+                                    case FieldEditType.NestedObject when rawVal is IDictionary<string, object> obj:
+                                        <div class="kv-grid">
+                                            @foreach (var kv in obj.Take(6))
+                                            {
+                                                <span class="kv-key">@kv.Key.Replace("_", " ")</span>
+                                                <span class="kv-val mono">@kv.Value</span>
+                                            }
+                                            @if (obj.Count > 6)
+                                            {
+                                                <span class="kv-key" style="grid-column:1/-1;color:var(--text-secondary);font-style:italic">
+                                                    +@(obj.Count - 6) more…
+                                                </span>
+                                            }
+                                        </div>
+                                        break;
+
+                                    case FieldEditType.ArrayOfObjects when rawVal is IList<object> arr && arr.Count > 0:
+                                    {
+                                        var cols = (arr[0] as IDictionary<string, object>)?.Keys.ToList() ?? [];
+                                        <div class="table-wrapper">
+                                            <table class="data-table data-table-sm">
+                                                <thead>
+                                                    <tr>
+                                                        @foreach (var col in cols)
+                                                        { <th>@col.Replace("_", " ")</th> }
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var row in arr.OfType<IDictionary<string, object>>())
+                                                    {
+                                                        <tr>
+                                                            @foreach (var col in cols)
+                                                            { <td class="mono">@(row.TryGetValue(col, out var cell) ? cell : "—")</td> }
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        break;
+                                    }
+
+                                    default:
+                                        <span class="field-preview-value" style="color:var(--text-secondary)">—</span>
+                                        break;
+                                }
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        @* ── Edit mode ───────────────────────────────── *@
+
+                        @* data_status dropdown always at top *@
+                        <div class="form-field" style="margin-bottom:.75rem;">
+                            <label class="form-label">Confirmation Status</label>
+                            <select class="form-select form-select-sm"
+                                    value="@GetBuf(rs.Id, "data_status")"
+                                    @onchange="@(e => SetBuf(rs.Id, "data_status", e.Value?.ToString() ?? string.Empty))">
+                                <option value="PROVISIONAL">PROVISIONAL</option>
+                                <option value="CONFIRMED">CONFIRMED</option>
+                            </select>
+                        </div>
+
+                        @foreach (var spec in specs)
+                        {
+                            var rawVal = rs.RuleData.TryGetValue(spec.Key, out var v) ? v : null;
+
+                            <div class="spec-section">
+                                <div class="spec-section-label">@spec.Label</div>
+
+                                @switch (spec.EditType)
+                                {
+                                    @* ── Scalar ─────────────────────────────── *@
+                                    case FieldEditType.Scalar:
+                                        <div class="form-field">
+                                            <input type="number"
+                                                   step="any"
+                                                   class="form-control form-control-sm mono"
+                                                   value="@GetBuf(rs.Id, spec.Key)"
+                                                   @onchange="@(e => SetBuf(rs.Id, spec.Key, e.Value?.ToString() ?? string.Empty))" />
+                                            <div class="form-hint">Current: @(rawVal?.ToString() ?? "—")</div>
+                                        </div>
+                                        break;
+
+                                    @* ── Nested object ──────────────────────── *@
+                                    case FieldEditType.NestedObject when rawVal is IDictionary<string, object> objVal:
+                                        <div class="nested-grid">
+                                            @foreach (var subKey in objVal.Keys)
+                                            {
+                                                var bufKey = $"{spec.Key}.{subKey}";
+                                                <label class="form-label nested-label">@subKey.Replace("_", " ")</label>
+                                                <input type="number"
+                                                       step="any"
+                                                       class="form-control form-control-sm mono"
+                                                       value="@GetBuf(rs.Id, bufKey)"
+                                                       @onchange="@(e => SetBuf(rs.Id, bufKey, e.Value?.ToString() ?? string.Empty))" />
+                                            }
+                                        </div>
+                                        break;
+
+                                    @* ── Array of objects ───────────────────── *@
+                                    case FieldEditType.ArrayOfObjects when rawVal is IList<object> arrVal && arrVal.Count > 0:
+                                    {
+                                        var cols2 = (arrVal[0] as IDictionary<string, object>)?.Keys.ToList() ?? [];
+                                        <div class="table-wrapper">
+                                            <table class="data-table data-table-sm data-table-edit">
+                                                <thead>
+                                                    <tr>
+                                                        @foreach (var col in cols2)
+                                                        { <th>@col.Replace("_", " ")</th> }
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @for (var ri = 0; ri < arrVal.Count; ri++)
+                                                    {
+                                                        var row = arrVal[ri] as IDictionary<string, object>;
+                                                        var rowIdx = ri;
+                                                        <tr>
+                                                            @foreach (var col in cols2)
+                                                            {
+                                                                var bufKey = $"{spec.Key}.{rowIdx}.{col}";
+                                                                <td>
+                                                                    <input type="number"
+                                                                           step="any"
+                                                                           class="form-control form-control-xs mono"
+                                                                           value="@GetBuf(rs.Id, bufKey)"
+                                                                           @onchange="@(e => SetBuf(rs.Id, bufKey, e.Value?.ToString() ?? string.Empty))" />
+                                                                </td>
+                                                            }
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        break;
+                                    }
+
+                                    default:
+                                        <p class="form-hint">No editable fields for this type.</p>
+                                        break;
+                                }
+                            </div>
+                        }
+                    }
+
+                    @* ── Footer: source + last updated ─────────────── *@
+                    <div class="card-footer-meta">
+                        <span class="source-citation">
+                            <i data-lucide="external-link" style="width:11px;height:11px;stroke-width:1.5"></i>
+                            @rs.Source
+                        </span>
+                        @if (rs.RuleData.TryGetValue("last_updated_by", out var updatedBy) && updatedBy is not null)
+                        {
+                            <span class="last-updated">Updated by @updatedBy</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="info-panel">
+        <i data-lucide="info" style="width:16px;height:16px;stroke-width:1.5"></i>
+        <div>
+            <strong>Annual update workflow</strong>
+            <p>
+                Each March, when SARS publishes the Budget Speech, open the relevant rule set,
+                click <strong>Edit</strong>, enter the new figures, and save.
+                The payroll engine immediately uses the updated values for the new tax year.
+                All changes are hash-chained in the audit trail.
+            </p>
+            <p>
+                Official sources:
+                <a href="https://www.sars.gov.za/tax-rates/income-tax/rates-of-tax-for-individuals/" target="_blank" rel="noopener noreferrer">SARS PAYE rates</a> ·
+                <a href="https://www.gov.za/documents/national-minimum-wage-act" target="_blank" rel="noopener noreferrer">NMW gazette</a> ·
+                <a href="https://www.gov.za/documents/basic-conditions-employment-act" target="_blank" rel="noopener noreferrer">BCEA gazette</a>
+            </p>
+        </div>
+    </div>
+}
+
+<style>
+    .rule-set-list { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem; }
+
+    .rule-set-card { border: 1px solid var(--border); }
+    .rule-set-card-provisional { border-left: 3px solid var(--warning); }
+
+    .rule-set-header { border-bottom: 1px solid var(--border); padding-bottom: .75rem; margin-bottom: .75rem; display: flex; flex-direction: column; gap: .35rem; }
+    .rule-set-title-row { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+    .rule-set-title { font-size: 1rem; font-weight: 600; margin: 0; }
+    .rule-set-meta { display: flex; gap: .75rem; flex-wrap: wrap; font-size: .75rem; color: var(--text-secondary); }
+    .meta-item { display: inline-flex; align-items: center; gap: 3px; }
+    .card-header-actions { display: flex; gap: .5rem; align-items: center; margin-top: .25rem; }
+
+    /* Read mode: field preview rows */
+    .field-preview { display: flex; flex-direction: column; gap: .25rem; margin-bottom: .75rem; }
+    .field-preview:last-of-type { margin-bottom: 0; }
+    .field-preview-label { font-size: .75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; }
+    .field-preview-value { font-size: .875rem; }
+
+    /* Key-value grid for nested object preview */
+    .kv-grid { display: grid; grid-template-columns: auto 1fr; gap: 2px 1rem; }
+    .kv-key { font-size: .75rem; color: var(--text-secondary); text-transform: capitalize; white-space: nowrap; }
+    .kv-val { font-size: .8rem; }
+
+    /* Edit mode: spec sections */
+    .spec-section { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px dashed var(--border); }
+    .spec-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .spec-section-label { font-size: .75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .04em; margin-bottom: .5rem; }
+
+    /* Nested object: two-column label + input grid */
+    .nested-grid { display: grid; grid-template-columns: minmax(180px, auto) 1fr; gap: .35rem .75rem; align-items: center; }
+    .nested-label { font-size: .8rem; color: var(--text-secondary); margin: 0; text-transform: capitalize; white-space: nowrap; }
+
+    /* Tables */
+    .table-wrapper { overflow-x: auto; }
+    .data-table { width: 100%; border-collapse: collapse; font-size: .78rem; }
+    .data-table th { background: var(--bg-page); font-weight: 600; font-size: .72rem; text-transform: capitalize; padding: .3rem .5rem; border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap; }
+    .data-table td { padding: .25rem .5rem; border-bottom: 1px solid var(--border); }
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table-sm th, .data-table-sm td { padding: .2rem .4rem; }
+    .data-table-edit td { padding: .15rem .25rem; }
+    .form-control-xs { padding: .15rem .3rem; font-size: .78rem; height: 26px; }
+
+    /* Footer */
+    .card-footer-meta { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; margin-top: .75rem; padding-top: .5rem; border-top: 1px solid var(--border); }
+    .source-citation { font-size: .72rem; color: var(--text-secondary); font-style: italic; display: flex; align-items: center; gap: 3px; }
+    .last-updated { font-size: .72rem; color: var(--text-secondary); }
+
+    /* Misc */
+    .mono { font-family: var(--font-mono, 'JetBrains Mono', monospace); }
+    .confirmed-note { font-size: .8rem; color: var(--text-secondary); display: flex; align-items: center; gap: 4px; margin: 0 0 .5rem; }
+    .form-field { display: flex; flex-direction: column; gap: .25rem; }
+    .form-label { font-size: .8rem; font-weight: 500; color: var(--text-primary); }
+    .form-hint { font-size: .72rem; color: var(--text-secondary); }
+
+    .settings-tabs { display: flex; gap: .25rem; border-bottom: 2px solid var(--border); margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .settings-tab { padding: .5rem 1rem; font-size: .875rem; font-weight: 500; color: var(--text-secondary); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: color .15s, border-color .15s; }
+    .settings-tab:hover { color: var(--text-primary); }
+    .settings-tab-active { color: var(--brand-primary); border-bottom-color: var(--brand-primary); }
+
+    .info-panel { display: flex; gap: .75rem; padding: 1rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); font-size: .8rem; color: var(--text-secondary); }
+    .info-panel p { margin: .25rem 0 0; }
+    .info-panel a { color: var(--brand-primary); }
+    .loading-state { display: flex; align-items: center; gap: .5rem; color: var(--text-secondary); padding: 2rem; }
+</style>
+
+@code {
+    // ── Page state ───────────────────────────────────────────────────────────
+
+    private bool _loading = true;
+    private string? _errorMessage;
+    private string? _successMessage;
+    private string? _savingId;
+    private IReadOnlyList<StatutoryRuleSet> _ruleSets = [];
+
+    /// <summary>Rule set IDs currently open in edit mode.</summary>
+    private readonly HashSet<string> _editMode = [];
+
+    /// <summary>
+    /// Flat edit buffer: key = "{ruleSetId}|{path}" where path is
+    /// "fieldName" for scalar/data_status,
+    /// "fieldName.subKey" for nested objects,
+    /// "fieldName.rowIndex.colKey" for arrays.
+    /// </summary>
+    private readonly Dictionary<string, string> _buf = [];
+
+    // ── Lifecycle ────────────────────────────────────────────────────────────
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var all = await Repo.GetAllAsync();
+            _ruleSets = all
+                .OrderByDescending(IsProvisional)
+                .ThenBy(r => ToLabel(r.RuleDomain))
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to load statutory rule sets: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    // ── Edit mode ─────────────────────────────────────────────────────────────
+
+    private void EnterEditMode(StatutoryRuleSet rs)
+    {
+        // Pre-populate the edit buffer with current Firestore values
+        var specs = StatutoryFieldPermissions.GetFieldSpecs(rs.RuleDomain);
+
+        // data_status
+        var ds = rs.RuleData.TryGetValue("data_status", out var dsv) ? dsv?.ToString() ?? "" : "";
+        SetBuf(rs.Id, "data_status", ds);
+
+        foreach (var spec in specs)
+        {
+            if (!rs.RuleData.TryGetValue(spec.Key, out var raw)) continue;
+
+            switch (spec.EditType)
+            {
+                case FieldEditType.Scalar:
+                    SetBuf(rs.Id, spec.Key, raw?.ToString() ?? "");
+                    break;
+
+                case FieldEditType.NestedObject when raw is IDictionary<string, object> obj:
+                    foreach (var kv in obj)
+                        SetBuf(rs.Id, $"{spec.Key}.{kv.Key}", kv.Value?.ToString() ?? "");
+                    break;
+
+                case FieldEditType.ArrayOfObjects when raw is IList<object> arr:
+                    for (var i = 0; i < arr.Count; i++)
+                    {
+                        if (arr[i] is IDictionary<string, object> row)
+                            foreach (var kv in row)
+                                SetBuf(rs.Id, $"{spec.Key}.{i}.{kv.Key}", kv.Value?.ToString() ?? "");
+                    }
+                    break;
+            }
+        }
+
+        _editMode.Add(rs.Id);
+        _successMessage = null;
+    }
+
+    private void CancelEdit(string ruleSetId)
+    {
+        _editMode.Remove(ruleSetId);
+        // Clear buffer entries for this rule set
+        var prefix = ruleSetId + "|";
+        foreach (var key in _buf.Keys.Where(k => k.StartsWith(prefix, StringComparison.Ordinal)).ToList())
+            _buf.Remove(key);
+        _successMessage = null;
+    }
+
+    // ── Buffer helpers ────────────────────────────────────────────────────────
+
+    private string BufKey(string ruleSetId, string path) => $"{ruleSetId}|{path}";
+    private void   SetBuf(string ruleSetId, string path, string val) => _buf[BufKey(ruleSetId, path)] = val;
+    private string GetBuf(string ruleSetId, string path) =>
+        _buf.TryGetValue(BufKey(ruleSetId, path), out var v) ? v : "";
+
+    // ── Save ─────────────────────────────────────────────────────────────────
+
+    private async Task SaveChangesAsync(StatutoryRuleSet ruleSet)
+    {
+        _savingId   = ruleSet.Id;
+        _successMessage = null;
+        _errorMessage   = null;
+
+        try
+        {
+            // Build the updates dictionary from the edit buffer
+            var specs = StatutoryFieldPermissions.GetFieldSpecs(ruleSet.RuleDomain);
+            var fieldUpdates = new Dictionary<string, object?>();
+
+            // data_status
+            var newStatus = GetBuf(ruleSet.Id, "data_status");
+            if (!string.IsNullOrEmpty(newStatus))
+                fieldUpdates["data_status"] = newStatus;
+
+            foreach (var spec in specs)
+            {
+                switch (spec.EditType)
+                {
+                    case FieldEditType.Scalar:
+                    {
+                        var raw = GetBuf(ruleSet.Id, spec.Key);
+                        if (!string.IsNullOrEmpty(raw))
+                            fieldUpdates[spec.Key] = ParseNumber(raw);
+                        break;
+                    }
+
+                    case FieldEditType.NestedObject when ruleSet.RuleData.TryGetValue(spec.Key, out var existing)
+                                                        && existing is IDictionary<string, object> existingObj:
+                    {
+                        // Rebuild the full object with any edited sub-keys
+                        var rebuilt = new Dictionary<string, object?>();
+                        foreach (var subKey in existingObj.Keys)
+                        {
+                            var raw = GetBuf(ruleSet.Id, $"{spec.Key}.{subKey}");
+                            rebuilt[subKey] = string.IsNullOrEmpty(raw)
+                                ? existingObj[subKey]
+                                : ParseNumber(raw);
+                        }
+                        fieldUpdates[spec.Key] = rebuilt;
+                        break;
+                    }
+
+                    case FieldEditType.ArrayOfObjects when ruleSet.RuleData.TryGetValue(spec.Key, out var existingArr)
+                                                          && existingArr is IList<object> existingList:
+                    {
+                        var rebuilt = new List<Dictionary<string, object?>>();
+                        for (var i = 0; i < existingList.Count; i++)
+                        {
+                            if (existingList[i] is not IDictionary<string, object> row) continue;
+                            var rebuiltRow = new Dictionary<string, object?>();
+                            foreach (var col in row.Keys)
+                            {
+                                var raw = GetBuf(ruleSet.Id, $"{spec.Key}.{i}.{col}");
+                                rebuiltRow[col] = string.IsNullOrEmpty(raw)
+                                    ? row[col]
+                                    : ParseNumber(raw);
+                            }
+                            rebuilt.Add(rebuiltRow);
+                        }
+                        fieldUpdates[spec.Key] = rebuilt;
+                        break;
+                    }
+                }
+            }
+
+            if (fieldUpdates.Count == 0) { CancelEdit(ruleSet.Id); return; }
+
+            // Resolve actor
+            var authState = await AuthState.GetAuthenticationStateAsync();
+            var user      = authState.User;
+            var actorId   = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? "unknown";
+            var actorRole = user.FindFirstValue(ClaimTypes.Role) ?? "HRManager";
+
+            // Write to Firestore
+            var result = await Repo.UpdateRuleDataAsync(ruleSet.Id, fieldUpdates, actorId);
+            if (result.IsFailure) { _errorMessage = $"Save failed: {result.Error.Message}"; return; }
+
+            // Audit event
+            var prevStatus = ruleSet.RuleData.TryGetValue("data_status", out var ps) ? ps?.ToString() ?? "" : "";
+            await AuditWriter.WriteAsync(new WriteAuditEventRequest
+            {
+                TenantId     = "SYSTEM",
+                ActorId      = actorId,
+                ActorRole    = actorRole,
+                Action       = AuditAction.Update,
+                ResourceType = AuditResourceType.StatutoryRuleSet,
+                ResourceId   = ruleSet.Id,
+                Metadata     = JsonSerializer.Serialize(new
+                {
+                    rule_domain          = ruleSet.RuleDomain,
+                    fields_updated       = string.Join(", ", fieldUpdates.Keys),
+                    previous_data_status = prevStatus,
+                    new_data_status      = newStatus,
+                    source               = "Settings UI"
+                })
+            });
+
+            // Re-fetch and refresh list
+            var refreshed = await Repo.GetByIdAsync(ruleSet.Id);
+            if (refreshed.IsSuccess)
+            {
+                _ruleSets = _ruleSets
+                    .Select(r => r.Id == ruleSet.Id ? refreshed.Value! : r)
+                    .OrderByDescending(IsProvisional)
+                    .ThenBy(r => ToLabel(r.RuleDomain))
+                    .ToList();
+            }
+
+            CancelEdit(ruleSet.Id);
+            _successMessage = $"✓ {ToLabel(ruleSet.RuleDomain)} updated. Change recorded in audit trail.";
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Unexpected error: {ex.Message}";
+        }
+        finally
+        {
+            _savingId = null;
+        }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static bool IsProvisional(StatutoryRuleSet rs) =>
+        rs.RuleData.TryGetValue("data_status", out var ds)
+        && ds?.ToString()?.Contains("PROVISIONAL", StringComparison.OrdinalIgnoreCase) == true;
+
+    /// <summary>Parses a numeric string; prefers decimal to preserve precision.</summary>
+    private static object ParseNumber(string raw) =>
+        decimal.TryParse(raw, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : (object)raw;
+
+    private static string ToLabel(string ruleDomain) => ruleDomain switch
+    {
+        "BCEA_EARNINGS_THRESHOLD" => "BCEA Earnings Threshold",
+        "NMW"                     => "National Minimum Wage",
+        "SARS_PAYE"               => "SARS PAYE Tax Tables",
+        "SARS_UIF_SDL"            => "UIF & SDL Rates",
+        "SARS_MSFTC"              => "Medical Scheme Fees Tax Credit",
+        "SARS_TRAVEL"             => "Travel Allowance Rates",
+        "SARS_ETI"                => "Employment Tax Incentive",
+        "BCEA_LEAVE"              => "BCEA Leave Entitlements",
+        "BCEA_WORKING_TIME"       => "BCEA Working Time",
+        "BCEA_NOTICE_SEVERANCE"   => "BCEA Notice & Severance",
+        "SA_PUBLIC_HOLIDAYS"      => "SA Public Holidays",
+        _                         => ruleDomain
+    };
+}

@@ -1,0 +1,76 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "SARS_MSFTC",
+  "version": "2027.1.0",
+  "effective_from": "2026-03-01",
+  "effective_to": "2027-02-28",
+  "tax_year": "2027",
+  "source": "SARS Income Tax Act No. 58 of 1962 — Section 6A (Medical Scheme Fees Tax Credit) — Budget Speech 25 February 2026",
+  "source_url": "https://www.sars.gov.za/types-of-tax/personal-income-tax/tax-season/medical-credits/",
+  "irp5_code": 4116,
+
+  "description": "The Medical Scheme Fees Tax Credit (MSFTC) is a non-refundable tax credit that directly reduces PAYE withheld from an employee's salary. TY2027 restructures the credit: the first dependant rate is raised to equal the principal rate. Excess credit (where MSFTC > PAYE) is NOT paid out by the employer — the employee claims the balance on their annual ITR12 return.",
+
+  "monthly_credits": {
+    "principal_member": 376.00,
+    "first_dependant": 376.00,
+    "each_additional_dependant": 254.00
+  },
+
+  "annual_credits": {
+    "principal_member": 4512.00,
+    "first_dependant": 4512.00,
+    "each_additional_dependant": 3048.00
+  },
+
+  "formula": {
+    "description": "monthly_msftc = 376 + (376 if dependants >= 1 else 0) + (254 × max(0, dependants - 1))",
+    "example_0_dependants": "376 + 0 = R376/month (principal only)",
+    "example_1_dependant":  "376 + 376 = R752/month",
+    "example_2_dependants": "376 + 376 + 254 = R1,006/month",
+    "example_3_dependants": "376 + 376 + 254 + 254 = R1,260/month"
+  },
+
+  "paye_application": {
+    "rule": "net_paye_withheld = max(0, calculated_paye - monthly_msftc)",
+    "floor": "PAYE cannot go below zero. If MSFTC > calculated_paye, net PAYE = R0.",
+    "excess": "Excess credit is NOT refundable by the employer. Employee claims it on ITR12.",
+    "timing": "Applied in the same pay period. Not carried forward by employer to next month.",
+    "applied_by": "PayrollOrchestrationService — after calling PayeCalculationEngine, before building PayrollResult"
+  },
+
+  "irp5_reporting": {
+    "code": 4116,
+    "section": "Tax Withheld section of IRP5",
+    "annual_value": "Sum of monthly MSFTC credits applied across all pay periods in the tax year",
+    "note": "Reported as a credit (positive value) in the tax withheld section. Reduces total employees tax shown on certificate."
+  },
+
+  "payslip_display": {
+    "label": "Medical Tax Credit (Sec 6A)",
+    "placement": "Shown as a credit in the PAYE deduction line — reduces PAYE withheld",
+    "example_format": "PAYE before credit: R2,000 | Medical Tax Credit: (R752) | PAYE withheld: R1,248"
+  },
+
+  "employee_requirements": {
+    "medical_scheme_membership": "Employee must be a contributing member of a registered medical aid scheme (registered under the Medical Schemes Act)",
+    "dependant_declaration": "Employee must declare number of registered dependants to HR via written declaration (medical_scheme_dependants field in employee profile)",
+    "change_notification": "Employee must notify HR when dependant count changes (new dependant, dependant removed). Change applies from the following pay period.",
+    "field_in_employee_profile": "medical_scheme_dependants: integer (0 = principal only; 1 = principal + 1 dependant; etc.)"
+  },
+
+  "validation_rules": [
+    "MSFTC applies only when employee is on a registered medical scheme (medical_scheme_name not null)",
+    "medical_scheme_dependants must be >= 0 (null treated as 0 if on scheme, 0 MSFTC if not on scheme)",
+    "net_paye >= 0 always — MSFTC cannot create a negative tax liability",
+    "Excess MSFTC is NOT carried forward or refunded by employer",
+    "On IRP5, code 4116 annual total must equal sum of monthly MSFTC credits applied"
+  ],
+
+  "notes": {
+    "ty2027_structural_change": "TY2027 restructures the credit table: first dependant rate raised to R376 (equal to principal, up from R246). Each additional dependant drops slightly from R246 to R254 — but note R254 > R246, so all tiers increased. The structural change means the formula can no longer be simplified to 'principal + (246 × dependants)'. The MsfTcCalculationEngine must be updated to use the new formula.",
+    "vs_ty2026": "TY2026 amounts: principal R364, first_dep R246, each_additional R246. TY2026 doc: SARS_MSFTC_2026 (expired 28 Feb 2026).",
+    "engine_architecture": "MsfTcCalculationEngine takes: int numberOfDependants, SarsMsfTcRuleSet (from this document). Returns: MoneyZAR monthlyCredit.",
+    "it3a_note": "If employee has zero PAYE (IT3(a) certificate), MSFTC is still reported as code 4116 on the certificate. Employee uses it to reduce tax on ITR12."
+  }
+}

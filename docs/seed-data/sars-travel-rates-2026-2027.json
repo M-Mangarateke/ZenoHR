@@ -1,0 +1,143 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "SARS_TRAVEL",
+  "version": "2027.1.0",
+  "effective_from": "2026-03-01",
+  "effective_to": "2027-02-28",
+  "tax_year": "2027",
+  "source": "SARS PAYE-GEN-01-G03 (Rev 16) + PAYE-GEN-01-G03-A01 (Rev 19) Rate per Kilometre Schedule — Effective 1 March 2026",
+  "source_url": "https://www.sars.gov.za/tax-rates/employers/rates-per-kilometer/",
+
+  "reimbursive_rate_cents_per_km": 495,
+  "reimbursive_rate_rands_per_km": 4.95,
+
+  "irp5_codes": {
+    "fixed_travel_allowance": 3701,
+    "reimbursive_at_or_below_prescribed_rate_no_other_allowance": 3703,
+    "reimbursive_other": 3702,
+    "excess_above_prescribed_rate": 3722
+  },
+
+  "fixed_cost_table": [
+    {
+      "vehicle_value_min": 0,
+      "vehicle_value_max": 115000,
+      "fixed_cost_annual": 38344,
+      "fuel_cost_cents_per_km": 132.9,
+      "maintenance_cost_cents_per_km": 49.1
+    },
+    {
+      "vehicle_value_min": 115001,
+      "vehicle_value_max": 230000,
+      "fixed_cost_annual": 68487,
+      "fuel_cost_cents_per_km": 148.4,
+      "maintenance_cost_cents_per_km": 61.4
+    },
+    {
+      "vehicle_value_min": 230001,
+      "vehicle_value_max": 345000,
+      "fixed_cost_annual": 98689,
+      "fuel_cost_cents_per_km": 161.2,
+      "maintenance_cost_cents_per_km": 67.8
+    },
+    {
+      "vehicle_value_min": 345001,
+      "vehicle_value_max": 460000,
+      "fixed_cost_annual": 125393,
+      "fuel_cost_cents_per_km": 173.4,
+      "maintenance_cost_cents_per_km": 74.0
+    },
+    {
+      "vehicle_value_min": 460001,
+      "vehicle_value_max": 575000,
+      "fixed_cost_annual": 152097,
+      "fuel_cost_cents_per_km": 185.5,
+      "maintenance_cost_cents_per_km": 86.9
+    },
+    {
+      "vehicle_value_min": 575001,
+      "vehicle_value_max": 690000,
+      "fixed_cost_annual": 180078,
+      "fuel_cost_cents_per_km": 212.8,
+      "maintenance_cost_cents_per_km": 102.0
+    },
+    {
+      "vehicle_value_min": 690001,
+      "vehicle_value_max": 805000,
+      "fixed_cost_annual": 208106,
+      "fuel_cost_cents_per_km": 216.5,
+      "maintenance_cost_cents_per_km": 114.5
+    },
+    {
+      "vehicle_value_min": 805001,
+      "vehicle_value_max": 920000,
+      "fixed_cost_annual": 237679,
+      "fuel_cost_cents_per_km": 220.1,
+      "maintenance_cost_cents_per_km": 126.1
+    },
+    {
+      "vehicle_value_min": 920001,
+      "vehicle_value_max": null,
+      "fixed_cost_annual": 237679,
+      "fuel_cost_cents_per_km": 220.1,
+      "maintenance_cost_cents_per_km": 126.9
+    }
+  ],
+
+  "travel_allowance_rules": {
+    "paye_inclusion_rate": 0.80,
+    "paye_inclusion_rate_business_use": 0.20,
+    "business_use_threshold_for_reduced_rate": 0.80,
+    "reduced_rate_condition": "Employer satisfied that at least 80% of vehicle use will be for business purposes. Determination must be made monthly.",
+    "logbook_required": true,
+    "fuel_cost_claim_restriction": "No fuel cost claim if employee did not bear full fuel cost",
+    "maintenance_cost_claim_restriction": "No maintenance cost claim if vehicle covered by maintenance plan",
+    "proration": "Fixed cost pro-rated if vehicle used for business for less than full year of assessment",
+    "combined_allowances": "Where fixed travel allowance (3701) is paid in addition to reimbursive allowance (3702/3703), both amounts are combined on SARS assessment and treated as a taxable travel allowance"
+  },
+
+  "reimbursive_treatment_from_march_2018": {
+    "at_or_below_prescribed_rate_no_other_allowance": {
+      "paye_applicable": false,
+      "irp5_code": 3703,
+      "condition": "Reimbursive allowance does not exceed R4.95/km AND no other travel compensation paid"
+    },
+    "at_or_below_prescribed_rate_with_other_allowance": {
+      "paye_applicable": false,
+      "irp5_code": 3702,
+      "condition": "Reimbursive allowance does not exceed R4.95/km but other travel allowance (3701) also paid"
+    },
+    "exceeds_prescribed_rate": {
+      "paye_applicable_on_excess": true,
+      "irp5_code_for_prescribed_portion": 3702,
+      "irp5_code_for_excess_portion": 3722,
+      "note": "Amount up to R4.95/km → code 3702 (not subject to PAYE). Excess above R4.95/km → code 3722 (subject to PAYE). Example: employer pays R5.95/km for 1,000km → 3702 = R4,950; 3722 = R1,000"
+    }
+  },
+
+  "subsistence_allowance": {
+    "source": "Section 8(1)(a) and 8(1)(c) Income Tax Act No. 58 of 1962",
+    "domestic": {
+      "incidental_costs_only_per_day": 184.00,
+      "meals_and_incidental_costs_per_day": 595.00,
+      "note": "Deemed amounts for employees absent from usual place of residence within the Republic. Employees' tax must NOT be deducted from subsistence allowance."
+    },
+    "foreign": {
+      "note": "Country-specific amounts published in PAYE-GEN-01-G03-A02 Subsistence Allowance in respect of Foreign Travel."
+    },
+    "irp5_code": "3713 (excess over deemed amounts, where applicable)",
+    "paye_applicable": false
+  },
+
+  "simplified_method": {
+    "rate_cents_per_km": 495,
+    "rate_rands_per_km": 4.95,
+    "condition": "Applies where section 8(1)(b)(iii) is applicable AND no other compensation (other than parking or toll fees) is payable by the employer. Rate is at the option of the recipient."
+  },
+
+  "notes": {
+    "ty2027_changes": "Vehicle value bands restructured: now 9 bands in R115,000 increments (was 8 bands in R100,000 increments). Reimbursive rate R4.76→R4.95/km. All fixed cost and fuel/maintenance values updated.",
+    "table_status": "CONFIRMED — sourced from official SARS PAYE-GEN-01-G03-A01 Revision 19, effective 1 March 2026.",
+    "vs_ty2026": "TY2026 had 8 bands (100k increments to 700k+). TY2027 has 9 bands (115k increments to 920k+). TY2026 doc: SARS_TRAVEL_2026 (expired 28 Feb 2026)."
+  }
+}

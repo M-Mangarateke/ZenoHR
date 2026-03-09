@@ -1,0 +1,20 @@
+@* REQ-SEC-002, PRD-15 S3: Employee Management *@
+@* Director/HRManager: full list. Manager: own department only. Employee: own profile only (self-access). *@
+@page "/employees"
+@attribute [Authorize(Roles = "Director,HRManager,Manager,Employee")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Employees — ZenoHR</PageTitle>
+<h1>Employees</h1>
+
+<AuthorizeView Roles="Director,HRManager">
+    <p>Full employee directory — all departments.</p>
+</AuthorizeView>
+
+<AuthorizeView Roles="Manager">
+    <p>Your team — department members only.</p>
+</AuthorizeView>
+
+<AuthorizeView Roles="Employee">
+    <p>Your profile. <a href="/profile">View My Profile</a></p>
+</AuthorizeView>

@@ -1,0 +1,12 @@
+@* REQ-SEC-003: Redirects unauthenticated users to /login. *@
+@* Preserves the original URL in returnUrl so the user lands on the intended page after login. *@
+@inject NavigationManager Nav
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Encode the current URL so the login page can redirect back after successful auth.
+        var returnUrl = Uri.EscapeDataString(Nav.Uri);
+        Nav.NavigateTo($"/login?returnUrl={returnUrl}", replace: true);
+    }
+}

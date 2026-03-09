@@ -1,0 +1,46 @@
+{
+  "$schema": "StatutoryRuleSet",
+  "rule_domain": "SARS_PAYE",
+  "version": "2027.1.0",
+  "effective_from": "2026-03-01",
+  "effective_to": "2027-02-28",
+  "tax_year": "2027",
+  "source": "SARS Rates of Tax for Individuals — Budget Speech 25 February 2026 (Minister Enoch Godongwana)",
+  "source_url": "https://www.sars.gov.za/tax-rates/income-tax/rates-of-tax-for-individuals/",
+
+  "tax_brackets": [
+    { "min": 1,        "max": 245100,  "rate": 0.18, "base_tax": 0      },
+    { "min": 245101,   "max": 383200,  "rate": 0.26, "base_tax": 44118  },
+    { "min": 383201,   "max": 530300,  "rate": 0.31, "base_tax": 80228  },
+    { "min": 530301,   "max": 695700,  "rate": 0.36, "base_tax": 125827 },
+    { "min": 695701,   "max": 886100,  "rate": 0.39, "base_tax": 185307 },
+    { "min": 886101,   "max": 1879600, "rate": 0.41, "base_tax": 259567 },
+    { "min": 1879601,  "max": null,    "rate": 0.45, "base_tax": 666657 }
+  ],
+
+  "rebates": {
+    "primary": 17820,
+    "secondary_age_65_plus": 9765,
+    "tertiary_age_75_plus": 3249
+  },
+
+  "tax_thresholds": {
+    "below_age_65": 99000,
+    "age_65_to_74": 153250,
+    "age_75_and_over": 171300
+  },
+
+  "retirement_fund_deduction": {
+    "annual_cap": 430000,
+    "rate_of_taxable_income": 0.275,
+    "note": "Deduction = greater of 27.5% of taxable income OR remuneration, capped at R430,000/year (up from R350,000). Effective 1 March 2026 per Budget Speech."
+  },
+
+  "notes": {
+    "calculation_method": "Annual equivalent method — annualise periodic taxable income, apply brackets, subtract rebates, floor at 0, de-annualise to periodic PAYE",
+    "weekly_conversion": "Weekly payroll: multiply weekly taxable income by 52, apply annual brackets, subtract annual rebates, divide result by 52",
+    "rounding": "Annual tax: round to nearest rand (AwayFromZero). Period PAYE: round to nearest cent.",
+    "ty2027_changes": "Budget Speech 25 Feb 2026: all 7 brackets inflation-adjusted ~3.4%; primary rebate R17,235→R17,820; secondary R9,444→R9,765; tertiary R3,145→R3,249; thresholds below-65 R95,750→R99,000; 65-74 R148,217→R153,250; 75+ R165,689→R171,300; retirement fund cap R350,000→R430,000",
+    "vs_ty2026": "TY2026 rule set document: SARS_PAYE_2026 (expired 28 Feb 2026). This document supersedes it for pay periods from 1 March 2026."
+  }
+}

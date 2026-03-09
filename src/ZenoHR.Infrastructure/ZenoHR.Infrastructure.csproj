@@ -25,12 +25,36 @@
   <ItemGroup>
     <!-- Statutory seed data — embedded so they are available in any deployment environment -->
     <!-- CTL-SARS-001, CTL-BCEA-001 through CTL-BCEA-008 -->
+
+    <!-- TY2026 — historical (expired 28 Feb 2026, kept for audit trail of past payroll runs) -->
     <EmbeddedResource Include="..\..\docs\seed-data\sars-paye-2025-2026.json">
       <LogicalName>ZenoHR.Infrastructure.SeedData.sars-paye.json</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="..\..\docs\seed-data\sars-uif-sdl.json">
       <LogicalName>ZenoHR.Infrastructure.SeedData.sars-uif-sdl.json</LogicalName>
     </EmbeddedResource>
+
+    <!-- TY2027 — active from 1 March 2026 (Budget Speech 25 February 2026) -->
+    <EmbeddedResource Include="..\..\docs\seed-data\sars-paye-2026-2027.json">
+      <LogicalName>ZenoHR.Infrastructure.SeedData.sars-paye-2027.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\docs\seed-data\sars-uif-sdl-2026-2027.json">
+      <LogicalName>ZenoHR.Infrastructure.SeedData.sars-uif-sdl-2027.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\docs\seed-data\sars-medical-scheme-tax-credit-2026-2027.json">
+      <LogicalName>ZenoHR.Infrastructure.SeedData.sars-msftc-2027.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\docs\seed-data\sars-travel-rates-2026-2027.json">
+      <LogicalName>ZenoHR.Infrastructure.SeedData.sars-travel-2027.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\docs\seed-data\national-minimum-wage-2026-2027.json">
+      <LogicalName>ZenoHR.Infrastructure.SeedData.nmw-2027.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\docs\seed-data\bcea-earnings-threshold-2026-2027.json">
+      <LogicalName>ZenoHR.Infrastructure.SeedData.bcea-earnings-threshold-2027.json</LogicalName>
+    </EmbeddedResource>
+
+    <!-- Perpetual — no tax-year expiry -->
     <EmbeddedResource Include="..\..\docs\seed-data\sars-eti.json">
       <LogicalName>ZenoHR.Infrastructure.SeedData.sars-eti.json</LogicalName>
     </EmbeddedResource>
@@ -43,8 +67,13 @@
     <EmbeddedResource Include="..\..\docs\seed-data\bcea-notice-severance.json">
       <LogicalName>ZenoHR.Infrastructure.SeedData.bcea-notice-severance.json</LogicalName>
     </EmbeddedResource>
+
+    <!-- Public holidays — one file per calendar year -->
     <EmbeddedResource Include="..\..\docs\seed-data\sa-public-holidays-2026.json">
       <LogicalName>ZenoHR.Infrastructure.SeedData.sa-public-holidays.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="..\..\docs\seed-data\sa-public-holidays-2027.json">
+      <LogicalName>ZenoHR.Infrastructure.SeedData.sa-public-holidays-2027.json</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 

@@ -1,0 +1,9 @@
+@* REQ-SEC-002, PRD-15 S4: Payroll Runs — Director and HRManager only. *@
+@* Manager and Employee access payroll ONLY via /payroll/my-payslips (self-access guarantee). *@
+@page "/payroll"
+@attribute [Authorize(Roles = "Director,HRManager")]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Payroll — ZenoHR</PageTitle>
+<h1>Payroll Runs</h1>
+<p>Manage payroll runs, approve submissions, and generate payslips for all employees.</p>

@@ -1,6 +1,7 @@
 // REQ-HR-001, CTL-POPIA-005: Next of kin Firestore repository.
 // Subcollection: employees/{emp_id}/next_of_kin.
 
+using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
