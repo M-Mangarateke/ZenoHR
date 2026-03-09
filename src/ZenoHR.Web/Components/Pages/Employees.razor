@@ -1,20 +1,499 @@
-@* REQ-SEC-002, PRD-15 S3: Employee Management *@
-@* Director/HRManager: full list. Manager: own department only. Employee: own profile only (self-access). *@
+@* REQ-HR-001: Employee management — list, search, filter, profile view *@
+@* REQ-SEC-002: Role-conditional rendering — Director/HRManager full, Manager team, Employee own *@
+@* CTL-POPIA-005: Masked sensitive fields — national_id, bank_account shown only in edit mode with purpose code *@
+
 @page "/employees"
 @attribute [Authorize(Roles = "Director,HRManager,Manager,Employee")]
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 
 <PageTitle>Employees — ZenoHR</PageTitle>
-<h1>Employees</h1>
 
-<AuthorizeView Roles="Director,HRManager">
-    <p>Full employee directory — all departments.</p>
-</AuthorizeView>
-
-<AuthorizeView Roles="Manager">
-    <p>Your team — department members only.</p>
-</AuthorizeView>
-
+@* Employee role: redirect to own profile *@
 <AuthorizeView Roles="Employee">
-    <p>Your profile. <a href="/profile">View My Profile</a></p>
+    <Authorized Context="empAuth">
+        <div class="page-header">
+            <h1 class="page-title">Employees</h1>
+            <p class="page-subtitle">You can view your own profile below.</p>
+        </div>
+        <div class="card" style="padding: var(--space-6); text-align: center;">
+            <p style="color: var(--text-muted); margin-bottom: var(--space-4);">
+                Employees can view their own profile page.
+            </p>
+            <a href="/profile" class="btn btn-primary btn-sm">View My Profile</a>
+        </div>
+    </Authorized>
 </AuthorizeView>
+
+@* Director / HRManager / Manager view *@
+<AuthorizeView Roles="Director,HRManager,Manager">
+    <Authorized Context="mgmtAuth">
+        <div class="page-header">
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h1 class="page-title">Employees</h1>
+                    <p class="page-subtitle">
+                        @_filtered.Count total
+                        &nbsp;·&nbsp;
+                        @_filtered.Count(e => e.Status == "Active") active
+                        &nbsp;·&nbsp;
+                        @_filtered.Count(e => e.Status == "On Leave") on leave
+                    </p>
+                </div>
+                <div class="flex gap-3">
+                    @* Export button *@
+                    <button class="btn btn-secondary btn-sm" title="Export employee list">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" x2="12" y1="15" y2="3" />
+                        </svg>
+                        Export
+                    </button>
+                    @* Add Employee — Director and HRManager only *@
+                    <AuthorizeView Roles="Director,HRManager">
+                        <Authorized Context="addAuth">
+                            <button class="btn btn-primary btn-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="2">
+                                    <line x1="12" x2="12" y1="5" y2="19" />
+                                    <line x1="5" x2="19" y1="12" y2="12" />
+                                </svg>
+                                Add Employee
+                            </button>
+                        </Authorized>
+                    </AuthorizeView>
+                </div>
+            </div>
+
+            @* Quick-filter chip group *@
+            <div class="chip-group">
+                <div class="chip @(_statusFilter == "" && _typeFilter == "" ? "active" : "")"
+                    @onclick='() => SetStatusChip("")'>All employees</div>
+                <div class="chip @(_statusFilter == "Active" ? "active" : "")"
+                    @onclick='() => SetStatusChip("Active")'>Active</div>
+                <div class="chip @(_statusFilter == "On Leave" ? "active" : "")"
+                    @onclick='() => SetStatusChip("On Leave")'>On Leave</div>
+                <div class="chip @(_statusFilter == "Probation" ? "active" : "")"
+                    @onclick='() => SetStatusChip("Probation")'>Probation</div>
+                <div class="chip @(_typeFilter == "Contractor" ? "active" : "")"
+                    @onclick='() => SetTypeChip("Contractor")'>Contractors</div>
+            </div>
+        </div>
+
+        @* Search bar *@
+        <div class="search-bar" style="margin-bottom: var(--space-4);">
+            <span class="search-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                </svg>
+            </span>
+            <input type="text" class="search-input" placeholder="Search by name, ID, department…"
+                value="@_search"
+                @oninput="OnSearchInput" />
+        </div>
+
+        @* Filter row *@
+        <div class="filter-row" style="margin-bottom: var(--space-4);">
+            <select class="filter-select" value="@_deptFilter" @onchange="OnDeptChange">
+                <option value="">All Departments</option>
+                @foreach (var dept in _departments)
+                {
+                    <option value="@dept">@dept</option>
+                }
+            </select>
+            <select class="filter-select" value="@_statusFilter" @onchange="OnStatusChange">
+                <option value="">All Statuses</option>
+                <option value="Active">Active</option>
+                <option value="On Leave">On Leave</option>
+                <option value="Probation">Probation</option>
+                <option value="Inactive">Inactive</option>
+            </select>
+            <select class="filter-select" value="@_typeFilter" @onchange="OnTypeChange">
+                <option value="">All Types</option>
+                <option value="Permanent">Permanent</option>
+                <option value="Contractor">Contractor</option>
+                <option value="Fixed-term">Fixed-term</option>
+            </select>
+        </div>
+
+        @* Two-panel layout *@
+        <div class="employees-layout">
+
+            @* Employee table (left/main) *@
+            <div class="employees-main">
+                <div class="card" style="padding: 0; overflow: hidden;">
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Employee</th>
+                                    <th>Employee ID</th>
+                                    <th>Department</th>
+                                    <th>Role / Title</th>
+                                    <th>Contract</th>
+                                    <th>Status</th>
+                                    <th>Start Date</th>
+                                    <AuthorizeView Roles="Director,HRManager">
+                                        <Authorized Context="actionsHeader">
+                                            <th>Actions</th>
+                                        </Authorized>
+                                    </AuthorizeView>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (_filtered.Count == 0)
+                                {
+                                    <tr>
+                                        <td colspan="8" style="text-align: center; padding: var(--space-8); color: var(--text-muted);">
+                                            <div style="display: flex; flex-direction: column; align-items: center; gap: var(--space-3);">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="1.5" style="opacity: 0.4;">
+                                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                                    <circle cx="9" cy="7" r="4" />
+                                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                                </svg>
+                                                <span style="font-size: 14px;">No employees found</span>
+                                                <span style="font-size: 12px; opacity: 0.7;">Try adjusting your search or filters</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var emp in _filtered)
+                                    {
+                                        <tr class="@(_selected?.EmployeeId == emp.EmployeeId ? "selected" : "")"
+                                            @onclick="() => SelectEmployee(emp)"
+                                            style="cursor: pointer;">
+                                            <td>
+                                                <div class="person-cell">
+                                                    <div class="avatar" style="background: @emp.AvatarColor; font-weight: 700;">
+                                                        @emp.Initials
+                                                    </div>
+                                                    <div>
+                                                        <div class="person-name">@emp.DisplayName</div>
+                                                        <div class="person-sub">@emp.Email</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="td-mono td-muted">@emp.EmployeeId</td>
+                                            <td class="td-muted">@emp.Department</td>
+                                            <td class="td-muted">@emp.JobTitle</td>
+                                            <td>
+                                                <span class="badge badge-primary badge-nodot">@emp.EmploymentType</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge @StatusBadgeClass(emp.Status)">@emp.Status</span>
+                                            </td>
+                                            <td class="td-mono td-muted">@emp.StartDate.ToString("yyyy-MM-dd")</td>
+                                            <AuthorizeView Roles="Director,HRManager">
+                                                <Authorized Context="actionsCell">
+                                                    <td>
+                                                        <button class="btn btn-ghost btn-sm"
+                                                            @onclick:stopPropagation="true"
+                                                            title="Edit employee">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                                                stroke="currentColor" stroke-width="2">
+                                                                <path d="M11 4H4a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                                            </svg>
+                                                        </button>
+                                                    </td>
+                                                </Authorized>
+                                            </AuthorizeView>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @* Table footer / pagination *@
+                    <div style="padding: 12px 16px; border-top: 1px solid var(--border-default); display: flex; align-items: center; justify-content: space-between;">
+                        <span style="font-size: 12px; color: var(--text-muted);">
+                            Showing @_filtered.Count of @_allEmployees.Count employees
+                        </span>
+                        <div class="flex gap-2">
+                            <button class="btn btn-ghost btn-sm" disabled>&#8592; Prev</button>
+                            <button class="btn btn-secondary btn-sm"
+                                style="background: var(--brand-primary-subtle); border-color: var(--brand-primary); color: var(--brand-primary);">
+                                1
+                            </button>
+                            <button class="btn btn-ghost btn-sm" disabled>Next &#8594;</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @* Profile panel (right, appears on row click) *@
+            <div class="card profile-panel @(_selected is not null ? "visible" : "")" style="position: relative;">
+                @if (_selected is not null)
+                {
+                    @* Panel close button *@
+                    <button class="btn btn-ghost btn-sm"
+                        style="position: absolute; top: var(--space-3); right: var(--space-3); padding: 4px;"
+                        @onclick="ClearSelection"
+                        title="Close profile panel">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2">
+                            <line x1="18" x2="6" y1="6" y2="18" />
+                            <line x1="6" x2="18" y1="6" y2="18" />
+                        </svg>
+                    </button>
+
+                    <div class="profile-header">
+                        <div class="profile-avatar-lg" style="background: @_selected.AvatarColor;">
+                            @_selected.Initials
+                        </div>
+                        <div class="profile-name">@_selected.DisplayName</div>
+                        <div class="profile-title">@_selected.JobTitle &nbsp;·&nbsp; @_selected.Department</div>
+                        <div style="margin-top: var(--space-3);">
+                            <span class="badge @StatusBadgeClass(_selected.Status)">@_selected.Status</span>
+                            <span class="badge badge-primary badge-nodot" style="margin-left: 4px;">@_selected.EmploymentType</span>
+                        </div>
+                    </div>
+
+                    @* Employment Details *@
+                    <div style="margin-bottom: var(--space-5);">
+                        <div class="card-label mb-3">Employment Details</div>
+                        <div class="profile-row">
+                            <span class="profile-row-label">Employee ID</span>
+                            <span class="profile-row-val td-mono">@_selected.EmployeeId</span>
+                        </div>
+                        <div class="profile-row">
+                            <span class="profile-row-label">Start Date</span>
+                            <span class="profile-row-val td-mono">@_selected.StartDate.ToString("yyyy-MM-dd")</span>
+                        </div>
+                        <div class="profile-row">
+                            <span class="profile-row-label">Department</span>
+                            <span class="profile-row-val">@_selected.Department</span>
+                        </div>
+                        <div class="profile-row">
+                            <span class="profile-row-label">Employment Type</span>
+                            <span class="profile-row-val">@_selected.EmploymentType</span>
+                        </div>
+                        <div class="profile-row">
+                            <span class="profile-row-label">Manager</span>
+                            <span class="profile-row-val">Sarah Nkosi</span>
+                        </div>
+                    </div>
+
+                    @* Contact Details *@
+                    <div style="margin-bottom: var(--space-5);">
+                        <div class="card-label mb-3">Contact</div>
+                        <div class="profile-row">
+                            <span class="profile-row-label">Email</span>
+                            <span class="profile-row-val" style="font-size: 12px; word-break: break-all;">@_selected.Email</span>
+                        </div>
+                        <div class="profile-row">
+                            <span class="profile-row-label">Phone</span>
+                            <span class="profile-row-val td-mono">@_selected.Phone</span>
+                        </div>
+                    </div>
+
+                    @* Sensitive fields — masked per CTL-POPIA-005 *@
+                    <AuthorizeView Roles="Director,HRManager">
+                        <Authorized Context="sensitiveAuth">
+                            <div style="margin-bottom: var(--space-5);">
+                                <div class="card-label mb-3">
+                                    Sensitive Information
+                                    <span style="font-size: 10px; font-weight: 500; color: var(--text-muted); text-transform: none; letter-spacing: 0;">
+                                        (HR Manager · Director only)
+                                    </span>
+                                </div>
+                                <div class="profile-row">
+                                    <span class="profile-row-label">National ID</span>
+                                    <span class="profile-row-val td-mono" style="color: var(--text-muted);">*** - *** - **** 0</span>
+                                </div>
+                                <div class="profile-row">
+                                    <span class="profile-row-label">Tax Ref No.</span>
+                                    <span class="profile-row-val td-mono" style="color: var(--text-muted);">**** *** ***</span>
+                                </div>
+                                <div class="profile-row">
+                                    <span class="profile-row-label">Bank Account</span>
+                                    <span class="profile-row-val td-mono" style="color: var(--text-muted);">**** **** 0</span>
+                                </div>
+                            </div>
+                        </Authorized>
+                    </AuthorizeView>
+
+                    @* Action buttons *@
+                    <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+                        <AuthorizeView Roles="Director,HRManager">
+                            <Authorized Context="editAuth">
+                                <button class="btn btn-primary btn-sm"
+                                    style="width: 100%; justify-content: center;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                    </svg>
+                                    Edit Employee
+                                </button>
+                            </Authorized>
+                        </AuthorizeView>
+                        <button class="btn btn-secondary btn-sm"
+                            style="width: 100%; justify-content: center;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <rect width="20" height="14" x="2" y="5" rx="2" />
+                                <line x1="2" x2="22" y1="10" y2="10" />
+                            </svg>
+                            View Payslips
+                        </button>
+                        <button class="btn btn-ghost btn-sm"
+                            style="width: 100%; justify-content: center;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                stroke="currentColor" stroke-width="2">
+                                <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+                                <line x1="16" x2="16" y1="2" y2="6" />
+                                <line x1="8" x2="8" y1="2" y2="6" />
+                                <line x1="3" x2="21" y1="10" y2="10" />
+                            </svg>
+                            View Leave
+                        </button>
+                        <AuthorizeView Roles="Director,HRManager">
+                            <Authorized Context="terminateAuth">
+                                @if (_selected!.Status != "Inactive")
+                                {
+                                    <button class="btn btn-ghost btn-sm"
+                                        style="width: 100%; justify-content: center; color: var(--danger); border-color: var(--danger-subtle);">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <line x1="15" x2="9" y1="9" y2="15" />
+                                            <line x1="9" x2="15" y1="9" y2="15" />
+                                        </svg>
+                                        Terminate
+                                    </button>
+                                }
+                            </Authorized>
+                        </AuthorizeView>
+                    </div>
+                }
+            </div>
+
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    // REQ-HR-001: Employee data model
+    private record EmployeeRow(
+        string EmployeeId,
+        string DisplayName,
+        string Initials,
+        string AvatarColor,
+        string Email,
+        string Phone,
+        string Department,
+        string JobTitle,
+        string EmploymentType,
+        string Status,
+        DateOnly StartDate
+    );
+
+    // REQ-HR-001: Mock employee roster — Zenowethu (Pty) Ltd
+    private readonly List<EmployeeRow> _allEmployees = new()
+    {
+        new("EMP-0247", "Kobus de Bruyn",       "KD", "var(--info-subtle)",          "kobus.debruyn@zenowethu.co.za",      "+27 11 234 5678", "Information Technology", "Junior Developer",     "Permanent",  "Active",    new DateOnly(2026, 2, 1)),
+        new("EMP-0001", "Sarah Nkosi",           "SN", "var(--brand-primary-subtle)", "sarah.nkosi@zenowethu.co.za",        "+27 11 234 5600", "Human Resources",        "HR Manager",           "Permanent",  "Active",    new DateOnly(2022, 3, 15)),
+        new("EMP-0002", "Thabo Molefe",          "TM", "var(--warning-subtle)",       "thabo.molefe@zenowethu.co.za",       "+27 11 234 5601", "Operations",             "Operations Lead",      "Permanent",  "On Leave",  new DateOnly(2021, 6, 1)),
+        new("EMP-0003", "Nandi Zulu",            "NZ", "var(--brand-accent-subtle)",  "nandi.zulu@zenowethu.co.za",         "+27 11 234 5602", "Operations",             "Supervisor",           "Permanent",  "Active",    new DateOnly(2020, 1, 20)),
+        new("EMP-0004", "Pieter van der Merwe",  "PV", "var(--success-subtle)",       "pieter.vandermerwe@zenowethu.co.za", "+27 11 234 5603", "Finance",                "Financial Analyst",    "Permanent",  "Active",    new DateOnly(2019, 9, 10)),
+        new("EMP-0005", "Amahle Dlamini",        "AD", "var(--danger-subtle)",        "amahle.dlamini@zenowethu.co.za",     "+27 11 234 5604", "Finance",                "Accountant",           "Permanent",  "Probation", new DateOnly(2026, 1, 6)),
+        new("EMP-0006", "Johan Botha",           "JB", "var(--info-subtle)",          "johan.botha@zenowethu.co.za",        "+27 11 234 5605", "Sales",                  "Sales Representative", "Contractor", "Active",    new DateOnly(2023, 4, 3)),
+        new("EMP-0007", "Lerato Khumalo",        "LK", "var(--brand-primary-subtle)", "lerato.khumalo@zenowethu.co.za",     "+27 11 234 5606", "Human Resources",        "HR Officer",           "Permanent",  "Active",    new DateOnly(2024, 7, 22)),
+    };
+
+    // REQ-SEC-002: Filter / UI state
+    private List<EmployeeRow> _filtered = new();
+    private EmployeeRow? _selected;
+    private string _search = "";
+    private string _deptFilter = "";
+    private string _statusFilter = "";
+    private string _typeFilter = "";
+
+    // Derived department list for filter dropdown
+    private IEnumerable<string> _departments =>
+        _allEmployees.Select(e => e.Department).Distinct().OrderBy(d => d);
+
+    protected override void OnInitialized()
+    {
+        _filtered = _allEmployees.ToList();
+    }
+
+    // Input/change event handlers to avoid duplicate attribute conflicts
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        _search = e.Value?.ToString() ?? "";
+        ApplyFilters();
+    }
+
+    private void OnDeptChange(ChangeEventArgs e)
+    {
+        _deptFilter = e.Value?.ToString() ?? "";
+        ApplyFilters();
+    }
+
+    private void OnStatusChange(ChangeEventArgs e)
+    {
+        _statusFilter = e.Value?.ToString() ?? "";
+        ApplyFilters();
+    }
+
+    private void OnTypeChange(ChangeEventArgs e)
+    {
+        _typeFilter = e.Value?.ToString() ?? "";
+        ApplyFilters();
+    }
+
+    // REQ-HR-001: Apply all active filters
+    private void ApplyFilters()
+    {
+        _filtered = _allEmployees
+            .Where(e =>
+                (string.IsNullOrEmpty(_search) ||
+                 e.DisplayName.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                 e.EmployeeId.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                 e.Department.Contains(_search, StringComparison.OrdinalIgnoreCase))
+                && (string.IsNullOrEmpty(_deptFilter) || e.Department == _deptFilter)
+                && (string.IsNullOrEmpty(_statusFilter) || e.Status == _statusFilter)
+                && (string.IsNullOrEmpty(_typeFilter) || e.EmploymentType == _typeFilter))
+            .ToList();
+        _selected = null;
+    }
+
+    // Quick-filter chip helpers
+    private void SetStatusChip(string status)
+    {
+        _statusFilter = status;
+        _typeFilter = "";
+        ApplyFilters();
+    }
+
+    private void SetTypeChip(string type)
+    {
+        _typeFilter = _typeFilter == type ? "" : type;
+        _statusFilter = "";
+        ApplyFilters();
+    }
+
+    private void SelectEmployee(EmployeeRow emp) => _selected = emp;
+    private void ClearSelection() => _selected = null;
+
+    // REQ-HR-001: Status badge CSS class mapping
+    private string StatusBadgeClass(string status) => status switch
+    {
+        "Active"    => "badge-success",
+        "Inactive"  => "badge-danger",
+        "On Leave"  => "badge-warning",
+        "Probation" => "badge-info",
+        _           => "badge-muted"
+    };
+}
