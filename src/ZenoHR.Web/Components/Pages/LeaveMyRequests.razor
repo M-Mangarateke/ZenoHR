@@ -1,8 +1,519 @@
-@* REQ-SEC-002, PRD-15 S5: My Leave Requests — own requests for all tenant users. *@
+@* REQ-HR-002: Self-service leave requests — all tenant users *@
+@* REQ-SEC-002: Self-access guarantee — every authenticated user sees own leave *@
+@* CTL-BCEA-001: Annual leave 21 days; CTL-BCEA-003: Sick leave 30d/3yr cycle *@
+@* CTL-BCEA-004: Family responsibility leave 3 days per year *@
 @page "/leave/my-requests"
 @attribute [Authorize(Roles = "Director,HRManager,Manager,Employee")]
 @using Microsoft.AspNetCore.Authorization
 
 <PageTitle>My Leave Requests — ZenoHR</PageTitle>
-<h1>My Leave Requests</h1>
-<p>Submit and track your personal leave requests.</p>
+
+<style>
+    /* ── Balance summary cards ───────────────────────────────── */
+    .my-balance-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-bottom: 24px;
+    }
+
+    .balance-card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        padding: 16px 18px;
+    }
+
+    .balance-card-label {
+        font-size: .75rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 8px;
+    }
+
+    .balance-card-days {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        font-family: var(--font-mono);
+        margin-bottom: 2px;
+    }
+
+    .balance-card-sub {
+        font-size: .78rem;
+        color: var(--text-secondary);
+        margin-bottom: 10px;
+    }
+
+    .balance-bar {
+        height: 6px;
+        background: var(--surface-hover);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .balance-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+    }
+
+    /* ── Request list ────────────────────────────────────────── */
+    .my-request-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .my-request-row:last-child { border-bottom: none; }
+
+    .my-request-meta {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .my-request-title {
+        font-size: .88rem;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .my-request-detail {
+        font-size: .78rem;
+        color: var(--text-secondary);
+        margin-top: 3px;
+        font-family: var(--font-mono);
+    }
+
+    .my-request-status {
+        text-align: right;
+    }
+
+    /* ── New request form ────────────────────────────────────── */
+    .new-request-panel {
+        background: var(--surface);
+        border: 1px solid var(--brand-primary);
+        border-radius: 14px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .new-request-panel h3 {
+        font-size: .95rem;
+        font-weight: 700;
+        margin: 0 0 16px;
+        color: var(--text-primary);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .form-group label {
+        font-size: .78rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .form-group select,
+    .form-group input,
+    .form-group textarea {
+        padding: 8px 12px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text-primary);
+        font-size: .875rem;
+        font-family: var(--font-sans, Inter, sans-serif);
+        transition: border-color .15s, box-shadow .15s;
+    }
+
+    .form-group select:focus,
+    .form-group input:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: var(--brand-primary);
+        box-shadow: 0 0 0 2px rgba(29, 71, 119, .15);
+    }
+
+    .form-group textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .form-submit-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-top: 4px;
+    }
+
+    .form-msg-success {
+        font-size: .82rem;
+        color: var(--success, #1a7a44);
+        font-weight: 600;
+    }
+
+    .form-msg-error {
+        font-size: .82rem;
+        color: var(--danger, #c0392b);
+        font-weight: 600;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────── */
+    @@media (max-width: 900px) {
+        .my-balance-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @@media (max-width: 640px) {
+        .my-balance-grid { grid-template-columns: 1fr; }
+        .form-row { grid-template-columns: 1fr; }
+        .balance-card-days { font-size: 1.3rem; }
+    }
+</style>
+
+<!-- Page header -->
+<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:12px;flex-wrap:wrap;">
+    <div>
+        <h1 style="font-size:1.5rem;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;margin:0 0 4px;">My Leave Requests</h1>
+        <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">Submit and track your personal leave requests</p>
+    </div>
+    <button class="btn btn-primary btn-sm" @onclick="() => _showForm = !_showForm">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        New Request
+    </button>
+</div>
+
+<!-- Own leave balance summary -->
+<div class="my-balance-grid">
+    <div class="balance-card">
+        <div class="balance-card-label">Annual Leave</div>
+        <div class="balance-card-days">@_myBalance.AnnualDaysRemaining</div>
+        <div class="balance-card-sub">of @_myBalance.AnnualDaysTotal days remaining</div>
+        <div class="balance-bar">
+            <div class="balance-bar-fill"
+                 style="width:@BalancePct(_myBalance.AnnualDaysRemaining, _myBalance.AnnualDaysTotal)%;background:var(--brand-primary);">
+            </div>
+        </div>
+    </div>
+    <div class="balance-card">
+        <div class="balance-card-label">Sick Leave</div>
+        <div class="balance-card-days">@(_myBalance.SickDaysTotal - _myBalance.SickDaysUsed)</div>
+        <div class="balance-card-sub">of @_myBalance.SickDaysTotal days remaining (3-yr cycle)</div>
+        <div class="balance-bar">
+            <div class="balance-bar-fill"
+                 style="width:@BalancePct(_myBalance.SickDaysTotal - _myBalance.SickDaysUsed, _myBalance.SickDaysTotal)%;background:#e74c3c;">
+            </div>
+        </div>
+    </div>
+    <div class="balance-card">
+        <div class="balance-card-label">Family Responsibility</div>
+        <div class="balance-card-days">@(_myBalance.FamilyResponsibilityTotal - _myBalance.FamilyResponsibilityUsed)</div>
+        <div class="balance-card-sub">of @_myBalance.FamilyResponsibilityTotal days per year</div>
+        <div class="balance-bar">
+            <div class="balance-bar-fill"
+                 style="width:@BalancePct(_myBalance.FamilyResponsibilityTotal - _myBalance.FamilyResponsibilityUsed, _myBalance.FamilyResponsibilityTotal)%;background:var(--brand-accent);">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New request form (inline) -->
+@if (_showForm)
+{
+    <div class="new-request-panel">
+        <h3>New Leave Request</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Leave Type</label>
+                <select @bind="_newLeaveType">
+                    <option value="">Select leave type…</option>
+                    <option value="Annual">Annual Leave</option>
+                    <option value="Sick">Sick Leave</option>
+                    <option value="Family Responsibility">Family Responsibility Leave</option>
+                    <option value="Maternity">Maternity Leave</option>
+                    <option value="Unpaid">Unpaid Leave</option>
+                </select>
+            </div>
+            <div class="form-group" style="align-self:flex-end;">
+                @if (!string.IsNullOrEmpty(_newLeaveType))
+                {
+                    <span class="badge @GetLeaveTypeBadgeClass(_newLeaveType)">@_newLeaveType</span>
+                }
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Start Date</label>
+                <input type="date" @bind="_newStartDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="form-group">
+                <label>End Date</label>
+                <input type="date" @bind="_newEndDate" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+            </div>
+        </div>
+        <div class="form-group" style="margin-bottom:14px;">
+            <label>Reason / Notes</label>
+            <textarea @bind="_newReason" placeholder="Optional: provide reason or any relevant notes…"></textarea>
+        </div>
+        <div class="form-submit-row">
+            <button class="btn btn-primary btn-sm" @onclick="SubmitRequest">Submit Request</button>
+            <button class="btn btn-ghost btn-sm" @onclick="CancelForm">Cancel</button>
+            @if (!string.IsNullOrEmpty(_formMsg))
+            {
+                <span class="@(_formIsError ? "form-msg-error" : "form-msg-success")">@_formMsg</span>
+            }
+        </div>
+    </div>
+}
+
+<!-- My requests list -->
+<div class="card" style="margin-top:20px;padding:0;overflow:hidden;">
+    <div style="padding:18px 20px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;">
+        <h3 style="font-size:.95rem;font-weight:700;margin:0;">My Requests</h3>
+        <span class="badge badge-muted" style="font-size:.72rem;">@_myRequests.Count total</span>
+    </div>
+
+    @if (!_myRequests.Any())
+    {
+        <div style="padding:32px;text-align:center;">
+            <p style="font-size:.9rem;color:var(--text-secondary);margin:0;">No leave requests yet. Click <strong>New Request</strong> to apply for leave.</p>
+        </div>
+    }
+    else
+    {
+        <div style="padding:0 20px;">
+            @foreach (var req in _myRequests.OrderByDescending(r => r.SubmittedAt))
+            {
+                <div class="my-request-row">
+                    <div style="width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:@GetLeaveTypeBg(req.LeaveType);flex-shrink:0;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                             fill="none" stroke="@GetLeaveTypeColor(req.LeaveType)" stroke-width="1.5"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                            <line x1="16" y1="2" x2="16" y2="6" />
+                            <line x1="8" y1="2" x2="8" y2="6" />
+                            <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                    </div>
+                    <div class="my-request-meta">
+                        <div class="my-request-title">
+                            <span class="badge @GetLeaveTypeBadgeClass(req.LeaveType)" style="font-size:.72rem;margin-right:6px;">@req.LeaveType</span>
+                            @req.Days day@(req.Days != 1 ? "s" : "")
+                        </div>
+                        <div class="my-request-detail">
+                            @req.StartDate.ToString("d MMM yyyy") — @req.EndDate.ToString("d MMM yyyy")
+                        </div>
+                        @if (!string.IsNullOrEmpty(req.Note))
+                        {
+                            <div style="font-size:.75rem;color:var(--text-muted);margin-top:2px;">@req.Note</div>
+                        }
+                        <div style="font-size:.72rem;color:var(--text-muted);margin-top:2px;">
+                            Submitted @req.SubmittedAt.LocalDateTime.ToString("d MMM yyyy, HH:mm")
+                        </div>
+                    </div>
+                    <div class="my-request-status">
+                        @if (req.Status == "Pending")
+                        {
+                            <span class="badge badge-warning">Pending</span>
+                        }
+                        else if (req.Status == "Approved")
+                        {
+                            <span class="badge badge-success">Approved</span>
+                        }
+                        else if (req.Status == "Rejected")
+                        {
+                            <span class="badge badge-danger">Rejected</span>
+                        }
+                        else
+                        {
+                            <span class="badge badge-muted">@req.Status</span>
+                        }
+                        @if (req.Status == "Pending")
+                        {
+                            <div style="margin-top:6px;">
+                                <button class="btn btn-ghost btn-sm" style="font-size:.72rem;padding:3px 10px;"
+                                        @onclick="() => CancelRequest(req.Id)">
+                                    Withdraw
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Back to Leave Management link -->
+<div style="margin-top:16px;">
+    <a href="/leave" style="font-size:.85rem;color:var(--brand-primary);font-weight:600;text-decoration:none;">
+        ← Back to Leave Management
+    </a>
+</div>
+
+@code {
+    // REQ-HR-002, REQ-SEC-002
+
+    // ── Data models ─────────────────────────────────────────────────────────
+    private record MyLeaveRequest(
+        string Id,
+        string LeaveType,
+        DateOnly StartDate,
+        DateOnly EndDate,
+        int Days,
+        string Status,
+        string? Note,
+        DateTimeOffset SubmittedAt);
+
+    private record LeaveBalance(
+        string EmployeeId, string EmployeeName,
+        decimal AnnualDaysTotal, decimal AnnualDaysUsed, decimal AnnualDaysRemaining,
+        decimal SickDaysTotal, decimal SickDaysUsed,
+        decimal FamilyResponsibilityTotal, decimal FamilyResponsibilityUsed);
+
+    // ── Own balance — placeholder for current user (Sarah Nkosi) ─────────
+    // CTL-BCEA-001: 21 days annual; CTL-BCEA-003: 30 days sick; CTL-BCEA-004: 3 days FR
+    private readonly LeaveBalance _myBalance = new(
+        "EMP-0001", "Sarah Nkosi",
+        21, 3, 18,
+        30, 2,
+        3, 0);
+
+    // ── Mock requests for current user ───────────────────────────────────
+    private readonly List<MyLeaveRequest> _myRequests = new()
+    {
+        new("LVE-MY-0001","Annual",
+            new DateOnly(2026,4,13),new DateOnly(2026,4,17),5,"Pending",
+            "Easter break with family.",DateTimeOffset.Parse("2026-03-01T09:00:00+02:00")),
+        new("LVE-MY-0002","Sick",
+            new DateOnly(2026,2,10),new DateOnly(2026,2,10),1,"Approved",
+            null,DateTimeOffset.Parse("2026-02-10T07:30:00+02:00")),
+        new("LVE-MY-0003","Annual",
+            new DateOnly(2026,1,19),new DateOnly(2026,1,23),5,"Approved",
+            "Summer leave.",DateTimeOffset.Parse("2026-01-12T11:00:00+02:00")),
+        new("LVE-MY-0004","Family Responsibility",
+            new DateOnly(2025,11,5),new DateOnly(2025,11,5),1,"Approved",
+            "Child's school event.",DateTimeOffset.Parse("2025-11-04T08:00:00+02:00")),
+        new("LVE-MY-0005","Annual",
+            new DateOnly(2025,12,22),new DateOnly(2025,12,31),8,"Approved",
+            "Year-end leave.",DateTimeOffset.Parse("2025-12-10T10:00:00+02:00")),
+    };
+
+    // ── Form state ──────────────────────────────────────────────────────────
+    private bool _showForm = false;
+    private string _newLeaveType = "";
+    private DateTime _newStartDate = DateTime.Today;
+    private DateTime _newEndDate = DateTime.Today;
+    private string _newReason = "";
+    private string _formMsg = "";
+    private bool _formIsError = false;
+
+    private static string BalancePct(decimal value, decimal total)
+        => total > 0 ? (value / total * 100m).ToString("F1") : "0";
+
+    private void CancelForm()
+    {
+        _showForm = false;
+        _newLeaveType = "";
+        _newReason = "";
+        _formMsg = "";
+        _formIsError = false;
+    }
+
+    private void SubmitRequest()
+    {
+        _formMsg = "";
+        _formIsError = false;
+
+        if (string.IsNullOrWhiteSpace(_newLeaveType))
+        {
+            _formMsg = "Please select a leave type.";
+            _formIsError = true;
+            return;
+        }
+
+        var start = DateOnly.FromDateTime(_newStartDate);
+        var end = DateOnly.FromDateTime(_newEndDate);
+
+        if (end < start)
+        {
+            _formMsg = "End date cannot be before start date.";
+            _formIsError = true;
+            return;
+        }
+
+        var days = end.DayNumber - start.DayNumber + 1;
+        var newId = $"LVE-MY-{_myRequests.Count + 1:D4}";
+
+        _myRequests.Add(new MyLeaveRequest(
+            newId, _newLeaveType, start, end, days,
+            "Pending",
+            string.IsNullOrWhiteSpace(_newReason) ? null : _newReason.Trim(),
+            DateTimeOffset.Now));
+
+        _formMsg = $"Leave request submitted — {days} day{(days != 1 ? "s" : "")} of {_newLeaveType} from {start:d MMM yyyy}.";
+        _showForm = false;
+        _newLeaveType = "";
+        _newReason = "";
+    }
+
+    private void CancelRequest(string id)
+    {
+        var idx = _myRequests.FindIndex(r => r.Id == id);
+        if (idx >= 0)
+        {
+            var old = _myRequests[idx];
+            _myRequests[idx] = old with { Status = "Withdrawn" };
+        }
+    }
+
+    // ── Badge / styling helpers ─────────────────────────────────────────────
+    private static string GetLeaveTypeBadgeClass(string leaveType) => leaveType switch
+    {
+        "Annual" => "badge-info",
+        "Sick" => "badge-danger",
+        "Family Responsibility" => "badge-warning",
+        "Maternity" => "badge-accent",
+        "Unpaid" => "badge-muted",
+        _ => "badge-muted"
+    };
+
+    private static string GetLeaveTypeBg(string leaveType) => leaveType switch
+    {
+        "Annual" => "var(--brand-primary-subtle, #e8f0fb)",
+        "Sick" => "var(--danger-subtle, #fdecea)",
+        "Family Responsibility" => "var(--brand-accent-subtle, #fef3e2)",
+        "Maternity" => "rgba(155,89,182,.12)",
+        "Unpaid" => "var(--surface-hover)",
+        _ => "var(--surface-hover)"
+    };
+
+    private static string GetLeaveTypeColor(string leaveType) => leaveType switch
+    {
+        "Annual" => "var(--brand-primary, #1d4777)",
+        "Sick" => "#e74c3c",
+        "Family Responsibility" => "var(--brand-accent, #d4890e)",
+        "Maternity" => "#9b59b6",
+        "Unpaid" => "var(--text-muted)",
+        _ => "var(--text-muted)"
+    };
+}

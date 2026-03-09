@@ -9,6 +9,7 @@ using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Infrastructure.Services;
+using ZenoHR.Infrastructure.Services.Filing.Emp201;
 using ZenoHR.Infrastructure.Services.Payslip;
 using ZenoHR.Module.Payroll.Aggregates;
 using ZenoHR.Module.Payroll.Calculation;
@@ -87,6 +88,20 @@ public static class PayrollEndpoints
         group.MapGet("/adjustments", ListAdjustmentsAsync)
             .WithName("ListPayrollAdjustments")
             .Produces<IReadOnlyList<PayrollAdjustmentDto>>(200);
+
+        // CTL-SARS-006: EMP201 CSV download (TASK-088)
+        // GET /api/payroll/runs/{runId}/emp201/csv — semicolon CSV for SARS eFiling upload
+        group.MapGet("/runs/{runId}/emp201/csv", GetEmp201CsvAsync)
+            .WithName("GetEmp201Csv")
+            .Produces(200)
+            .Produces(404);
+
+        // CTL-SARS-006: EMP201 summary report (TASK-088)
+        // GET /api/payroll/runs/{runId}/emp201/report — human-readable summary for HR Manager review
+        group.MapGet("/runs/{runId}/emp201/report", GetEmp201ReportAsync)
+            .WithName("GetEmp201Report")
+            .Produces(200)
+            .Produces(404);
 
         // GET /api/payroll/runs/{id}/results/{employeeId}/payslip — own payslip (JSON)
         // Employees can access their own payslip — self-access override
@@ -456,6 +471,95 @@ public static class PayrollEndpoints
             return Results.BadRequest("Provide either runId or employeeId query parameter.");
 
         return Results.Ok(adjustments.Select(ToAdjustmentDto));
+    }
+
+    // CTL-SARS-006: EMP201 CSV download handler (TASK-088).
+    // TODO(TASK-088-wire): Replace mock Emp201Data with real data loaded from PayrollRun +
+    //   PayrollResult subcollection + EmployeeRepository (company settings for PAYE/UIF/SDL refs).
+    private static IResult GetEmp201CsvAsync(
+        string runId,
+        ClaimsPrincipal user,
+        IEmp201Generator generator)
+    {
+        // Stub: mock data matching RUN-2026-02 until real wiring is implemented (see TODO above)
+        var data = BuildMockEmp201Data(runId, user);
+        var csv = generator.GenerateCsv(data);
+        var fileName = $"EMP201-{data.TaxPeriod}-{runId}.csv";
+        var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+        return Results.File(bytes, "text/csv", fileName);
+    }
+
+    // CTL-SARS-006: EMP201 summary report handler (TASK-088).
+    // TODO(TASK-088-wire): Replace mock Emp201Data with real data (same as GetEmp201CsvAsync).
+    private static IResult GetEmp201ReportAsync(
+        string runId,
+        ClaimsPrincipal user,
+        IEmp201Generator generator)
+    {
+        var data = BuildMockEmp201Data(runId, user);
+        var report = generator.GenerateSummaryReport(data);
+        return Results.Content(report, "text/plain");
+    }
+
+    // CTL-SARS-006: Builds a mock Emp201Data for stub endpoints — RUN-2026-02 sample.
+    // Replace with real data loading once PayrollRun.ToEmp201Data() or equivalent is implemented.
+    private static Emp201Data BuildMockEmp201Data(string runId, ClaimsPrincipal user)
+    {
+        var actorId = user.FindFirstValue(ZenoHrClaimNames.EmployeeId)
+                   ?? user.FindFirstValue(ClaimTypes.NameIdentifier)
+                   ?? "system";
+
+        var lines = new List<Emp201EmployeeLine>
+        {
+            new()
+            {
+                EmployeeId = "EMP-001",
+                EmployeeFullName = "Zanele Dlamini",
+                TaxReferenceNumber = "9876543210",
+                IdOrPassportNumber = "8001015009087",
+                GrossRemuneration = 45_000.00m,
+                PayeDeducted = 8_250.00m,
+                UifEmployee = 177.12m,
+                UifEmployer = 177.12m,
+                SdlEmployer = 450.00m,
+                PaymentMethod = "EFT",
+            },
+            new()
+            {
+                EmployeeId = "EMP-002",
+                EmployeeFullName = "Sipho Nkosi",
+                TaxReferenceNumber = "1234567890",
+                IdOrPassportNumber = "9203025008086",
+                GrossRemuneration = 28_500.00m,
+                PayeDeducted = 3_100.00m,
+                UifEmployee = 177.12m,
+                UifEmployer = 177.12m,
+                SdlEmployer = 285.00m,
+                PaymentMethod = "EFT",
+            },
+        };
+
+        var generator = new Emp201Generator();
+        return new Emp201Data
+        {
+            EmployerPAYEReference = "7234567890",
+            EmployerUifReference = "U0987654321",
+            EmployerSdlReference = "SDL0987654321",
+            EmployerTradingName = "Zenowethu (Pty) Ltd",
+            TaxPeriod = "202602",
+            PeriodLabel = "February 2026",
+            PayrollRunId = runId,
+            TotalPayeDeducted = lines.Sum(l => l.PayeDeducted),
+            TotalUifEmployee = lines.Sum(l => l.UifEmployee),
+            TotalUifEmployer = lines.Sum(l => l.UifEmployer),
+            TotalSdl = lines.Sum(l => l.SdlEmployer),
+            TotalGrossRemuneration = lines.Sum(l => l.GrossRemuneration),
+            EmployeeCount = lines.Count,
+            DueDate = generator.CalculateDueDate(2026, 2),
+            EmployeeLines = lines.AsReadOnly(),
+            GeneratedByUserId = actorId,
+            GeneratedAt = DateTimeOffset.UtcNow,
+        };
     }
 
     // ── DTOs ─────────────────────────────────────────────────────────────────

@@ -1,20 +1,1105 @@
-@* REQ-SEC-002, PRD-15 S5: Leave Management. *@
-@* Director/HRManager: full team. Manager: team approval queue + own requests. Employee: own requests. *@
+@* REQ-HR-002: Leave management — all 5 BCEA leave types *@
+@* CTL-BCEA-001: Annual leave minimum 21 consecutive days *@
+@* CTL-BCEA-003: Sick leave 30 days per 3-year cycle *@
+@* CTL-BCEA-004: Family responsibility leave 3 days per year *@
+@* REQ-SEC-002: Manager sees team only, Employee sees own requests *@
 @page "/leave"
 @attribute [Authorize(Roles = "Director,HRManager,Manager,Employee")]
 @using Microsoft.AspNetCore.Authorization
 
 <PageTitle>Leave — ZenoHR</PageTitle>
-<h1>Leave</h1>
 
+<style>
+    /* ── Calendar ────────────────────────────────────────────── */
+    .calendar-card {
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .calendar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px 16px;
+        border-bottom: 1px solid var(--border-subtle);
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .calendar-header h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .cal-nav {
+        display: flex;
+        gap: 4px;
+    }
+
+    .cal-nav-btn {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid var(--border-subtle);
+        background: var(--surface);
+        color: var(--text-primary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background .15s;
+        font-size: .9rem;
+    }
+
+    .cal-nav-btn:hover {
+        background: var(--surface-hover);
+    }
+
+    .calendar-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        padding: 0 16px 16px;
+    }
+
+    .cal-day-name {
+        text-align: center;
+        font-size: .7rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        padding: 12px 0 8px;
+    }
+
+    .cal-day {
+        position: relative;
+        text-align: center;
+        padding: 6px 4px 10px;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: background .15s;
+        min-height: 54px;
+    }
+
+    .cal-day:hover {
+        background: var(--surface-hover);
+    }
+
+    .cal-day.other-month .day-num {
+        color: var(--text-disabled, #c0cfe0);
+    }
+
+    .cal-day.today .day-num {
+        background: var(--brand-primary);
+        color: #fff;
+        border-radius: 50%;
+        width: 26px;
+        height: 26px;
+        line-height: 26px;
+        display: inline-block;
+        font-weight: 600;
+    }
+
+    .cal-day.holiday .day-num {
+        color: var(--danger, #e74c3c);
+        font-weight: 600;
+    }
+
+    .day-num {
+        font-size: .8rem;
+        font-weight: 500;
+        display: block;
+        line-height: 26px;
+    }
+
+    .day-dots {
+        display: flex;
+        gap: 3px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 2px;
+    }
+
+    .day-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+    }
+
+    .dot-Annual { background: var(--brand-primary, #1d4777); }
+    .dot-Sick { background: #e74c3c; }
+    .dot-FamilyResponsibility { background: var(--brand-accent, #d4890e); }
+    .dot-Maternity { background: #9b59b6; }
+    .dot-Unpaid { background: var(--text-secondary, #94a3b8); }
+
+    /* ── Legend ──────────────────────────────────────────────── */
+    .legend {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: .78rem;
+        color: var(--text-secondary);
+    }
+
+    .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    /* ── Balance summary ──────────────────────────────────────── */
+    .balance-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-bottom: 24px;
+    }
+
+    .balance-card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        padding: 16px 18px;
+    }
+
+    .balance-card-label {
+        font-size: .75rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        margin-bottom: 8px;
+    }
+
+    .balance-card-days {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        font-family: var(--font-mono);
+        margin-bottom: 2px;
+    }
+
+    .balance-card-sub {
+        font-size: .78rem;
+        color: var(--text-secondary);
+        margin-bottom: 10px;
+    }
+
+    .balance-bar {
+        height: 6px;
+        background: var(--surface-hover);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .balance-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+    }
+
+    /* ── Request list ─────────────────────────────────────────── */
+    .request-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--border-subtle);
+        cursor: pointer;
+    }
+
+    .request-row:last-child {
+        border-bottom: none;
+    }
+
+    .request-row:hover {
+        background: var(--surface-hover);
+        margin: 0 -16px;
+        padding-left: 16px;
+        padding-right: 16px;
+        border-radius: 8px;
+    }
+
+    .request-meta {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .request-name {
+        font-size: .88rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .request-detail {
+        font-size: .78rem;
+        color: var(--text-secondary);
+        margin-top: 2px;
+    }
+
+    .request-days {
+        font-size: .88rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        font-family: var(--font-mono);
+        white-space: nowrap;
+        text-align: right;
+        min-width: 36px;
+    }
+
+    .request-actions {
+        display: flex;
+        gap: 6px;
+    }
+
+    .btn-approve {
+        padding: 5px 12px;
+        border-radius: 7px;
+        font-size: .78rem;
+        font-weight: 600;
+        background: #e8f7ef;
+        color: #1a7a44;
+        border: none;
+        cursor: pointer;
+        transition: background .15s;
+    }
+
+    .btn-approve:hover { background: #c7edda; }
+
+    .btn-reject {
+        padding: 5px 12px;
+        border-radius: 7px;
+        font-size: .78rem;
+        font-weight: 600;
+        background: #fdecea;
+        color: #c0392b;
+        border: none;
+        cursor: pointer;
+        transition: background .15s;
+    }
+
+    .btn-reject:hover { background: #f9c9c6; }
+
+    [data-theme="dark"] .btn-approve {
+        background: rgba(26, 122, 68, .25);
+        color: #3ddc82;
+    }
+
+    [data-theme="dark"] .btn-approve:hover { background: rgba(26, 122, 68, .4); }
+
+    [data-theme="dark"] .btn-reject {
+        background: rgba(192, 57, 43, .25);
+        color: #ff6b6b;
+    }
+
+    [data-theme="dark"] .btn-reject:hover { background: rgba(192, 57, 43, .4); }
+
+    /* ── Leave form panel ────────────────────────────────────── */
+    .leave-form-panel {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: 14px;
+        padding: 20px;
+        margin-top: 20px;
+    }
+
+    .leave-form-panel h3 {
+        font-size: .95rem;
+        font-weight: 700;
+        margin: 0 0 16px;
+        color: var(--text-primary);
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .form-group label {
+        font-size: .78rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .form-group select,
+    .form-group input,
+    .form-group textarea {
+        padding: 8px 12px;
+        border: 1px solid var(--border-subtle);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--text-primary);
+        font-size: .875rem;
+        font-family: var(--font-sans, Inter, sans-serif);
+    }
+
+    .form-group select:focus,
+    .form-group input:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: var(--brand-primary);
+        box-shadow: 0 0 0 2px rgba(29, 71, 119, .15);
+    }
+
+    .form-group textarea {
+        resize: vertical;
+        min-height: 72px;
+    }
+
+    /* ── Accrual banner ──────────────────────────────────────── */
+    .accrual-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 14px 18px;
+        margin-bottom: 20px;
+        background: #fef3e2;
+        border: 1px solid rgba(212, 137, 14, .3);
+        border-radius: 12px;
+        color: #92400e;
+    }
+
+    [data-theme="dark"] .accrual-banner {
+        background: rgba(212, 137, 14, .12);
+        color: #f6c057;
+    }
+
+    /* ── Apply button ────────────────────────────────────────── */
+    .apply-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 18px;
+        border-radius: 10px;
+        background: var(--brand-primary);
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: .85rem;
+        transition: opacity .15s;
+    }
+
+    .apply-btn:hover { opacity: .88; }
+
+    /* ── Two-column layout ───────────────────────────────────── */
+    .leave-layout {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 20px;
+        align-items: start;
+    }
+
+    /* ── Approved table ─────────────────────────────────────── */
+    .approved-section {
+        margin-top: 20px;
+    }
+
+    /* ── Responsive ──────────────────────────────────────────── */
+    @@media (max-width: 900px) {
+        .balance-grid { grid-template-columns: 1fr 1fr; }
+        .leave-layout { grid-template-columns: 1fr; }
+    }
+
+    @@media (max-width: 640px) {
+        .balance-grid { grid-template-columns: 1fr !important; }
+        .balance-card-days { font-size: 1.3rem; }
+        .cal-day { min-height: 42px; padding: 4px 2px 6px; }
+        .day-num { font-size: .7rem; }
+        .form-row { grid-template-columns: 1fr; }
+    }
+</style>
+
+@* ── Director / HRManager view ─────────────────────────────────────────── *@
 <AuthorizeView Roles="Director,HRManager">
-    <p>Full leave management — all employees and approval queues.</p>
+    <Authorized>
+        <!-- Page header -->
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:12px;flex-wrap:wrap;">
+            <div>
+                <h1 style="font-size:1.5rem;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;margin:0 0 4px;">Leave Management</h1>
+                <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">Track and approve employee leave requests</p>
+            </div>
+            <button class="apply-btn" @onclick="() => _showRequestForm = !_showRequestForm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+                </svg>
+                Apply Leave
+            </button>
+        </div>
+
+        <!-- Accrual banner -->
+        @if (_showAccrualBanner)
+        {
+            <div class="accrual-banner">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                     fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"
+                     style="flex-shrink:0;margin-top:1px;">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                    <path d="m9 16 2 2 4-4" />
+                </svg>
+                <div style="flex:1;">
+                    <div style="font-size:.86rem;font-weight:600;margin-bottom:6px;">February 2026 leave accruals pending your review — 247 employees</div>
+                    <div style="font-size:.78rem;margin-bottom:8px;opacity:.85;">Annual leave: +1.5 days each · Sick leave: carried over · Family responsibility: no change</div>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn btn-sm" style="background:#92400e;color:#fff;border:none;">Review Accruals</button>
+                        <button class="btn btn-ghost btn-sm" @onclick="() => _showAccrualBanner = false">Dismiss</button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Balance summary -->
+        <div class="balance-grid">
+            <div class="balance-card">
+                <div class="balance-card-label">Annual Leave</div>
+                <div class="balance-card-days">18</div>
+                <div class="balance-card-sub">of 21 days remaining (Sarah Nkosi · Your balance)</div>
+                <div class="balance-bar">
+                    <div class="balance-bar-fill" style="width:85.7%;background:var(--brand-primary);"></div>
+                </div>
+            </div>
+            <div class="balance-card">
+                <div class="balance-card-label">Sick Leave</div>
+                <div class="balance-card-days">28</div>
+                <div class="balance-card-sub">of 30 days remaining (Sarah Nkosi · Your balance)</div>
+                <div class="balance-bar">
+                    <div class="balance-bar-fill" style="width:93.3%;background:#e74c3c;"></div>
+                </div>
+            </div>
+            <div class="balance-card">
+                <div class="balance-card-label">Pending Approval</div>
+                <div class="balance-card-days">@_requests.Count(r => r.Status == "Pending")</div>
+                <div class="balance-card-sub">requests awaiting action</div>
+                <div class="balance-bar">
+                    <div class="balance-bar-fill" style="width:@(Math.Min(100, _requests.Count(r => r.Status == "Pending") * 12.5))%;background:var(--brand-accent);"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Apply Leave form (inline) -->
+        @if (_showRequestForm)
+        {
+            <div class="leave-form-panel" style="margin-bottom:20px;">
+                <h3>Apply for Leave</h3>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Employee</label>
+                        <select @bind="_newEmployee">
+                            <option value="">Select employee…</option>
+                            @foreach (var b in _balances)
+                            {
+                                <option value="@b.EmployeeId">@b.EmployeeName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Leave Type</label>
+                        <select @bind="_newLeaveType">
+                            <option value="">Select type…</option>
+                            <option value="Annual">Annual</option>
+                            <option value="Sick">Sick</option>
+                            <option value="Family Responsibility">Family Responsibility</option>
+                            <option value="Maternity">Maternity</option>
+                            <option value="Unpaid">Unpaid</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="date" @bind="_newStartDate" />
+                    </div>
+                    <div class="form-group">
+                        <label>End Date</label>
+                        <input type="date" @bind="_newEndDate" />
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom:12px;">
+                    <label>Reason / Note</label>
+                    <textarea @bind="_newReason" placeholder="Optional: reason for leave…"></textarea>
+                </div>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn btn-primary btn-sm" @onclick="SubmitLeaveRequest">Submit Request</button>
+                    <button class="btn btn-ghost btn-sm" @onclick="() => _showRequestForm = false">Cancel</button>
+                </div>
+                @if (!string.IsNullOrEmpty(_formMessage))
+                {
+                    <p style="font-size:.8rem;color:var(--success);margin:8px 0 0;font-weight:600;">@_formMessage</p>
+                }
+            </div>
+        }
+
+        <!-- Calendar + Pending requests two-column layout -->
+        <div class="leave-layout">
+            <!-- Calendar -->
+            <div class="card calendar-card">
+                <div class="calendar-header">
+                    <h3>@MonthLabel</h3>
+                    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                        <div class="legend">
+                            <div class="legend-item"><div class="legend-dot" style="background:var(--brand-primary);"></div>Annual</div>
+                            <div class="legend-item"><div class="legend-dot" style="background:#e74c3c;"></div>Sick</div>
+                            <div class="legend-item"><div class="legend-dot" style="background:var(--brand-accent);"></div>Family</div>
+                            <div class="legend-item"><div class="legend-dot" style="background:#9b59b6;"></div>Maternity</div>
+                            <div class="legend-item"><div class="legend-dot" style="background:var(--text-secondary);"></div>Unpaid</div>
+                        </div>
+                        <div class="cal-nav">
+                            <button class="cal-nav-btn" @onclick="PrevMonth" title="Previous month">&#8249;</button>
+                            <button class="cal-nav-btn" @onclick="NextMonth" title="Next month">&#8250;</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="calendar-grid">
+                    <!-- Day headers: Sun–Sat -->
+                    <div class="cal-day-name">Sun</div>
+                    <div class="cal-day-name">Mon</div>
+                    <div class="cal-day-name">Tue</div>
+                    <div class="cal-day-name">Wed</div>
+                    <div class="cal-day-name">Thu</div>
+                    <div class="cal-day-name">Fri</div>
+                    <div class="cal-day-name">Sat</div>
+
+                    <!-- Leading blank cells for first day offset -->
+                    @for (int i = 0; i < FirstDayOffset; i++)
+                    {
+                        var prevDay = DateTime.DaysInMonth(_calYear, _calMonth == 1 ? 12 : _calMonth - 1) - FirstDayOffset + 1 + i;
+                        <div class="cal-day other-month"><span class="day-num">@prevDay</span></div>
+                    }
+
+                    <!-- Days of current month -->
+                    @for (int d = 1; d <= DaysInMonth; d++)
+                    {
+                        var day = d;
+                        var isToday = _calYear == Today.Year && _calMonth == Today.Month && day == Today.Day;
+                        var isHoliday = IsPublicHoliday(_calYear, _calMonth, day);
+                        var leaves = GetLeavesForDay(day).ToList();
+                        var cssClass = "cal-day" + (isToday ? " today" : "") + (isHoliday ? " holiday" : "") + (leaves.Any() ? " has-leave" : "");
+                        <div class="@cssClass" title="@GetDayTitle(_calYear, _calMonth, day, isHoliday, leaves)">
+                            <span class="day-num">@day</span>
+                            @if (leaves.Any())
+                            {
+                                <div class="day-dots">
+                                    @foreach (var lv in leaves.Take(5))
+                                    {
+                                        var dotClass = "day-dot dot-" + lv.LeaveType.Replace(" ", "");
+                                        <div class="@dotClass" title="@lv.EmployeeName — @lv.LeaveType"></div>
+                                    }
+                                    @if (leaves.Count > 5)
+                                    {
+                                        <span style="font-size:.55rem;color:var(--text-muted);line-height:6px;">+@(leaves.Count - 5)</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <!-- Trailing blank cells -->
+                    @for (int i = 1; i <= TrailingDays; i++)
+                    {
+                        <div class="cal-day other-month"><span class="day-num">@i</span></div>
+                    }
+                </div>
+            </div>
+
+            <!-- Pending requests panel -->
+            <div class="card" style="padding:0;overflow:hidden;">
+                <div style="padding:18px 20px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;">
+                    <h3 style="font-size:.95rem;font-weight:700;margin:0;">Pending Requests</h3>
+                    <span class="badge badge-warning" style="font-size:.72rem;">@_requests.Count(r => r.Status == "Pending") pending</span>
+                </div>
+
+                <!-- Filter chips -->
+                <div style="padding:12px 16px;border-bottom:1px solid var(--border-subtle);display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="chip @(_filterType == "" ? "active" : "")" @onclick='() => _filterType = ""'>All</button>
+                    <button class="chip @(_filterType == "Annual" ? "active" : "")" @onclick='() => _filterType = "Annual"'>Annual</button>
+                    <button class="chip @(_filterType == "Sick" ? "active" : "")" @onclick='() => _filterType = "Sick"'>Sick</button>
+                    <button class="chip @(_filterType == "Family Responsibility" ? "active" : "")" @onclick='() => _filterType = "Family Responsibility"'>Family Resp.</button>
+                    <button class="chip @(_filterType == "Maternity" ? "active" : "")" @onclick='() => _filterType = "Maternity"'>Maternity</button>
+                </div>
+
+                <div style="padding:0 16px;">
+                    @{
+                        var pending = _requests
+                            .Where(r => r.Status == "Pending" && (string.IsNullOrEmpty(_filterType) || r.LeaveType == _filterType))
+                            .ToList();
+                    }
+                    @if (!pending.Any())
+                    {
+                        <p style="font-size:.85rem;color:var(--text-secondary);padding:16px 0;text-align:center;">No pending requests.</p>
+                    }
+                    @foreach (var req in pending)
+                    {
+                        <div class="request-row">
+                            <div class="avatar avatar-sm" style="background:@req.AvatarColor;flex-shrink:0;">@req.Initials</div>
+                            <div class="request-meta">
+                                <div class="request-name">@req.EmployeeName</div>
+                                <div class="request-detail">
+                                    <span class="badge @GetLeaveTypeBadgeClass(req.LeaveType)" style="font-size:.7rem;">@req.LeaveType</span>
+                                    · @req.StartDate.ToString("d MMM") – @req.EndDate.ToString("d MMM yyyy")
+                                </div>
+                            </div>
+                            <div class="request-days">@req.Days d</div>
+                            <div class="request-actions">
+                                <button class="btn-approve" @onclick="() => ApproveRequest(req.RequestId)" title="Approve">✓</button>
+                                <button class="btn-reject" @onclick="() => RejectRequest(req.RequestId)" title="Reject">✗</button>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div style="padding:12px 16px;border-top:1px solid var(--border-subtle);text-align:center;">
+                    <a href="/leave/my-requests" style="font-size:.8rem;color:var(--brand-primary);font-weight:600;text-decoration:none;">View all leave requests →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Approved leave table -->
+        <div class="card approved-section" style="padding:0;overflow:hidden;">
+            <div style="padding:18px 24px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+                <h3 style="font-size:.95rem;font-weight:700;margin:0;">Approved Leave: @MonthLabel</h3>
+                <button class="btn btn-outline" style="font-size:.8rem;padding:6px 14px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" x2="12" y1="15" y2="3" />
+                    </svg>
+                    Export
+                </button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Leave Type</th>
+                            <th>From</th>
+                            <th>To</th>
+                            <th>Days</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var req in _requests.Where(r => r.Status == "Approved"))
+                        {
+                            <tr>
+                                <td>
+                                    <div style="display:flex;align-items:center;gap:8px;">
+                                        <div class="avatar avatar-sm" style="background:@req.AvatarColor;">@req.Initials</div>
+                                        <span style="font-weight:500;">@req.EmployeeName</span>
+                                    </div>
+                                </td>
+                                <td><span class="badge @GetLeaveTypeBadgeClass(req.LeaveType)">@req.LeaveType</span></td>
+                                <td class="td-mono">@req.StartDate.ToString("d MMM yyyy")</td>
+                                <td class="td-mono">@req.EndDate.ToString("d MMM yyyy")</td>
+                                <td class="td-mono" style="font-weight:600;">@req.Days</td>
+                                <td><span class="badge badge-success">Approved</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Leave balances per employee (all staff) -->
+        <div class="card" style="margin-top:20px;padding:0;overflow:hidden;">
+            <div style="padding:18px 24px;border-bottom:1px solid var(--border-subtle);">
+                <h3 style="font-size:.95rem;font-weight:700;margin:0;">Leave Balances — All Employees</h3>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th style="text-align:right;">Annual Remaining</th>
+                            <th style="text-align:right;">Annual Used</th>
+                            <th style="text-align:right;">Sick Remaining</th>
+                            <th style="text-align:right;">Family Resp. Used</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var b in _balances)
+                        {
+                            <tr>
+                                <td>
+                                    <div style="display:flex;align-items:center;gap:8px;">
+                                        <div class="avatar avatar-sm" style="background:@b.AvatarColor;">@b.Initials</div>
+                                        <span style="font-weight:500;">@b.EmployeeName</span>
+                                    </div>
+                                </td>
+                                <td class="td-mono" style="text-align:right;color:var(--success);">@b.AnnualDaysRemaining</td>
+                                <td class="td-mono" style="text-align:right;">@b.AnnualDaysUsed / @b.AnnualDaysTotal</td>
+                                <td class="td-mono" style="text-align:right;">@(b.SickDaysTotal - b.SickDaysUsed) / @b.SickDaysTotal</td>
+                                <td class="td-mono" style="text-align:right;">@b.FamilyResponsibilityUsed / @b.FamilyResponsibilityTotal</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </Authorized>
 </AuthorizeView>
 
+@* ── Manager view ──────────────────────────────────────────────────────── *@
 <AuthorizeView Roles="Manager">
-    <p>Team approval queue and your own leave requests.</p>
+    <Authorized>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:12px;flex-wrap:wrap;">
+            <div>
+                <h1 style="font-size:1.5rem;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;margin:0 0 4px;">Team Leave</h1>
+                <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">Review and approve your team's leave requests</p>
+            </div>
+            <a href="/leave/my-requests" class="btn btn-primary btn-sm">My Requests</a>
+        </div>
+
+        <!-- Team pending requests -->
+        <div class="card" style="padding:0;overflow:hidden;">
+            <div style="padding:18px 20px;border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;">
+                <h3 style="font-size:.95rem;font-weight:700;margin:0;">Team Pending Requests</h3>
+                <span class="badge badge-warning">@_requests.Count(r => r.Status == "Pending") pending</span>
+            </div>
+            <div style="padding:0 16px;">
+                @foreach (var req in _requests.Where(r => r.Status == "Pending"))
+                {
+                    <div class="request-row">
+                        <div class="avatar avatar-sm" style="background:@req.AvatarColor;flex-shrink:0;">@req.Initials</div>
+                        <div class="request-meta">
+                            <div class="request-name">@req.EmployeeName</div>
+                            <div class="request-detail">
+                                <span class="badge @GetLeaveTypeBadgeClass(req.LeaveType)" style="font-size:.7rem;">@req.LeaveType</span>
+                                · @req.StartDate.ToString("d MMM") – @req.EndDate.ToString("d MMM yyyy")
+                            </div>
+                        </div>
+                        <div class="request-days">@req.Days d</div>
+                        <div class="request-actions">
+                            <button class="btn-approve" @onclick="() => ApproveRequest(req.RequestId)">✓</button>
+                            <button class="btn-reject" @onclick="() => RejectRequest(req.RequestId)">✗</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Team calendar (compact) -->
+        <div class="card calendar-card" style="margin-top:20px;">
+            <div class="calendar-header">
+                <h3>@MonthLabel</h3>
+                <div class="cal-nav">
+                    <button class="cal-nav-btn" @onclick="PrevMonth">&#8249;</button>
+                    <button class="cal-nav-btn" @onclick="NextMonth">&#8250;</button>
+                </div>
+            </div>
+            <div class="calendar-grid">
+                <div class="cal-day-name">Sun</div>
+                <div class="cal-day-name">Mon</div>
+                <div class="cal-day-name">Tue</div>
+                <div class="cal-day-name">Wed</div>
+                <div class="cal-day-name">Thu</div>
+                <div class="cal-day-name">Fri</div>
+                <div class="cal-day-name">Sat</div>
+                @for (int i = 0; i < FirstDayOffset; i++)
+                {
+                    <div class="cal-day other-month"></div>
+                }
+                @for (int d = 1; d <= DaysInMonth; d++)
+                {
+                    var day = d;
+                    var isToday = _calYear == Today.Year && _calMonth == Today.Month && day == Today.Day;
+                    var leaves = GetLeavesForDay(day).ToList();
+                    <div class="cal-day @(isToday ? "today" : "") @(leaves.Any() ? "has-leave" : "")">
+                        <span class="day-num">@day</span>
+                        @if (leaves.Any())
+                        {
+                            <div class="day-dots">
+                                @foreach (var lv in leaves.Take(4))
+                                {
+                                    <div class="day-dot dot-@(lv.LeaveType.Replace(" ", ""))"></div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+                @for (int i = 1; i <= TrailingDays; i++)
+                {
+                    <div class="cal-day other-month"><span class="day-num">@i</span></div>
+                }
+            </div>
+        </div>
+    </Authorized>
 </AuthorizeView>
 
+@* ── Employee view ──────────────────────────────────────────────────────── *@
 <AuthorizeView Roles="Employee">
-    <p>Your leave requests and balance. <a href="/leave/my-requests">View My Requests</a></p>
+    <Authorized>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:12px;flex-wrap:wrap;">
+            <div>
+                <h1 style="font-size:1.5rem;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;margin:0 0 4px;">My Leave</h1>
+                <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">Your leave balances and requests</p>
+            </div>
+            <a href="/leave/my-requests" class="btn btn-primary btn-sm">Apply for Leave</a>
+        </div>
+
+        <!-- Own balance summary -->
+        @{
+            var myBalance = _balances.FirstOrDefault();
+        }
+        @if (myBalance is not null)
+        {
+            <div class="balance-grid">
+                <div class="balance-card">
+                    <div class="balance-card-label">Annual Leave</div>
+                    <div class="balance-card-days">@myBalance.AnnualDaysRemaining</div>
+                    <div class="balance-card-sub">of @myBalance.AnnualDaysTotal days remaining</div>
+                    <div class="balance-bar">
+                        <div class="balance-bar-fill"
+                             style="width:@(myBalance.AnnualDaysTotal > 0 ? (myBalance.AnnualDaysRemaining / myBalance.AnnualDaysTotal * 100m).ToString("F1") : "0")%;background:var(--brand-primary);">
+                        </div>
+                    </div>
+                </div>
+                <div class="balance-card">
+                    <div class="balance-card-label">Sick Leave</div>
+                    <div class="balance-card-days">@(myBalance.SickDaysTotal - myBalance.SickDaysUsed)</div>
+                    <div class="balance-card-sub">of @myBalance.SickDaysTotal days remaining</div>
+                    <div class="balance-bar">
+                        <div class="balance-bar-fill"
+                             style="width:@(myBalance.SickDaysTotal > 0 ? ((myBalance.SickDaysTotal - myBalance.SickDaysUsed) / myBalance.SickDaysTotal * 100m).ToString("F1") : "0")%;background:#e74c3c;">
+                        </div>
+                    </div>
+                </div>
+                <div class="balance-card">
+                    <div class="balance-card-label">Family Responsibility</div>
+                    <div class="balance-card-days">@(myBalance.FamilyResponsibilityTotal - myBalance.FamilyResponsibilityUsed)</div>
+                    <div class="balance-card-sub">of @myBalance.FamilyResponsibilityTotal days remaining</div>
+                    <div class="balance-bar">
+                        <div class="balance-bar-fill"
+                             style="width:@(myBalance.FamilyResponsibilityTotal > 0 ? ((myBalance.FamilyResponsibilityTotal - myBalance.FamilyResponsibilityUsed) / myBalance.FamilyResponsibilityTotal * 100m).ToString("F1") : "0")%;background:var(--brand-accent);">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <p style="font-size:.875rem;color:var(--text-secondary);">
+            <a href="/leave/my-requests" style="color:var(--brand-primary);font-weight:600;text-decoration:none;">View and manage your leave requests →</a>
+        </p>
+    </Authorized>
 </AuthorizeView>
+
+@code {
+    // ── Data models ─────────────────────────────────────────────────────────
+    // REQ-HR-002, CTL-BCEA-001, CTL-BCEA-003, CTL-BCEA-004
+    private record LeaveRequest(
+        string RequestId, string EmployeeId, string EmployeeName,
+        string Initials, string AvatarColor,
+        string LeaveType, DateOnly StartDate, DateOnly EndDate,
+        int Days, string Status, string? ManagerComment,
+        DateTimeOffset SubmittedAt);
+
+    private record LeaveBalance(
+        string EmployeeId, string EmployeeName, string Initials, string AvatarColor,
+        decimal AnnualDaysTotal, decimal AnnualDaysUsed, decimal AnnualDaysRemaining,
+        decimal SickDaysTotal, decimal SickDaysUsed,
+        decimal FamilyResponsibilityTotal, decimal FamilyResponsibilityUsed);
+
+    // ── Mock data — Zenowethu (Pty) Ltd employees ─────────────────────────
+    // REQ-HR-002: all 5 BCEA leave types
+    private readonly List<LeaveRequest> _requests = new()
+    {
+        new("LVE-2026-0089","EMP-0002","Thabo Molefe","TM","var(--brand-accent-subtle, #fef3e2)","Annual",
+            new DateOnly(2026,3,10),new DateOnly(2026,3,14),5,"Pending",null,
+            DateTimeOffset.Parse("2026-03-05T08:47:00+02:00")),
+        new("LVE-2026-0090","EMP-0005","Amahle Dlamini","AD","var(--danger-subtle, #fdecea)","Sick",
+            new DateOnly(2026,3,6),new DateOnly(2026,3,6),1,"Pending",null,
+            DateTimeOffset.Parse("2026-03-06T07:15:00+02:00")),
+        new("LVE-2026-0091","EMP-0007","Lerato Khumalo","LK","var(--brand-primary-subtle, #e8f0fb)","Annual",
+            new DateOnly(2026,3,17),new DateOnly(2026,3,20),4,"Pending",null,
+            DateTimeOffset.Parse("2026-03-07T09:00:00+02:00")),
+        new("LVE-2026-0085","EMP-0003","Nandi Zulu","NZ","var(--brand-accent-subtle, #fef3e2)","Annual",
+            new DateOnly(2026,2,23),new DateOnly(2026,2,28),5,"Approved","Approved",
+            DateTimeOffset.Parse("2026-02-18T10:00:00+02:00")),
+        new("LVE-2026-0086","EMP-0006","Johan Botha","JB","var(--info-subtle, #e8f4fb)","Sick",
+            new DateOnly(2026,2,19),new DateOnly(2026,2,20),2,"Approved","Approved",
+            DateTimeOffset.Parse("2026-02-19T08:00:00+02:00")),
+    };
+
+    // CTL-BCEA-001: Annual leave min 21 days; CTL-BCEA-003: Sick leave 30d/3yr cycle
+    private readonly List<LeaveBalance> _balances = new()
+    {
+        new("EMP-0001","Sarah Nkosi","SN","var(--brand-primary-subtle, #e8f0fb)",21,3,18,30,2,3,0),
+        new("EMP-0002","Thabo Molefe","TM","var(--brand-accent-subtle, #fef3e2)",21,8,13,30,5,3,1),
+        new("EMP-0003","Nandi Zulu","NZ","var(--brand-accent-subtle, #fef3e2)",21,5,16,30,0,3,0),
+        new("EMP-0004","Pieter van der Merwe","PV","var(--success-subtle, #e8f7ef)",21,2,19,30,1,3,0),
+        new("EMP-0005","Amahle Dlamini","AD","var(--danger-subtle, #fdecea)",21,1,20,30,1,3,0),
+        new("EMP-0006","Johan Botha","JB","var(--info-subtle, #e8f4fb)",21,0,21,30,2,3,0),
+        new("EMP-0007","Lerato Khumalo","LK","var(--brand-primary-subtle, #e8f0fb)",21,4,17,30,0,3,0),
+        new("EMP-0247","Kobus de Bruyn","KD","var(--info-subtle, #e8f4fb)",21,0,21,30,0,3,0),
+    };
+
+    // ── Calendar state ──────────────────────────────────────────────────────
+    private int _calYear = 2026;
+    private int _calMonth = 3;
+
+    private static readonly DateOnly Today = DateOnly.FromDateTime(DateTime.Today);
+
+    private int DaysInMonth => DateTime.DaysInMonth(_calYear, _calMonth);
+
+    // Day-of-week offset for first day of month (Sunday=0)
+    private int FirstDayOffset => (int)new DateTime(_calYear, _calMonth, 1).DayOfWeek;
+
+    // Trailing days to fill last row
+    private int TrailingDays
+    {
+        get
+        {
+            var total = FirstDayOffset + DaysInMonth;
+            var rem = total % 7;
+            return rem == 0 ? 0 : 7 - rem;
+        }
+    }
+
+    private string MonthLabel => new DateTime(_calYear, _calMonth, 1).ToString("MMMM yyyy");
+
+    private void PrevMonth()
+    {
+        _calMonth--;
+        if (_calMonth < 1) { _calMonth = 12; _calYear--; }
+    }
+
+    private void NextMonth()
+    {
+        _calMonth++;
+        if (_calMonth > 12) { _calMonth = 1; _calYear++; }
+    }
+
+    private IEnumerable<LeaveRequest> GetLeavesForDay(int day)
+    {
+        var date = new DateOnly(_calYear, _calMonth, day);
+        return _requests.Where(r => r.Status != "Rejected" && r.StartDate <= date && r.EndDate >= date);
+    }
+
+    // ── SA Public holidays (2026) — REQ-HR-002 ───────────────────────────
+    private static readonly HashSet<(int Month, int Day)> SaPublicHolidays2026 = new()
+    {
+        (1, 1),   // New Year's Day
+        (3, 21),  // Human Rights Day
+        (4, 3),   // Good Friday 2026
+        (4, 6),   // Family Day 2026
+        (4, 27),  // Freedom Day
+        (5, 1),   // Workers' Day
+        (6, 16),  // Youth Day
+        (8, 9),   // National Women's Day
+        (9, 24),  // Heritage Day
+        (12, 16), // Day of Reconciliation
+        (12, 25), // Christmas Day
+        (12, 26), // Day of Goodwill
+    };
+
+    private static bool IsPublicHoliday(int year, int month, int day)
+        => year == 2026 && SaPublicHolidays2026.Contains((month, day));
+
+    private static string GetDayTitle(int year, int month, int day, bool isHoliday, List<LeaveRequest> leaves)
+    {
+        var date = new DateOnly(year, month, day);
+        var parts = new List<string> { date.ToString("d MMMM yyyy") };
+        if (isHoliday) parts.Add("Public Holiday");
+        parts.AddRange(leaves.Select(lv => $"{lv.EmployeeName} ({lv.LeaveType})"));
+        return string.Join(" · ", parts);
+    }
+
+    // ── Approval actions ────────────────────────────────────────────────────
+    // REQ-HR-002: approval workflow
+    private void ApproveRequest(string id)
+    {
+        var idx = _requests.FindIndex(r => r.RequestId == id);
+        if (idx >= 0)
+        {
+            var old = _requests[idx];
+            _requests[idx] = old with { Status = "Approved", ManagerComment = "Approved" };
+        }
+    }
+
+    private void RejectRequest(string id)
+    {
+        var idx = _requests.FindIndex(r => r.RequestId == id);
+        if (idx >= 0)
+        {
+            var old = _requests[idx];
+            _requests[idx] = old with { Status = "Rejected", ManagerComment = "Rejected" };
+        }
+    }
+
+    // ── Leave type badge helper ─────────────────────────────────────────────
+    private static string GetLeaveTypeBadgeClass(string leaveType) => leaveType switch
+    {
+        "Annual" => "badge-info",
+        "Sick" => "badge-danger",
+        "Family Responsibility" => "badge-warning",
+        "Maternity" => "badge-accent",
+        "Unpaid" => "badge-muted",
+        _ => "badge-muted"
+    };
+
+    // ── New leave request form state ────────────────────────────────────────
+    private bool _showRequestForm = false;
+    private bool _showAccrualBanner = true;
+    private string _filterType = "";
+    private string _newEmployee = "";
+    private string _newLeaveType = "";
+    private DateTime _newStartDate = DateTime.Today;
+    private DateTime _newEndDate = DateTime.Today;
+    private string _newReason = "";
+    private string _formMessage = "";
+
+    private void SubmitLeaveRequest()
+    {
+        if (string.IsNullOrWhiteSpace(_newEmployee) || string.IsNullOrWhiteSpace(_newLeaveType))
+        {
+            _formMessage = "Please select an employee and leave type.";
+            return;
+        }
+
+        var emp = _balances.FirstOrDefault(b => b.EmployeeId == _newEmployee);
+        if (emp is null) return;
+
+        var start = DateOnly.FromDateTime(_newStartDate);
+        var end = DateOnly.FromDateTime(_newEndDate);
+        if (end < start) { _formMessage = "End date cannot be before start date."; return; }
+
+        var days = (int)(end.DayNumber - start.DayNumber) + 1;
+        var newId = $"LVE-2026-{_requests.Count + 100:D4}";
+
+        _requests.Add(new LeaveRequest(
+            newId, _newEmployee, emp.EmployeeName, emp.Initials, emp.AvatarColor,
+            _newLeaveType, start, end, days, "Pending", null,
+            DateTimeOffset.Now));
+
+        _formMessage = $"Leave request submitted for {emp.EmployeeName} ({days} day{(days != 1 ? "s" : "")}).";
+        _newEmployee = "";
+        _newLeaveType = "";
+        _newReason = "";
+        _showRequestForm = false;
+    }
+}

@@ -1,9 +1,183 @@
-@* REQ-SEC-002, PRD-15 S4 footnote 1: My Payslips — all tenant users (self-access guarantee). *@
+@* REQ-HR-004: Payslip download via /api/payroll/runs/{id}/payslips/{empId}/pdf *@
+@* REQ-SEC-002: Self-access guarantee — all tenant users can view their own payslips only. *@
 @* Manager and Employee see ONLY their own payslip. No cross-employee payroll data is returned. *@
 @page "/payroll/my-payslips"
 @attribute [Authorize(Roles = "Director,HRManager,Manager,Employee")]
 @using Microsoft.AspNetCore.Authorization
+@inject IJSRuntime JS
 
 <PageTitle>My Payslips — ZenoHR</PageTitle>
-<h1>My Payslips</h1>
-<p>Your personal payslip history. All amounts are your own employment records only.</p>
+
+<style>
+    .payslip-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: var(--card-gap);
+    }
+
+    .payslip-card {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-xl);
+        padding: var(--space-5) var(--space-6);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        transition: box-shadow var(--transition-default);
+    }
+
+    .payslip-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+
+    .payslip-period {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .payslip-run-id {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .payslip-amounts {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--space-3);
+        padding: var(--space-3) 0;
+        border-top: 1px solid var(--border-subtle);
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .payslip-amount-label {
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        margin-bottom: 3px;
+    }
+
+    .payslip-amount-value {
+        font-family: var(--font-mono);
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--text-primary);
+    }
+
+    .payslip-amount-value.net {
+        color: var(--success);
+    }
+
+    .payslip-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    @@media (max-width: 640px) {
+        .payslip-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<div class="page-header">
+    <div>
+        <h1 class="page-title">My Payslips</h1>
+        <p class="page-subtitle">Your personal payslip history. All amounts are your own employment records only.</p>
+    </div>
+</div>
+
+@if (!_payslips.Any())
+{
+    <div class="card" style="padding: var(--space-8); text-align: center; color: var(--text-secondary);">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto var(--space-4); color: var(--text-muted);">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+        </svg>
+        <p style="font-size: 15px; font-weight: 600; margin-bottom: 6px;">No payslips yet</p>
+        <p style="font-size: 13px; color: var(--text-muted);">Your payslips will appear here once a payroll run has been finalized.</p>
+    </div>
+}
+else
+{
+    <div class="payslip-grid">
+        @foreach (var slip in _payslips)
+        {
+            <div class="payslip-card">
+                <div>
+                    <div class="payslip-period">@slip.Period</div>
+                    <div class="payslip-run-id">@slip.RunId · Payment @slip.PaymentDate.ToString("d MMM yyyy")</div>
+                </div>
+
+                <div class="payslip-amounts">
+                    <div>
+                        <div class="payslip-amount-label">Gross Pay</div>
+                        <div class="payslip-amount-value">@FormatZar(slip.GrossPay)</div>
+                    </div>
+                    <div>
+                        <div class="payslip-amount-label">Net Pay</div>
+                        <div class="payslip-amount-value net">@FormatZar(slip.NetPay)</div>
+                    </div>
+                    <div>
+                        <div class="payslip-amount-label">PAYE</div>
+                        <div class="payslip-amount-value" style="color:var(--danger);">@FormatZar(slip.Paye)</div>
+                    </div>
+                    <div>
+                        <div class="payslip-amount-label">UIF</div>
+                        <div class="payslip-amount-value">@FormatZar(slip.Uif)</div>
+                    </div>
+                </div>
+
+                <div class="payslip-footer">
+                    <span class="badge badge-success">@slip.Status</span>
+                    <a href="/api/payroll/runs/@slip.RunId/payslips/@_currentEmployeeId/pdf"
+                       class="btn btn-secondary btn-sm" target="_blank">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" x2="12" y1="15" y2="3" />
+                        </svg>
+                        Download PDF
+                    </a>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    // REQ-HR-004: Payslip download via /api/payroll/runs/{id}/payslips/{empId}/pdf
+    // REQ-SEC-002: Self-access guarantee — server enforces firebase_uid == requesting_uid
+
+    private record MyPayslip(
+        string RunId, string Period, DateOnly PaymentDate,
+        decimal GrossPay, decimal NetPay, decimal Paye, decimal Uif,
+        string Status
+    );
+
+    // REQ-SEC-002: In production this comes from the authenticated Firebase UID → employee lookup
+    private const string _currentEmployeeId = "EMP-0001";
+
+    private readonly List<MyPayslip> _payslips = new()
+    {
+        new("RUN-2026-02", "February 2026", new DateOnly(2026, 2, 25), 45000m, 36225m, 8325m, 450m, "Finalized"),
+        new("RUN-2026-01", "January 2026",  new DateOnly(2026, 1, 25), 45000m, 36225m, 8325m, 450m, "Finalized"),
+        new("RUN-2025-12", "December 2025", new DateOnly(2025, 12, 24), 45000m, 36225m, 8325m, 450m, "Finalized"),
+        new("RUN-2025-11", "November 2025", new DateOnly(2025, 11, 25), 45000m, 36225m, 8325m, 450m, "Finalized"),
+        new("RUN-2025-10", "October 2025",  new DateOnly(2025, 10, 25), 43000m, 34589m, 8061m, 430m, "Finalized"),
+    };
+
+    private static string FormatZar(decimal amount) => $"R {amount:N2}";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("zenohr.initLucide");
+        }
+    }
+}

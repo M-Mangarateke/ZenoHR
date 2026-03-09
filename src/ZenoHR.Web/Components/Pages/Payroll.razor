@@ -1,9 +1,489 @@
-@* REQ-SEC-002, PRD-15 S4: Payroll Runs — Director and HRManager only. *@
-@* Manager and Employee access payroll ONLY via /payroll/my-payslips (self-access guarantee). *@
+@* REQ-HR-003: Payroll run management — Director and HRManager only *@
+@* REQ-HR-004: Payslip generation via /api/payroll/runs/{id}/payslips/{empId}/pdf *@
+@* REQ-SEC-002: Manager and Employee see own payslips only (self-access guarantee) *@
+@* CTL-SARS-005: IRP5 codes and BCEA §33 compliance via PayslipPdfGenerator *@
 @page "/payroll"
 @attribute [Authorize(Roles = "Director,HRManager")]
 @using Microsoft.AspNetCore.Authorization
+@inject IJSRuntime JS
+@inject NavigationManager Nav
 
 <PageTitle>Payroll — ZenoHR</PageTitle>
-<h1>Payroll Runs</h1>
-<p>Manage payroll runs, approve submissions, and generate payslips for all employees.</p>
+
+<style>
+    .payroll-layout {
+        display: flex;
+        gap: var(--card-gap);
+        align-items: flex-start;
+    }
+
+    .run-list-panel {
+        width: 300px;
+        flex-shrink: 0;
+        position: sticky;
+        top: calc(var(--header-height) + var(--content-padding));
+    }
+
+    .run-detail {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .run-item {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 14px 16px;
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        transition: background var(--transition-default);
+        border: 1px solid transparent;
+        margin-bottom: 4px;
+    }
+
+    .run-item:hover {
+        background: var(--bg-surface-hover);
+        border-color: var(--border-default);
+    }
+
+    .run-item.active {
+        background: var(--brand-primary-subtle);
+        border-color: var(--brand-primary);
+    }
+
+    .run-period {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .run-meta {
+        display: flex;
+        gap: var(--space-3);
+        align-items: center;
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+
+    .run-amount {
+        font-family: var(--font-mono);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .stat-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--card-gap);
+        margin-bottom: var(--card-gap);
+    }
+
+    .stat-box {
+        background: var(--surface);
+        border: 1px solid var(--border-subtle);
+        border-radius: var(--radius-xl);
+        padding: var(--space-5) var(--space-6);
+    }
+
+    .stat-box-label {
+        font-size: 11.5px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--text-muted);
+        margin-bottom: var(--space-2);
+    }
+
+    .stat-box-value {
+        font-family: var(--font-mono);
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--text-primary);
+        letter-spacing: -0.5px;
+    }
+
+    .stat-box-sub {
+        font-size: 11.5px;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+
+    .action-bar {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-4) var(--space-6);
+        border-top: 1px solid var(--border-default);
+        background: var(--bg-table-header);
+        border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+    }
+
+    .finalization-notice {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 12px 16px;
+        background: var(--warning-subtle);
+        border: 1px solid rgba(217, 119, 6, 0.25);
+        border-radius: var(--radius-lg);
+        margin-bottom: var(--card-gap);
+        font-size: 13px;
+        color: var(--warning);
+        font-weight: 500;
+    }
+
+    @@media (max-width: 768px) {
+        .payroll-layout { flex-direction: column; }
+        .run-list-panel { width: 100%; position: static; }
+        .stat-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @@media (max-width: 640px) {
+        .stat-grid { grid-template-columns: 1fr; }
+        .stat-box-value { font-size: 18px; }
+        .action-bar { flex-direction: column; align-items: stretch; gap: var(--space-3); }
+        .action-bar .ml-auto { margin-left: 0; }
+    }
+</style>
+
+<div class="page-header">
+    <div class="flex items-center justify-between mb-4">
+        <div>
+            <h1 class="page-title">Payroll</h1>
+            <p class="page-subtitle">Monthly pay runs &nbsp;·&nbsp; PAYE, UIF, SDL, ETI, Medical Tax Credit calculated automatically</p>
+        </div>
+        <button class="btn btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" x2="12" y1="5" y2="19" />
+                <line x1="5" x2="19" y1="12" y2="12" />
+            </svg>
+            New Run
+        </button>
+    </div>
+
+    <div class="flex gap-3 flex-wrap">
+        @{ var draftCount = _runs.Count(r => r.Status == "Draft"); }
+        @{ var finalizedCount = _runs.Count(r => r.Status == "Finalized"); }
+
+        @if (draftCount > 0)
+        {
+            <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--warning-subtle);border-radius:var(--radius-full);border:1px solid rgba(217,119,6,0.2);">
+                <span style="width:6px;height:6px;border-radius:50%;background:var(--warning);"></span>
+                <span style="font-size:12.5px;font-weight:600;color:var(--warning);">@draftCount Draft</span>
+            </div>
+        }
+        @if (finalizedCount > 0)
+        {
+            var latestFinalized = _runs.Where(r => r.Status == "Finalized").OrderByDescending(r => r.PaymentDate).FirstOrDefault();
+            <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--success-subtle);border-radius:var(--radius-full);border:1px solid rgba(22,163,74,0.2);">
+                <span style="width:6px;height:6px;border-radius:50%;background:var(--success);"></span>
+                <span style="font-size:12.5px;font-weight:600;color:var(--success);">@finalizedCount Finalized (@(latestFinalized?.Period ?? ""))</span>
+            </div>
+        }
+        <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:var(--brand-primary-subtle);border-radius:var(--radius-full);border:1px solid rgba(29,71,119,0.15);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--brand-primary)" stroke-width="2">
+                <rect width="18" height="18" x="3" y="4" rx="2" />
+                <line x1="16" x2="16" y1="2" y2="6" />
+                <line x1="8" x2="8" y1="2" y2="6" />
+                <line x1="3" x2="21" y1="10" y2="10" />
+            </svg>
+            <span style="font-size:12.5px;font-weight:600;color:var(--brand-primary);">Next EMP201: 7 Apr 2026</span>
+        </div>
+    </div>
+</div>
+
+@if (_showBackupBanner)
+{
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 18px;margin-bottom:20px;background:#e8f0fb;border:1px solid rgba(29,71,119,.2);border-radius:12px;color:#1d4777;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="flex-shrink:0;margin-top:1px;">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" x2="12" y1="15" y2="3" />
+        </svg>
+        <div style="flex:1;min-width:0;">
+            <div style="font-size:.86rem;font-weight:600;margin-bottom:6px;">February 2026 payroll finalised. Save a local backup for your records.</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                <button class="btn btn-primary btn-sm" style="font-size:.78rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" x2="12" y1="15" y2="3" />
+                    </svg>
+                    Download Summary CSV
+                </button>
+                <button class="btn btn-secondary btn-sm" style="font-size:.78rem;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="7 10 12 15 17 10" />
+                        <line x1="12" x2="12" y1="15" y2="3" />
+                    </svg>
+                    Download Payslips ZIP
+                </button>
+                <button class="btn btn-ghost btn-sm" style="font-size:.78rem;" @onclick="() => _showBackupBanner = false">Dismiss</button>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="payroll-layout">
+
+    <!-- Run List Panel -->
+    <div class="card run-list-panel" style="padding: var(--space-4);">
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:var(--text-muted);margin-bottom:var(--space-3);padding: 0 var(--space-2);">
+            Pay Runs - 2026
+        </div>
+
+        @foreach (var run in _runs.OrderByDescending(r => r.PaymentDate))
+        {
+            <div class="run-item @(_selectedRun?.RunId == run.RunId ? "active" : "")" @onclick="() => SelectRun(run)">
+                <div class="flex items-center justify-between">
+                    <span class="run-period">@run.Period</span>
+                    <span class="badge @GetStatusBadgeClass(run.Status)">@run.Status</span>
+                </div>
+                <div class="run-meta">
+                    <span>@run.EmployeeCount employees</span>
+                    <span>·</span>
+                    <span>Monthly</span>
+                </div>
+                <div class="run-amount">@FormatZar(run.NetTotal)</div>
+            </div>
+        }
+    </div>
+
+    <!-- Run Detail -->
+    <div class="run-detail">
+        @if (_selectedRun is null)
+        {
+            <div class="card" style="padding: var(--space-8); text-align: center; color: var(--text-secondary);">
+                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto var(--space-4); color: var(--text-muted);">
+                    <rect width="20" height="14" x="2" y="5" rx="2" />
+                    <line x1="2" x2="22" y1="10" y2="10" />
+                </svg>
+                <p style="font-size: 15px; font-weight: 600; margin-bottom: 6px;">Select a pay run</p>
+                <p style="font-size: 13px; color: var(--text-muted);">Choose a payroll run from the left panel to view its details, approve it, or generate EMP201.</p>
+            </div>
+        }
+        else
+        {
+            @if (_selectedRun.Status == "Finalized")
+            {
+                <div class="finalization-notice">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="flex-shrink:0;margin-top:1px;">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                    <span>This run is finalized. No changes permitted. Corrections must be submitted as adjustments.</span>
+                </div>
+            }
+
+            <!-- Stat Grid -->
+            <div class="stat-grid">
+                <div class="stat-box">
+                    <div class="stat-box-label">Gross Payroll</div>
+                    <div class="stat-box-value">@FormatZar(_selectedRun.GrossTotal)</div>
+                    <div class="stat-box-sub">@_selectedRun.EmployeeCount employees · @_selectedRun.Period</div>
+                </div>
+                <div class="stat-box" style="border-color:rgba(220,38,38,0.2);">
+                    <div class="stat-box-label">Total PAYE</div>
+                    <div class="stat-box-value" style="color:var(--danger);">@FormatZar(_selectedRun.PayeTotal)</div>
+                    <div class="stat-box-sub">After medical credits · SARS due @_selectedRun.PaymentDate.AddDays(13).ToString("d MMM yyyy")</div>
+                </div>
+                <div class="stat-box" style="border-color:rgba(37,99,235,0.2);">
+                    <div class="stat-box-label">Total UIF + SDL</div>
+                    <div class="stat-box-value" style="color:var(--info);">@FormatZar(_selectedRun.UifTotal)</div>
+                    <div class="stat-box-sub">UIF + SDL combined</div>
+                </div>
+                <div class="stat-box" style="border-color:rgba(22,163,74,0.2);background:var(--success-subtle);">
+                    <div class="stat-box-label">Net Payroll</div>
+                    <div class="stat-box-value" style="color:var(--success);">@FormatZar(_selectedRun.NetTotal)</div>
+                    <div class="stat-box-sub">Employee take-home total</div>
+                </div>
+            </div>
+
+            <!-- Employee Breakdown Card -->
+            <div class="card" style="padding:0;overflow:hidden;">
+                <div style="padding: var(--space-5) var(--space-6);">
+                    <div class="flex items-center justify-between">
+                        <span class="card-title">Employee Breakdown</span>
+                        <div class="flex gap-2">
+                            <button class="btn btn-ghost btn-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                    <polyline points="7 10 12 15 17 10" />
+                                    <line x1="12" x2="12" y1="15" y2="3" />
+                                </svg>
+                                Export CSV
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Employee</th>
+                                <th style="text-align:right;">Basic Salary</th>
+                                <th style="text-align:right;">Overtime</th>
+                                <th style="text-align:right;">Gross Pay</th>
+                                <th style="text-align:right;">PAYE</th>
+                                <th style="text-align:right;">UIF</th>
+                                <th style="text-align:right;">Net Pay</th>
+                                <th style="text-align:right;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var line in _lines)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="person-cell">
+                                            <div class="avatar" style="background:@line.AvatarColor; color: var(--text-primary);">@line.Initials</div>
+                                            <div>
+                                                <div class="person-name">@line.Name</div>
+                                                <div class="person-sub">@line.EmployeeId</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="td-mono" style="text-align:right;">@FormatZar(line.BasicSalary)</td>
+                                    <td class="td-mono" style="text-align:right;">@(line.Overtime > 0 ? FormatZar(line.Overtime) : "—")</td>
+                                    <td class="td-mono" style="text-align:right;font-weight:600;">@FormatZar(line.GrossPay)</td>
+                                    <td class="td-mono" style="text-align:right;color:var(--danger);">@FormatZar(line.Paye)</td>
+                                    <td class="td-mono" style="text-align:right;">@FormatZar(line.Uif)</td>
+                                    <td class="td-mono" style="text-align:right;font-weight:700;color:var(--success);">@FormatZar(line.NetPay)</td>
+                                    <td style="text-align:right;"><span class="badge badge-success" style="font-size:11px;">@line.Status</span></td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot>
+                            <tr style="background:var(--bg-table-header);font-weight:700;">
+                                <td style="padding:12px 16px;font-size:12px;color:var(--text-secondary);letter-spacing:0.05em;text-transform:uppercase;">
+                                    @_selectedRun.EmployeeCount Employees Total
+                                </td>
+                                <td class="td-mono" style="text-align:right;padding:12px 16px;">@FormatZar(_lines.Sum(l => l.BasicSalary))</td>
+                                <td class="td-mono" style="text-align:right;padding:12px 16px;">@FormatZar(_lines.Sum(l => l.Overtime))</td>
+                                <td class="td-mono" style="text-align:right;padding:12px 16px;">@FormatZar(_selectedRun.GrossTotal)</td>
+                                <td class="td-mono" style="text-align:right;padding:12px 16px;color:var(--danger);">@FormatZar(_selectedRun.PayeTotal)</td>
+                                <td class="td-mono" style="text-align:right;padding:12px 16px;">@FormatZar(_selectedRun.UifTotal)</td>
+                                <td class="td-mono" style="text-align:right;padding:12px 16px;color:var(--success);">@FormatZar(_selectedRun.NetTotal)</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Action Bar -->
+                <div class="action-bar">
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                        <span style="font-size:.78rem;font-weight:600;color:var(--text-primary);">@_selectedRun.Period · @_selectedRun.Status</span>
+                        @if (_selectedRun.Status == "Draft")
+                        {
+                            <span style="font-size:.73rem;color:var(--text-muted);">Review the totals above, then Finalize &amp; Lock to commit this run.</span>
+                        }
+                        else if (_selectedRun.Status == "Finalized")
+                        {
+                            <span style="font-size:.73rem;color:var(--text-muted);">This run is finalized. Download payslips or generate EMP201 for SARS submission.</span>
+                        }
+                    </div>
+                    <div class="ml-auto flex gap-3">
+                        <button class="btn btn-ghost btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" x2="12" y1="15" y2="3" />
+                            </svg>
+                            EMP201 CSV
+                        </button>
+                        <button class="btn btn-secondary btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" x2="12" y1="15" y2="3" />
+                            </svg>
+                            Download Payslips
+                        </button>
+                        @if (_selectedRun.Status == "Draft")
+                        {
+                            <button class="btn btn-accent">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                </svg>
+                                Finalize &amp; Lock
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    // REQ-HR-003: Payroll run management — Director and HRManager only
+    // REQ-HR-004: Payslip generation via /api/payroll/runs/{id}/payslips/{empId}/pdf
+
+    private record PayrollRunSummary(
+        string RunId, string Period, string Status,
+        int EmployeeCount, decimal GrossTotal, decimal NetTotal,
+        decimal PayeTotal, decimal UifTotal, DateOnly PaymentDate
+    );
+
+    private record PayrollLineItem(
+        string EmployeeId, string Name, string Initials, string AvatarColor,
+        decimal BasicSalary, decimal Overtime, decimal GrossPay,
+        decimal Paye, decimal Uif, decimal NetPay, string Status
+    );
+
+    private readonly List<PayrollRunSummary> _runs = new()
+    {
+        new("RUN-2026-02", "February 2026", "Finalized", 8, 412000m, 328450m, 62400m, 8240m, new DateOnly(2026, 2, 25)),
+        new("RUN-2026-01", "January 2026",  "Finalized", 8, 408000m, 325200m, 61800m, 8160m, new DateOnly(2026, 1, 25)),
+        new("RUN-2025-12", "December 2025", "Finalized", 7, 395000m, 314600m, 59500m, 7900m, new DateOnly(2025, 12, 24)),
+        new("RUN-2025-11", "November 2025", "Finalized", 7, 390000m, 310800m, 58800m, 7800m, new DateOnly(2025, 11, 25)),
+        new("RUN-2026-03", "March 2026",    "Draft",     8, 415000m, 330200m, 63000m, 8300m, new DateOnly(2026, 3, 25)),
+    };
+
+    private readonly List<PayrollLineItem> _lines = new()
+    {
+        new("EMP-0001", "Sarah Nkosi",          "SN", "var(--brand-primary-subtle)", 45000m, 0m,    45000m, 8325m,  450m, 36225m, "Processed"),
+        new("EMP-0002", "Thabo Molefe",          "TM", "var(--warning-subtle)",      38000m, 2280m, 40280m, 7051m,  403m, 32826m, "Processed"),
+        new("EMP-0003", "Nandi Zulu",            "NZ", "var(--brand-accent-subtle)", 32000m, 0m,    32000m, 4800m,  320m, 26880m, "Processed"),
+        new("EMP-0004", "Pieter van der Merwe",  "PV", "var(--success-subtle)",      55000m, 0m,    55000m, 11275m, 550m, 43175m, "Processed"),
+        new("EMP-0005", "Amahle Dlamini",        "AD", "var(--danger-subtle)",       28000m, 0m,    28000m, 3360m,  280m, 24360m, "Processed"),
+        new("EMP-0006", "Johan Botha",           "JB", "var(--info-subtle)",         35000m, 0m,    35000m, 5775m,  350m, 28875m, "Processed"),
+        new("EMP-0007", "Lerato Khumalo",        "LK", "var(--brand-primary-subtle)",30000m, 0m,    30000m, 4200m,  300m, 25500m, "Processed"),
+        new("EMP-0247", "Kobus de Bruyn",        "KD", "var(--info-subtle)",         26000m, 0m,    26000m, 2964m,  260m, 22776m, "Processed"),
+    };
+
+    private PayrollRunSummary? _selectedRun;
+    private bool _showBackupBanner = true;
+
+    protected override void OnInitialized()
+    {
+        // Default: select the Draft run (March 2026) on load
+        _selectedRun = _runs.FirstOrDefault(r => r.Status == "Draft") ?? _runs.OrderByDescending(r => r.PaymentDate).First();
+    }
+
+    private void SelectRun(PayrollRunSummary run)
+    {
+        _selectedRun = run;
+    }
+
+    private static string FormatZar(decimal amount) => $"R {amount:N2}";
+
+    private static string GetStatusBadgeClass(string status) => status switch
+    {
+        "Draft"      => "badge-warning",
+        "Finalized"  => "badge-success",
+        "Processing" => "badge-info",
+        "Failed"     => "badge-danger",
+        _            => "badge-secondary"
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("zenohr.initLucide");
+        }
+    }
+}

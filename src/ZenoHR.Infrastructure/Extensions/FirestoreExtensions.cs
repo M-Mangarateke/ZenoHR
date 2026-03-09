@@ -8,6 +8,7 @@ using ZenoHR.Infrastructure.Audit;
 using ZenoHR.Infrastructure.Auth;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Infrastructure.Seeding;
+using ZenoHR.Infrastructure.Services.Filing.Emp201;
 using ZenoHR.Infrastructure.Services.Payslip;
 
 namespace ZenoHR.Infrastructure.Extensions;
@@ -74,6 +75,9 @@ public static class FirestoreExtensions
 
         // REQ-HR-004, CTL-SARS-005: QuestPDF payslip PDF generator (TASK-087)
         services.AddSingleton<IPayslipPdfGenerator, PayslipPdfGenerator>();
+
+        // CTL-SARS-006: EMP201 monthly PAYE/UIF/SDL filing generator (TASK-088)
+        services.AddSingleton<IEmp201Generator, Emp201Generator>();
 
         // REQ-SEC-002, REQ-SEC-003: RBAC — user role assignments repository
         // Note: ZenoHrClaimsTransformation (IClaimsTransformation) is registered in

@@ -1,7 +1,7 @@
 {
   "project": "ZenoHR",
   "current_phase": "Phase 4 - UI (Blazor Server)",
-  "last_updated": "2026-03-09T16:23:04.199797+00:00",
+  "last_updated": "2026-03-09T16:38:52.970176+00:00",
   "last_session_summary": "Progress log synced to match git history. Phase 2 complete (TASK-064 thru TASK-073). Phase 3 partial: TASK-081-086 done (payroll repos, orchestration, API, statutory); TASK-087+ (QuestPDF, EMP201, filing) still pending. Phase 4 scaffolded: TASK-101-104 (NavMenu, auth, RBAC, Login). Next: full Blazor UI pages from mockups (TASK-105+) and QuestPDF payslip (TASK-087).",
   "phases": [
     {
@@ -1132,14 +1132,16 @@
       "id": "TASK-088",
       "title": "EMP201 CSV package generator (Phase 1: manual upload format)",
       "phase": "phase-3",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-085"
       ],
       "requirements": [
         "CTL-SARS-006"
-      ]
+      ],
+      "notes": "Emp201Data + IEmp201Generator + Emp201Generator (CSV + summary report + due date calc). Endpoints added. 9 tests passing (54 total compliance tests).",
+      "completed_at": "2026-03-09"
     },
     {
       "id": "TASK-089",
@@ -1225,7 +1227,7 @@
       "id": "TASK-095",
       "title": "MSFTC calculation engine + PAYE integration (Section 6A, IRP5 code 4116)",
       "phase": "phase-3",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-053"
@@ -1235,7 +1237,8 @@
         "REQ-HR-003",
         "CTL-SARS-001"
       ],
-      "notes": "Create MsfTcCalculationEngine: CalculateMonthlyMsftc(int numberOfDependants, SarsMsfTcRuleSet). Formula: 364 + (246 Ã— dependants). PayrollOrchestrationService applies after PAYE: net_paye = max(0, paye - msftc). PayrollResult gains msftc_credit_applied field. IRP5 reports code 4116 = annual sum. Seed: docs/seed-data/sars-medical-scheme-tax-credit.json. Employee profile needs medical_scheme_dependants integer field. New FsCheck properties: MSFTC never creates negative PAYE liability; MSFTC = 0 when employee not on medical scheme. Unit test: 2 dependants + PAYE R1,000 â†’ MSFTC R856 â†’ net PAYE R144. Unit test: 2 dependants + PAYE R300 â†’ net PAYE R0."
+      "notes": "MedicalSchemeFeesTaxCreditCalculator — CalculateMonthly, ApplyCredit (non-refundable floor), AnnualiseCredit. 10 unit tests + FsCheck property test. 185 payroll tests passing.",
+      "completed_at": "2026-03-09"
     },
     {
       "id": "TASK-096",
@@ -1409,27 +1412,31 @@
       "id": "TASK-107",
       "title": "Payroll runs page + payroll run detail (04-payroll.html)",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-086"
       ],
       "requirements": [
         "REQ-HR-003"
-      ]
+      ],
+      "notes": "Payroll.razor — two-panel run list + detail, stat grid, employee breakdown table, finalization notice. PayrollMyPayslips.razor — own payslip cards with PDF download links.",
+      "completed_at": "2026-03-09"
     },
     {
       "id": "TASK-108",
       "title": "Leave calendar page (05-leave.html)",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-070"
       ],
       "requirements": [
         "REQ-HR-002"
-      ]
+      ],
+      "notes": "Leave.razor — pure C# calendar grid, approval queue with Approve/Reject, balance summary. LeaveMyRequests.razor — own balance, request list, inline new-request form.",
+      "completed_at": "2026-03-09"
     },
     {
       "id": "TASK-109",
