@@ -4,6 +4,7 @@
 // CTL-POPIA-012: Every state-change is auditable.
 
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using ZenoHR.Infrastructure.Audit;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Integration.Tests.Infrastructure;
@@ -30,8 +31,8 @@ public sealed class AuditEventWriterTests : IntegrationTestBase
 
     public AuditEventWriterTests(FirestoreEmulatorFixture fixture) : base(fixture)
     {
-        _repository = new AuditEventRepository(fixture.Db);
-        _writer = new AuditEventWriter(fixture.Db, _repository);
+        _repository = new AuditEventRepository(fixture.Db, NullLogger<AuditEventRepository>.Instance);
+        _writer = new AuditEventWriter(fixture.Db, _repository, NullLogger<AuditEventWriter>.Instance);
     }
 
     // ── TC-OPS-005-A: Single write succeeds ──────────────────────────────────

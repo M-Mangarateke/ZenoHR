@@ -3,6 +3,7 @@
 // CTL-BCEA-004: Pending leave query for manager approval queue.
 
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Integration.Tests.Infrastructure;
 using ZenoHR.Module.Leave.Aggregates;
@@ -24,7 +25,7 @@ public sealed class LeaveRequestRepositoryTests : IntegrationTestBase
 
     public LeaveRequestRepositoryTests(FirestoreEmulatorFixture fixture) : base(fixture)
     {
-        _repo = new LeaveRequestRepository(fixture.Db);
+        _repo = new LeaveRequestRepository(fixture.Db, NullLogger<LeaveRequestRepository>.Instance);
     }
 
     // ── TC-LEAVE-002-A: Submit and retrieve ───────────────────────────────────

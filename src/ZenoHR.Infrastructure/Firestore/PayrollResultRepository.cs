@@ -3,6 +3,7 @@
 // Write-once after parent PayrollRun is Finalized (enforced by CreateDocumentAsync).
 // Document ID = employee_id (one result per employee per run).
 
+using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;

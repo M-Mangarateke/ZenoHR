@@ -2,6 +2,7 @@
 // Collection: employment_contracts (root, not subcollection — cross-employee queries needed).
 // base_salary_zar stored as string for decimal precision (MoneyZAR rule).
 
+using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
@@ -16,7 +17,7 @@ namespace ZenoHR.Infrastructure.Firestore;
 /// </summary>
 public sealed class EmploymentContractRepository : BaseFirestoreRepository<EmploymentContract>
 {
-    public EmploymentContractRepository(FirestoreDb db) : base(db) { }
+    public EmploymentContractRepository(FirestoreDb db, ILogger<EmploymentContractRepository> logger) : base(db, logger) { }
 
     protected override string CollectionName => "employment_contracts";
     protected override ZenoHrErrorCode NotFoundErrorCode => ZenoHrErrorCode.ContractNotFound;

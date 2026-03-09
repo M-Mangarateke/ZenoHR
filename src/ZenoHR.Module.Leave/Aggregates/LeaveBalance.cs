@@ -221,7 +221,6 @@ public sealed class LeaveBalance
         if (entryResult.IsFailure) return Result<LeaveBalance>.Failure(entryResult.Error!);
 
         ConsumedHours = Math.Max(0, ConsumedHours - hours);
-        AdjustmentHours += hours;
         UpdatedAt = now;
 
         _pendingEntries.Add(entryResult.Value!);

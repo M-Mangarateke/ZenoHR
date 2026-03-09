@@ -3,6 +3,7 @@
 // REQ-SEC-005: Tenant ID always resolved from context — cross-tenant access blocked.
 
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Integration.Tests.Infrastructure;
 using ZenoHR.Module.Employee.Aggregates;
@@ -24,7 +25,7 @@ public sealed class EmployeeRepositoryTests : IntegrationTestBase
 
     public EmployeeRepositoryTests(FirestoreEmulatorFixture fixture) : base(fixture)
     {
-        _repo = new EmployeeRepository(fixture.Db);
+        _repo = new EmployeeRepository(fixture.Db, NullLogger<EmployeeRepository>.Instance);
     }
 
     // ── TC-HR-001-A: Create and retrieve ─────────────────────────────────────

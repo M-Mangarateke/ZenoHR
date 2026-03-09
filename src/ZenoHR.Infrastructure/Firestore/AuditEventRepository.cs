@@ -2,6 +2,7 @@
 // CTL-POPIA-012: All PII access audit events are written via AuditEventWriter (uses this repo).
 // REQ-SEC-005: Tenant isolation enforced — every read filters by tenant_id.
 
+using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Errors;
 using ZenoHR.Module.Audit.Domain;
@@ -20,7 +21,7 @@ namespace ZenoHR.Infrastructure.Firestore;
 /// </summary>
 public sealed class AuditEventRepository : BaseFirestoreRepository<AuditEvent>
 {
-    public AuditEventRepository(FirestoreDb db) : base(db) { }
+    public AuditEventRepository(FirestoreDb db, ILogger<AuditEventRepository> logger) : base(db, logger) { }
 
     protected override string CollectionName => "audit_events";
     protected override ZenoHrErrorCode NotFoundErrorCode => ZenoHrErrorCode.AuditEventNotFound;

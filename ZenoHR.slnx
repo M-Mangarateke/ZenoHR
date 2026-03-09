@@ -16,8 +16,11 @@
     <Project Path="tests/ZenoHR.Architecture.Tests/ZenoHR.Architecture.Tests.csproj" />
     <Project Path="tests/ZenoHR.Domain.Tests/ZenoHR.Domain.Tests.csproj" />
     <Project Path="tests/ZenoHR.Integration.Tests/ZenoHR.Integration.Tests.csproj" />
+    <Project Path="tests/ZenoHR.Module.Audit.Tests/ZenoHR.Module.Audit.Tests.csproj" />
     <Project Path="tests/ZenoHR.Module.Compliance.Tests/ZenoHR.Module.Compliance.Tests.csproj" />
     <Project Path="tests/ZenoHR.Module.Employee.Tests/ZenoHR.Module.Employee.Tests.csproj" />
+    <Project Path="tests/ZenoHR.Module.Leave.Tests/ZenoHR.Module.Leave.Tests.csproj" />
     <Project Path="tests/ZenoHR.Module.Payroll.Tests/ZenoHR.Module.Payroll.Tests.csproj" />
+    <Project Path="tests/ZenoHR.Module.TimeAttendance.Tests/ZenoHR.Module.TimeAttendance.Tests.csproj" />
   </Folder>
 </Solution>

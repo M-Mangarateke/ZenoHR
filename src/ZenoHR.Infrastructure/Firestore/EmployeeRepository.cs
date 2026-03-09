@@ -2,6 +2,7 @@
 // Tenant isolation enforced on every read and query.
 // POPIA: employees are never deleted — terminated records retained permanently.
 
+using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
@@ -16,7 +17,7 @@ namespace ZenoHR.Infrastructure.Firestore;
 /// </summary>
 public sealed class EmployeeRepository : BaseFirestoreRepository<Employee>
 {
-    public EmployeeRepository(FirestoreDb db) : base(db) { }
+    public EmployeeRepository(FirestoreDb db, ILogger<EmployeeRepository> logger) : base(db, logger) { }
 
     protected override string CollectionName => "employees";
     protected override ZenoHrErrorCode NotFoundErrorCode => ZenoHrErrorCode.EmployeeNotFound;

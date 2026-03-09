@@ -1,8 +1,10 @@
 // REQ-COMP-005: AuditEventWriter — the single entry point for appending audit events.
 // CTL-POPIA-012: Every PII access and state change must be recorded here.
 // REQ-SEC-005: Hash chain must never be broken — atomic transaction enforces this invariant.
+// REQ-OPS-005: Structured diagnostic logging for all chain write operations — EventIds 4000-4003.
 
 using Google.Cloud.Firestore;
+using Microsoft.Extensions.Logging;
 using ZenoHR.Domain.Errors;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Module.Audit.Domain;
@@ -22,7 +24,7 @@ namespace ZenoHR.Infrastructure.Audit;
 /// This guarantees the hash chain is never broken, even under concurrent writes.
 /// </para>
 /// </summary>
-public sealed class AuditEventWriter
+public sealed partial class AuditEventWriter
 {
     // Separate collection for chain head pointers — one doc per tenant.
     // Avoids in-transaction queries (which have consistency edge cases).
@@ -31,13 +33,17 @@ public sealed class AuditEventWriter
 
     private readonly FirestoreDb _db;
     private readonly AuditEventRepository _repository;
+    private readonly ILogger<AuditEventWriter> _logger;
 
-    public AuditEventWriter(FirestoreDb db, AuditEventRepository repository)
+    public AuditEventWriter(FirestoreDb db, AuditEventRepository repository,
+        ILogger<AuditEventWriter> logger)
     {
         ArgumentNullException.ThrowIfNull(db);
         ArgumentNullException.ThrowIfNull(repository);
+        ArgumentNullException.ThrowIfNull(logger);
         _db = db;
         _repository = repository;
+        _logger = logger;
     }
 
     /// <summary>
@@ -57,6 +63,8 @@ public sealed class AuditEventWriter
         WriteAuditEventRequest request, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+
+        LogWriting(request.TenantId, request.Action, request.ResourceType, request.ResourceId);
 
         try
         {
@@ -110,14 +118,22 @@ public sealed class AuditEventWriter
                 return evt;
             }, cancellationToken: ct);
 
+            LogWritten(auditEvent.EventId, auditEvent.EventHash.Length >= 8
+                ? auditEvent.EventHash[..8] : auditEvent.EventHash);
             return Result<AuditEvent>.Success(auditEvent);
         }
         catch (Grpc.Core.RpcException ex) when (ex.StatusCode == Grpc.Core.StatusCode.AlreadyExists)
         {
             // tx.Create failed — UUIDv7 collision (effectively impossible, but handled for safety)
+            LogIdCollision(request.TenantId, ex.Message[..Math.Min(ex.Message.Length, 100)]);
             return Result<AuditEvent>.Failure(
                 ZenoHrErrorCode.FirestoreWriteConflict,
                 $"Audit event ID collision detected (EventId). Details: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            LogWriteFailed(ex, request.TenantId, request.Action);
+            throw; // Re-throw — global exception handler will log full stack trace
         }
     }
 
@@ -142,6 +158,24 @@ public sealed class AuditEventWriter
             EventCount: snap.GetValue<long>("event_count"),
             UpdatedAt: snap.GetValue<Timestamp>("updated_at").ToDateTimeOffset());
     }
+
+    // ── Diagnostic logging (source-generated, zero-allocation) ───────────────
+
+    [LoggerMessage(EventId = 4000, Level = LogLevel.Debug,
+        Message = "AuditEvent writing TenantId={TenantId} Action={Action} ResourceType={ResourceType} ResourceId={ResourceId}")]
+    private partial void LogWriting(string tenantId, AuditAction action, AuditResourceType resourceType, string resourceId);
+
+    [LoggerMessage(EventId = 4001, Level = LogLevel.Debug,
+        Message = "AuditEvent written EventId={EventId} HashPrefix={HashPrefix}")]
+    private partial void LogWritten(string eventId, string hashPrefix);
+
+    [LoggerMessage(EventId = 4002, Level = LogLevel.Warning,
+        Message = "AuditEvent ID collision TenantId={TenantId} Detail={Detail}")]
+    private partial void LogIdCollision(string tenantId, string detail);
+
+    [LoggerMessage(EventId = 4003, Level = LogLevel.Error,
+        Message = "AuditEvent write failed TenantId={TenantId} Action={Action}")]
+    private partial void LogWriteFailed(Exception ex, string tenantId, AuditAction action);
 }
 
 /// <summary>Chain head metadata for a tenant's audit trail.</summary>

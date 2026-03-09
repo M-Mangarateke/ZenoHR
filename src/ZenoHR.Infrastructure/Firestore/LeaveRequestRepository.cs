@@ -2,6 +2,7 @@
 // Collection: leave_requests (root — queried cross-employee by managers).
 // State machine enforcement: Submitted → ManagerReview → Approved | Rejected | Cancelled.
 
+using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
@@ -16,7 +17,7 @@ namespace ZenoHR.Infrastructure.Firestore;
 /// </summary>
 public sealed class LeaveRequestRepository : BaseFirestoreRepository<LeaveRequest>
 {
-    public LeaveRequestRepository(FirestoreDb db) : base(db) { }
+    public LeaveRequestRepository(FirestoreDb db, ILogger<LeaveRequestRepository> logger) : base(db, logger) { }
 
     protected override string CollectionName => "leave_requests";
     protected override ZenoHrErrorCode NotFoundErrorCode => ZenoHrErrorCode.LeaveRequestNotFound;

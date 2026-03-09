@@ -2,6 +2,7 @@
 // TASK-084: Post-finalization correction persistence (append-only).
 // Append-only invariant — no updates or deletes.
 
+using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
@@ -16,7 +17,7 @@ namespace ZenoHR.Infrastructure.Firestore;
 /// </summary>
 public sealed class PayrollAdjustmentRepository : BaseFirestoreRepository<PayrollAdjustment>
 {
-    public PayrollAdjustmentRepository(FirestoreDb db) : base(db) { }
+    public PayrollAdjustmentRepository(FirestoreDb db, ILogger<PayrollAdjustmentRepository> logger) : base(db, logger) { }
 
     protected override string CollectionName => "payroll_adjustments";
     protected override ZenoHrErrorCode NotFoundErrorCode => ZenoHrErrorCode.PayrollAdjustmentNotFound;

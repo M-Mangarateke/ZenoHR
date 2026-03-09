@@ -3,6 +3,7 @@
 // Immutability: Finalized runs are write-once (only Filed transition permitted).
 // Monetary fields stored as strings — see docs/schemas/monetary-precision.md.
 
+using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
@@ -19,7 +20,7 @@ namespace ZenoHR.Infrastructure.Firestore;
 /// </summary>
 public sealed class PayrollRunRepository : BaseFirestoreRepository<PayrollRun>
 {
-    public PayrollRunRepository(FirestoreDb db) : base(db) { }
+    public PayrollRunRepository(FirestoreDb db, ILogger<PayrollRunRepository> logger) : base(db, logger) { }
 
     protected override string CollectionName => "payroll_runs";
     protected override ZenoHrErrorCode NotFoundErrorCode => ZenoHrErrorCode.PayrollRunNotFound;

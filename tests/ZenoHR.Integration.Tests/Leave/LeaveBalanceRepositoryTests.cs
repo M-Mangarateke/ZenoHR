@@ -3,6 +3,7 @@
 // CTL-BCEA-003: Balance never goes negative without allowNegativeBalance flag.
 
 using FluentAssertions;
+using Microsoft.Extensions.Logging.Abstractions;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Integration.Tests.Infrastructure;
 using ZenoHR.Module.Leave.Aggregates;
@@ -23,7 +24,7 @@ public sealed class LeaveBalanceRepositoryTests : IntegrationTestBase
 
     public LeaveBalanceRepositoryTests(FirestoreEmulatorFixture fixture) : base(fixture)
     {
-        _repo = new LeaveBalanceRepository(fixture.Db);
+        _repo = new LeaveBalanceRepository(fixture.Db, NullLogger<LeaveBalanceRepository>.Instance);
     }
 
     // ── TC-LEAVE-001-A: Save and retrieve ────────────────────────────────────

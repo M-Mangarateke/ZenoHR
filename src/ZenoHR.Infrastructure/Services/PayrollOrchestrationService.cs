@@ -1,11 +1,14 @@
 // REQ-HR-003, CTL-SARS-001: Payroll orchestration service.
+// REQ-OPS-005: Structured diagnostic logging for every pipeline step — EventIds 3000-3006.
 // TASK-085: Coordinates rule-set loading → per-employee calculation → PayrollResult creation → run finalization.
 // Cross-module: reads Employee + EmploymentContract + EmployeeBenefit; writes PayrollRun + PayrollResults.
 // CTL-SARS-001: All statutory rates loaded from StatutoryRuleSetRepository (never hardcoded).
 
+using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
 using ZenoHR.Infrastructure.Firestore;
@@ -25,7 +28,7 @@ namespace ZenoHR.Infrastructure.Services;
 /// REQ-HR-003: Full PAYE/UIF/SDL/ETI calculation per employee per period.
 /// CTL-SARS-001: Rule-sets loaded from Firestore — no hardcoded rates.
 /// </summary>
-public sealed class PayrollOrchestrationService
+public sealed partial class PayrollOrchestrationService
 {
     private readonly StatutoryRuleSetRepository _ruleSetRepo;
     private readonly EmployeeRepository _employeeRepo;
@@ -33,6 +36,7 @@ public sealed class PayrollOrchestrationService
     private readonly EmployeeBenefitRepository _benefitRepo;
     private readonly PayrollRunRepository _runRepo;
     private readonly PayrollResultRepository _resultRepo;
+    private readonly ILogger<PayrollOrchestrationService> _logger;
 
     public PayrollOrchestrationService(
         StatutoryRuleSetRepository ruleSetRepo,
@@ -40,7 +44,8 @@ public sealed class PayrollOrchestrationService
         EmploymentContractRepository contractRepo,
         EmployeeBenefitRepository benefitRepo,
         PayrollRunRepository runRepo,
-        PayrollResultRepository resultRepo)
+        PayrollResultRepository resultRepo,
+        ILogger<PayrollOrchestrationService> logger)
     {
         _ruleSetRepo = ruleSetRepo;
         _employeeRepo = employeeRepo;
@@ -48,6 +53,7 @@ public sealed class PayrollOrchestrationService
         _benefitRepo = benefitRepo;
         _runRepo = runRepo;
         _resultRepo = resultRepo;
+        _logger = logger;
     }
 
     // ── Main entry point ─────────────────────────────────────────────────────
@@ -80,6 +86,9 @@ public sealed class PayrollOrchestrationService
         DateTimeOffset now,
         CancellationToken ct = default)
     {
+        var sw = Stopwatch.StartNew();
+        LogRunStarting(tenantId, period, runType, employeeIds.Count);
+
         // ── 1. Create the PayrollRun in Draft ───────────────────────────────
         var runId = $"pr_{now.Year:D4}_{now.Month:D2}_{idempotencyKey[..8]}";
         var createResult = PayrollRun.Create(
@@ -93,7 +102,11 @@ public sealed class PayrollOrchestrationService
             idempotencyKey: idempotencyKey,
             now: now);
 
-        if (createResult.IsFailure) return createResult;
+        if (createResult.IsFailure)
+        {
+            LogRunAborted(runId, "CreatePayrollRun", createResult.Error!.Code);
+            return createResult;
+        }
         var run = createResult.Value!;
 
         // ── 2. Load statutory rule sets ────────────────────────────────────
@@ -102,33 +115,50 @@ public sealed class PayrollOrchestrationService
         var payeRuleSetResult = await _ruleSetRepo.GetEffectiveAsync(
             RuleDomains.SarsPaye, periodEndDate, ct);
         if (payeRuleSetResult.IsFailure)
+        {
+            LogRunAborted(runId, "LoadPayeRuleSet", payeRuleSetResult.Error!.Code);
             return Result<PayrollRun>.Failure(payeRuleSetResult.Error!);
+        }
 
         var uifSdlRuleSetResult = await _ruleSetRepo.GetEffectiveAsync(
             RuleDomains.SarsUifSdl, periodEndDate, ct);
         if (uifSdlRuleSetResult.IsFailure)
+        {
+            LogRunAborted(runId, "LoadUifSdlRuleSet", uifSdlRuleSetResult.Error!.Code);
             return Result<PayrollRun>.Failure(uifSdlRuleSetResult.Error!);
+        }
 
         var etiRuleSetResult = await _ruleSetRepo.GetEffectiveAsync(
             RuleDomains.SarsEti, periodEndDate, ct);
         if (etiRuleSetResult.IsFailure)
+        {
+            LogRunAborted(runId, "LoadEtiRuleSet", etiRuleSetResult.Error!.Code);
             return Result<PayrollRun>.Failure(etiRuleSetResult.Error!);
+        }
 
         var payeRules = SarsPayeRuleSet.From(payeRuleSetResult.Value!);
         var uifSdlRules = SarsUifSdlRuleSet.From(uifSdlRuleSetResult.Value!);
         var etiRules = SarsEtiRuleSet.From(etiRuleSetResult.Value!);
         var taxTableVersion = payeRuleSetResult.Value!.Version;
+        LogRuleSetLoaded(taxTableVersion);
 
         // ── 3. Calculate each employee ─────────────────────────────────────
         var results = new List<PayrollResult>(employeeIds.Count);
         var complianceFlags = new List<string>();
+        var empIndex = 0;
+        var skipCount = 0;
 
         foreach (var empId in employeeIds)
         {
+            empIndex++;
+            LogCalculatingEmployee(empIndex, employeeIds.Count, empId);
+
             var empResult = await _employeeRepo.GetByEmployeeIdAsync(tenantId, empId, ct);
             if (empResult.IsFailure)
             {
+                LogEmployeeSkipped(empId, empResult.Error!.Code);
                 complianceFlags.Add($"WARN:employee_{empId}_not_found");
+                skipCount++;
                 continue;
             }
 
@@ -136,7 +166,9 @@ public sealed class PayrollOrchestrationService
             var contractResult = await _contractRepo.GetActiveContractAsync(tenantId, empId, ct);
             if (contractResult.IsFailure)
             {
+                LogEmployeeSkipped(empId, contractResult.Error!.Code);
                 complianceFlags.Add($"WARN:contract_missing_{empId}");
+                skipCount++;
                 continue;
             }
 
@@ -150,7 +182,9 @@ public sealed class PayrollOrchestrationService
 
             if (calcResult.IsFailure)
             {
+                LogEmployeeSkipped(empId, calcResult.Error!.Code);
                 complianceFlags.Add($"FAIL:calc_error_{empId}:{calcResult.Error!.Message}");
+                skipCount++;
                 continue;
             }
 
@@ -159,8 +193,11 @@ public sealed class PayrollOrchestrationService
 
         // CTL-SARS-001: Fail if no valid results produced
         if (results.Count == 0)
+        {
+            LogRunAborted(runId, "CalculateEmployees", ZenoHrErrorCode.PayrollCalculationFailed);
             return Result<PayrollRun>.Failure(ZenoHrErrorCode.PayrollCalculationFailed,
                 "Payroll calculation produced no results. Check employee contracts and compliance flags.");
+        }
 
         // ── 4. Aggregate totals ────────────────────────────────────────────
         var grossTotal = results.Aggregate(MoneyZAR.Zero, (acc, r) => acc + r.GrossPay);
@@ -188,6 +225,8 @@ public sealed class PayrollOrchestrationService
         var saveResult = await _runRepo.SaveAsync(run, ct);
         if (saveResult.IsFailure) return Result<PayrollRun>.Failure(saveResult.Error!);
 
+        sw.Stop();
+        LogRunComplete(runId, results.Count, skipCount, sw.ElapsedMilliseconds);
         return Result<PayrollRun>.Success(run);
     }
 
@@ -208,11 +247,16 @@ public sealed class PayrollOrchestrationService
         var checksum = ComputeChecksum(results, run.RuleSetVersion);
 
         var finalizeResult = run.Finalize(checksum, finalizedBy, now);
-        if (finalizeResult.IsFailure) return finalizeResult;
+        if (finalizeResult.IsFailure)
+        {
+            LogRunAborted(runId, "Finalize", finalizeResult.Error!.Code);
+            return finalizeResult;
+        }
 
         var saveResult = await _runRepo.SaveAsync(run, ct);
         if (saveResult.IsFailure) return Result<PayrollRun>.Failure(saveResult.Error!);
 
+        LogRunFinalized(runId);
         return Result<PayrollRun>.Success(run);
     }
 
@@ -375,4 +419,34 @@ public sealed class PayrollOrchestrationService
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(json));
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
+
+    // ── Diagnostic logging (source-generated, zero-allocation) ───────────────
+
+    [LoggerMessage(EventId = 3000, Level = LogLevel.Information,
+        Message = "PayrollRun starting TenantId={TenantId} Period={Period} RunType={RunType} Employees={Count}")]
+    private partial void LogRunStarting(string tenantId, string period, PayFrequency runType, int count);
+
+    [LoggerMessage(EventId = 3001, Level = LogLevel.Debug,
+        Message = "RuleSet loaded Version={Version}")]
+    private partial void LogRuleSetLoaded(string version);
+
+    [LoggerMessage(EventId = 3002, Level = LogLevel.Debug,
+        Message = "Calculating employee {Index}/{Total} EmployeeId={EmployeeId}")]
+    private partial void LogCalculatingEmployee(int index, int total, string employeeId);
+
+    [LoggerMessage(EventId = 3003, Level = LogLevel.Warning,
+        Message = "Employee calculation skipped EmployeeId={EmployeeId} ErrorCode={ErrorCode}")]
+    private partial void LogEmployeeSkipped(string employeeId, ZenoHrErrorCode errorCode);
+
+    [LoggerMessage(EventId = 3004, Level = LogLevel.Information,
+        Message = "PayrollRun complete RunId={RunId} Success={Success} Skipped={Skipped} ElapsedMs={ElapsedMs}")]
+    private partial void LogRunComplete(string runId, int success, int skipped, long elapsedMs);
+
+    [LoggerMessage(EventId = 3005, Level = LogLevel.Information,
+        Message = "PayrollRun finalized RunId={RunId}")]
+    private partial void LogRunFinalized(string runId);
+
+    [LoggerMessage(EventId = 3006, Level = LogLevel.Error,
+        Message = "PayrollRun aborted RunId={RunId} Step={Step} ErrorCode={ErrorCode}")]
+    private partial void LogRunAborted(string runId, string step, ZenoHrErrorCode errorCode);
 }

@@ -1,9 +1,11 @@
 // REQ-OPS-001: ValidationBehaviour — runs FluentValidation before every MediatR command/query.
+// REQ-OPS-005: Validation failures are logged at Warning so server logs capture client input errors.
 // Validation failures return a Result<T>.Failure rather than throwing exceptions.
 // Only requests with registered IValidator<TRequest> are validated.
 
 using FluentValidation;
 using MediatR;
+using Microsoft.Extensions.Logging;
 using ZenoHR.Domain.Errors;
 
 namespace ZenoHR.Infrastructure.Behaviours;
@@ -17,8 +19,9 @@ namespace ZenoHR.Infrastructure.Behaviours;
 /// Requests without a validator pass through silently.
 /// </para>
 /// </summary>
-internal sealed class ValidationBehaviour<TRequest, TResponse>(
-    IEnumerable<IValidator<TRequest>> validators)
+internal sealed partial class ValidationBehaviour<TRequest, TResponse>(
+    IEnumerable<IValidator<TRequest>> validators,
+    ILogger<ValidationBehaviour<TRequest, TResponse>> logger)
     : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
 {
@@ -42,6 +45,10 @@ internal sealed class ValidationBehaviour<TRequest, TResponse>(
         if (failures.Count == 0)
             return await next();
 
+        // Log validation failure — field name and message only (never the attempted value: PII risk).
+        var first = failures[0];
+        LogValidationFailed(logger, typeof(TRequest).Name, failures.Count, first.PropertyName, first.ErrorMessage);
+
         // Build a ZenoHrError per validation failure.
         // If TResponse is Result<T>, return the first failure as a failed Result.
         // Otherwise throw ValidationException (API boundary will convert to ProblemDetails).
@@ -63,4 +70,9 @@ internal sealed class ValidationBehaviour<TRequest, TResponse>(
 
         throw new ValidationException(failures);
     }
+
+    [LoggerMessage(EventId = 5000, Level = LogLevel.Warning,
+        Message = "Validation failed {RequestName}: {ErrorCount} error(s) — field '{Field}': {Message}")]
+    private static partial void LogValidationFailed(
+        ILogger logger, string requestName, int errorCount, string field, string message);
 }

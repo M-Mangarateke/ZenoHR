@@ -5,6 +5,7 @@
 
 using ZenoHR.Api.Auth;
 using ZenoHR.Api.Endpoints;
+using ZenoHR.Api.Middleware;
 using ZenoHR.Api.Observability;
 using ZenoHR.Infrastructure.Extensions;
 
@@ -36,6 +37,8 @@ builder.Services.AddZenoHrMediatR();
 // ── App pipeline ─────────────────────────────────────────────────────────────
 var app = builder.Build();
 
+app.UseCorrelationId();         // REQ-OPS-008: assigns X-Correlation-Id to every request (first — before logging)
+app.UseGlobalExceptionHandler(); // REQ-OPS-008: structured error response + logging for all unhandled exceptions
 app.UseHttpsRedirection();
 app.UseAuthentication();   // TASK-024: validate Firebase JWT on every request
 app.UseAuthorization();    // TASK-025: enforce [Authorize(Roles = ...)] on endpoints

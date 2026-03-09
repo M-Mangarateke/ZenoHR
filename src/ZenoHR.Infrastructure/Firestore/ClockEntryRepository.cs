@@ -2,6 +2,7 @@
 // Collection: clock_entries (root).
 // clock_in_at is immutable — corrections create new entries (source: system_correction).
 
+using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
@@ -16,7 +17,7 @@ namespace ZenoHR.Infrastructure.Firestore;
 /// </summary>
 public sealed class ClockEntryRepository : BaseFirestoreRepository<ClockEntry>
 {
-    public ClockEntryRepository(FirestoreDb db) : base(db) { }
+    public ClockEntryRepository(FirestoreDb db, ILogger<ClockEntryRepository> logger) : base(db, logger) { }
 
     protected override string CollectionName => "clock_entries";
     protected override ZenoHrErrorCode NotFoundErrorCode => ZenoHrErrorCode.ValidationFailed; // no dedicated code yet

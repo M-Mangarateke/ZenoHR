@@ -1,6 +1,7 @@
 // REQ-OPS-003: TimesheetFlag Firestore repository — manager attendance verification workflow.
 // Collection: timesheet_flags (root, tenant-scoped).
 
+using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
@@ -15,7 +16,7 @@ namespace ZenoHR.Infrastructure.Firestore;
 /// </summary>
 public sealed class TimesheetFlagRepository : BaseFirestoreRepository<TimesheetFlag>
 {
-    public TimesheetFlagRepository(FirestoreDb db) : base(db) { }
+    public TimesheetFlagRepository(FirestoreDb db, ILogger<TimesheetFlagRepository> logger) : base(db, logger) { }
 
     protected override string CollectionName => "timesheet_flags";
     protected override ZenoHrErrorCode NotFoundErrorCode => ZenoHrErrorCode.ValidationFailed;

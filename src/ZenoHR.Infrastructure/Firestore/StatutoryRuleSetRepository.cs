@@ -1,6 +1,7 @@
 // CTL-SARS-001: Statutory rule sets must be read from Firestore — no hardcoded rates.
 // REQ-HR-003: Payroll engines depend on this repository to get current tax/levy rules.
 
+using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
@@ -15,7 +16,7 @@ namespace ZenoHR.Infrastructure.Firestore;
 /// </summary>
 public sealed class StatutoryRuleSetRepository : BaseFirestoreRepository<StatutoryRuleSet>
 {
-    public StatutoryRuleSetRepository(FirestoreDb db) : base(db) { }
+    public StatutoryRuleSetRepository(FirestoreDb db, ILogger<StatutoryRuleSetRepository> logger) : base(db, logger) { }
 
     protected override string CollectionName => "statutory_rule_sets";
     protected override ZenoHrErrorCode NotFoundErrorCode => ZenoHrErrorCode.StatutoryRuleSetNotFound;

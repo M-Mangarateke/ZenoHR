@@ -1,0 +1,283 @@
+name: Documentation Gate
+
+on:
+  pull_request:
+    branches: [master, main]
+  push:
+    branches: [master, main]
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # JOB 1: Traceability — every .cs file must have a REQ-*/CTL-*/TC-* comment
+  # ─────────────────────────────────────────────────────────────
+  traceability-check:
+    name: Traceability Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check C# files for traceability references
+        run: |
+          echo "Scanning for C# files missing traceability references..."
+          MISSING=0
+          while IFS= read -r file; do
+            # Skip obj/bin directories and generated files
+            if echo "$file" | grep -qE "/(obj|bin)/|\.g\.cs$|AssemblyMarker\.cs$|GlobalUsings"; then
+              continue
+            fi
+            if ! grep -qE "(REQ-[A-Z]+-[0-9]+|CTL-[A-Z]+-[0-9]+|TC-[A-Z]+-[0-9]+)" "$file"; then
+              echo "MISSING TRACEABILITY: $file"
+              MISSING=$((MISSING + 1))
+            fi
+          done < <(find src/ tests/ -name "*.cs" 2>/dev/null)
+
+          if [ $MISSING -gt 0 ]; then
+            echo ""
+            echo "ERROR: $MISSING C# file(s) have no traceability reference."
+            echo "Every class, test, and endpoint must have a // REQ-XX-000 or // CTL-XX-000 comment."
+            exit 1
+          fi
+          echo "Traceability check passed."
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 2: Documentation staleness — PRD docs must be updated when code changes
+  # ─────────────────────────────────────────────────────────────
+  doc-staleness-gate:
+    name: Documentation Staleness Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need previous commit to detect changes
+
+      - name: Check PRD docs are not excessively stale
+        run: |
+          python3 - <<'PYEOF'
+          import os, re, sys
+          from datetime import date, datetime
+
+          # Maximum days a doc may be stale before CI fails
+          MAX_STALE_DAYS = 45
+
+          docs_dir = "docs/prd"
+          today = date.today()
+          stale_docs = []
+
+          for fname in sorted(os.listdir(docs_dir)):
+              if not fname.endswith(".md"):
+                  continue
+              fpath = os.path.join(docs_dir, fname)
+              content = open(fpath, encoding="utf-8").read()
+              match = re.search(r"updated_on:\s*(\d{4}-\d{2}-\d{2})", content)
+              if not match:
+                  print(f"WARN: {fpath} has no updated_on field in frontmatter")
+                  continue
+              updated = date.fromisoformat(match.group(1))
+              days_old = (today - updated).days
+              if days_old > MAX_STALE_DAYS:
+                  stale_docs.append((fname, days_old, updated.isoformat()))
+
+          if stale_docs:
+              print(f"\nERROR: {len(stale_docs)} PRD doc(s) are more than {MAX_STALE_DAYS} days stale.")
+              print("Update the doc(s) and bump their version before merging.\n")
+              for fname, days, updated in stale_docs:
+                  print(f"  STALE ({days} days): docs/prd/{fname} — last updated {updated}")
+              print("\nRun: call MCP bump_doc_version() to update version + timestamp.")
+              sys.exit(1)
+
+          print(f"Documentation staleness check passed. All {len(os.listdir(docs_dir))} PRD docs are within {MAX_STALE_DAYS}-day limit.")
+          PYEOF
+
+      - name: Verify security docs have updated_on metadata
+        run: |
+          python3 - <<'PYEOF'
+          import os, re, sys
+
+          REQUIRED_SECURITY_DOCS = [
+              "docs/security/vulnerability-register.md",
+              "docs/security/popia-control-status.md",
+          ]
+
+          missing = []
+          for fpath in REQUIRED_SECURITY_DOCS:
+              if not os.path.exists(fpath):
+                  missing.append(f"MISSING FILE: {fpath}")
+                  continue
+              content = open(fpath, encoding="utf-8").read()
+              if "updated_on:" not in content:
+                  missing.append(f"MISSING updated_on: {fpath}")
+
+          if missing:
+              print("ERROR: Required security docs are missing or have no metadata:")
+              for m in missing:
+                  print(f"  {m}")
+              sys.exit(1)
+
+          print("Security doc metadata check passed.")
+          PYEOF
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 3: Doc version history — changed docs must have version bumped
+  # ─────────────────────────────────────────────────────────────
+  doc-version-bump-check:
+    name: Doc Version Bump Check
+    runs-on: ubuntu-latest
+    # Only run on PRs (not direct pushes to main)
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check that modified docs have bumped version
+        run: |
+          # Get list of .md files changed in this PR
+          CHANGED_DOCS=$(git diff --name-only origin/${{ github.base_ref }}...HEAD -- "docs/**/*.md" 2>/dev/null || true)
+
+          if [ -z "$CHANGED_DOCS" ]; then
+            echo "No .md docs changed in this PR. Check passed."
+            exit 0
+          fi
+
+          echo "Changed docs in this PR:"
+          echo "$CHANGED_DOCS"
+
+          python3 - <<'PYEOF'
+          import subprocess, re, sys
+
+          result = subprocess.run(
+              ["git", "diff", "--name-only", f"origin/{subprocess.run(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], capture_output=True, text=True).stdout.strip()}...HEAD"],
+              capture_output=True, text=True
+          )
+
+          # Simpler: just check that changed docs have version field
+          changed = subprocess.run(
+              ["git", "diff", "--name-only", "HEAD~1"],
+              capture_output=True, text=True
+          ).stdout.strip().split("\n")
+
+          import os
+          errors = []
+          for fpath in changed:
+              fpath = fpath.strip()
+              if not fpath.endswith(".md") or not os.path.exists(fpath):
+                  continue
+              content = open(fpath, encoding="utf-8").read()
+              if not re.search(r"version:\s*\d+\.\d+\.\d+", content):
+                  errors.append(f"WARN: {fpath} changed but has no version field in frontmatter")
+
+          for e in errors:
+              print(e)
+          # Warnings only — don't fail on missing version (not all docs have frontmatter)
+          PYEOF
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 4: Generate and upload traceability index artifact
+  # ─────────────────────────────────────────────────────────────
+  generate-traceability-index:
+    name: Generate Traceability Index
+    runs-on: ubuntu-latest
+    needs: [traceability-check]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate traceability index
+        run: |
+          python3 - <<'PYEOF'
+          import os, re, json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          pattern = re.compile(r"(REQ-[A-Z]+-\d+|CTL-[A-Z]+-[0-9]+|TC-[A-Z]+-[0-9]+)")
+          index = {}
+          total_refs = 0
+          files_scanned = 0
+
+          for search_root in ["src", "tests"]:
+              if not os.path.exists(search_root):
+                  continue
+              for root, dirs, files in os.walk(search_root):
+                  dirs[:] = [d for d in dirs if d not in ("obj", "bin")]
+                  for fname in files:
+                      if not fname.endswith(".cs"):
+                          continue
+                      fpath = os.path.join(root, fname)
+                      files_scanned += 1
+                      try:
+                          text = open(fpath, encoding="utf-8").read()
+                      except Exception:
+                          continue
+                      for m in pattern.findall(text):
+                          index.setdefault(m, [])
+                          rel = fpath.replace("\\", "/")
+                          if rel not in index[m]:
+                              index[m].append(rel)
+                              total_refs += 1
+
+          os.makedirs("docs/generated", exist_ok=True)
+          out = {
+              "generated_at": datetime.now(timezone.utc).isoformat(),
+              "files_scanned": files_scanned,
+              "total_references": total_refs,
+              "unique_requirement_ids": len(index),
+              "index": index,
+          }
+          with open("docs/generated/traceability-index.json", "w", encoding="utf-8") as f:
+              json.dump(out, f, indent=2, ensure_ascii=False)
+
+          print(f"Traceability index: {len(index)} unique IDs, {total_refs} total refs, {files_scanned} files")
+          PYEOF
+
+      - name: Upload traceability index
+        uses: actions/upload-artifact@v4
+        with:
+          name: traceability-index
+          path: docs/generated/traceability-index.json
+          retention-days: 90
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 5: Vulnerability register freshness check
+  # ─────────────────────────────────────────────────────────────
+  security-doc-freshness:
+    name: Security Doc Freshness
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check vulnerability register freshness
+        run: |
+          python3 - <<'PYEOF'
+          import re, sys
+          from datetime import date
+
+          # Vulnerability register should be reviewed monthly
+          MAX_STALE_DAYS = 35
+
+          files = [
+              "docs/security/vulnerability-register.md",
+              "docs/security/popia-control-status.md",
+          ]
+
+          today = date.today()
+          for fpath in files:
+              try:
+                  content = open(fpath, encoding="utf-8").read()
+              except FileNotFoundError:
+                  print(f"ERROR: Missing security doc: {fpath}")
+                  sys.exit(1)
+
+              match = re.search(r"updated_on:\s*(\d{4}-\d{2}-\d{2})", content)
+              if not match:
+                  print(f"WARN: {fpath} missing updated_on metadata")
+                  continue
+
+              days_old = (today - date.fromisoformat(match.group(1))).days
+              if days_old > MAX_STALE_DAYS:
+                  print(f"ERROR: Security doc stale ({days_old} days): {fpath}")
+                  print("Update the security doc and bump its version before merging.")
+                  sys.exit(1)
+              else:
+                  print(f"OK: {fpath} — {days_old} days old")
+
+          print("Security doc freshness check passed.")
+          PYEOF

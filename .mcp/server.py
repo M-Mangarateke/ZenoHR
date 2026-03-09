@@ -88,6 +88,11 @@ MOCKUP_MAP = {
     "roles": "docs/design/mockups/09-role-management.html",
     "settings": "docs/design/mockups/10-settings.html",
     "admin": "docs/design/mockups/11-admin.html",
+    "analytics": "docs/design/mockups/12-analytics.html",
+    "my-analytics": "docs/design/mockups/13-my-analytics.html",
+    "clock-in": "docs/design/mockups/14-clock-in.html",
+    "security-ops": "docs/design/mockups/15-security-ops.html",
+    "payslip-template": "docs/design/mockups/16-payslip-template.html",
     "shared.css": "docs/design/mockups/shared.css",
 }
 
@@ -115,6 +120,9 @@ PRD_MAP = {
     13: "docs/prd/13_glossary_and_data_dictionary.md",
     14: "docs/prd/14_gap_resolution.md",
     15: "docs/prd/15_rbac_screen_access.md",
+    16: "docs/prd/16_payroll_calculation_spec.md",
+    17: "docs/prd/17_blazor_component_patterns.md",
+    18: "docs/prd/18_navigation_flow.md",
 }
 
 
@@ -381,6 +389,245 @@ def get_rbac() -> str:
     - Any Firestore query that must be scoped by department
     """
     return _read(RBAC_DOC)
+
+
+@mcp.tool
+def get_vulnerability_register() -> str:
+    """
+    Returns the ZenoHR security vulnerability register.
+    Use this when reviewing security gaps, planning security hardening work,
+    or before implementing any security-sensitive feature.
+    """
+    return _read("docs/security/vulnerability-register.md")
+
+
+@mcp.tool
+def get_popia_status() -> str:
+    """
+    Returns the POPIA control implementation status tracker.
+    Shows which of the 15 POPIA controls are implemented, partial, or not started.
+    Use before implementing any compliance, data subject, or privacy feature.
+    """
+    return _read("docs/security/popia-control-status.md")
+
+
+@mcp.tool
+def get_doc_staleness() -> str:
+    """
+    Reports documentation staleness: reads updated_on from all PRD/schema frontmatter
+    and compares against today. Flags docs older than 30 days as stale.
+    Use at session start to identify which docs need updating after recent code changes.
+    """
+    import re
+    from datetime import date
+
+    today = date.today()
+    report_lines = ["## Documentation Staleness Report\n", f"Generated: {today.isoformat()}\n"]
+
+    doc_paths = list(PRD_MAP.values()) + list(SCHEMA_MAP.values()) + [
+        "docs/design/design-tokens.md",
+        "docs/security/vulnerability-register.md",
+        "docs/security/popia-control-status.md",
+    ]
+
+    stale, fresh, missing = [], [], []
+
+    for rel_path in doc_paths:
+        full = PROJECT_ROOT / rel_path
+        if not full.exists():
+            missing.append(rel_path)
+            continue
+
+        content = full.read_text(encoding="utf-8")
+        match = re.search(r"updated_on:\s*(\d{4}-\d{2}-\d{2})", content)
+        if not match:
+            missing.append(f"{rel_path} (no updated_on field)")
+            continue
+
+        updated = date.fromisoformat(match.group(1))
+        days_old = (today - updated).days
+        entry = f"  {rel_path} — {days_old} days old (updated {updated.isoformat()})"
+
+        if days_old > 30:
+            stale.append(entry)
+        else:
+            fresh.append(entry)
+
+    if stale:
+        report_lines.append(f"\n### STALE (>{30} days) — {len(stale)} docs\n")
+        report_lines.extend(stale)
+
+    if fresh:
+        report_lines.append(f"\n### Fresh (≤30 days) — {len(fresh)} docs\n")
+        report_lines.extend(fresh)
+
+    if missing:
+        report_lines.append(f"\n### Missing updated_on — {len(missing)} docs\n")
+        report_lines.extend(f"  {m}" for m in missing)
+
+    report_lines.append(
+        f"\n### Summary\n"
+        f"  Total docs checked: {len(doc_paths)}\n"
+        f"  Stale: {len(stale)}  |  Fresh: {len(fresh)}  |  No metadata: {len(missing)}\n"
+        f"\nTo update a doc version, call bump_doc_version(relative_path, summary)."
+    )
+
+    return "\n".join(report_lines)
+
+
+@mcp.tool
+def bump_doc_version(relative_path: str, change_summary: str, bump_type: str = "patch") -> str:
+    """
+    Bumps the version and updated_on in a document's YAML frontmatter and appends
+    the change to a Version History table at the bottom of the file.
+
+    Args:
+        relative_path: Path relative to project root (e.g., "docs/prd/05_security_privacy.md")
+        change_summary: One-line description of what changed (e.g., "Added CORS policy details")
+        bump_type: "patch" (1.0.0 → 1.0.1), "minor" (1.0.0 → 1.1.0), or "major" (1.0.0 → 2.0.0)
+    """
+    import re
+    from datetime import date
+
+    if bump_type not in ("patch", "minor", "major"):
+        return f"Invalid bump_type '{bump_type}'. Use: patch, minor, major."
+
+    full = PROJECT_ROOT / relative_path
+    if not full.exists():
+        return f"[File not found: {relative_path}]"
+
+    content = full.read_text(encoding="utf-8")
+    today = date.today().isoformat()
+
+    # Bump version in frontmatter
+    version_match = re.search(r"(version:\s*)(\d+)\.(\d+)\.(\d+)", content)
+    if version_match:
+        major, minor, patch = int(version_match.group(2)), int(version_match.group(3)), int(version_match.group(4))
+        if bump_type == "major":
+            major, minor, patch = major + 1, 0, 0
+        elif bump_type == "minor":
+            minor, patch = minor + 1, 0
+        else:
+            patch += 1
+        new_version = f"{major}.{minor}.{patch}"
+        content = re.sub(r"(version:\s*)\d+\.\d+\.\d+", f"\\g<1>{new_version}", content)
+    else:
+        new_version = "1.0.1"
+        content = content.replace("---\n", f"---\nversion: {new_version}\n", 1)
+
+    # Update updated_on in frontmatter
+    if "updated_on:" in content:
+        content = re.sub(r"(updated_on:\s*)\d{4}-\d{2}-\d{2}", f"\\g<1>{today}", content)
+    else:
+        content = content.replace("---\n", f"---\nupdated_on: {today}\n", 1)
+
+    # Append to Version History table
+    version_history_entry = f"| {new_version} | {today} | Agent | {change_summary} |"
+    if "## Version History" in content:
+        # Find last row and append after it
+        lines = content.split("\n")
+        insert_idx = len(lines)
+        for i, line in enumerate(lines):
+            if "## Version History" in line:
+                # Find end of table
+                for j in range(i + 1, len(lines)):
+                    if lines[j].startswith("| "):
+                        insert_idx = j + 1
+                    elif lines[j].strip() == "" and j > i + 2:
+                        break
+                break
+        lines.insert(insert_idx, version_history_entry)
+        content = "\n".join(lines)
+    else:
+        content += (
+            f"\n\n## Version History\n\n"
+            f"| Version | Date | Author | Changes |\n"
+            f"|---------|------|--------|---------|\n"
+            f"{version_history_entry}\n"
+        )
+
+    full.write_text(content, encoding="utf-8")
+    return f"Bumped {relative_path} to v{new_version} ({today}). Change: {change_summary}"
+
+
+@mcp.tool
+def generate_traceability_index() -> str:
+    """
+    Scans all C# source files for REQ-*, CTL-*, and TC-* traceability comments.
+    Returns a JSON index mapping each requirement ID to the files that implement it.
+    Also writes the index to docs/generated/traceability-index.json.
+    Use to answer: 'which files implement REQ-HR-003?' or 'is CTL-SARS-001 covered?'
+    """
+    import re
+
+    pattern = re.compile(r"(REQ-[A-Z]+-\d+|CTL-[A-Z]+-\d+|TC-[A-Z]+-\d+)")
+    src_root = PROJECT_ROOT / "src"
+    test_root = PROJECT_ROOT / "tests"
+
+    index: dict = {}
+    total_refs = 0
+    files_scanned = 0
+
+    for search_root in [src_root, test_root]:
+        if not search_root.exists():
+            continue
+        for cs_file in search_root.rglob("*.cs"):
+            if "obj" in cs_file.parts or "bin" in cs_file.parts:
+                continue
+            files_scanned += 1
+            try:
+                text = cs_file.read_text(encoding="utf-8")
+            except Exception:
+                continue
+            matches = pattern.findall(text)
+            rel = str(cs_file.relative_to(PROJECT_ROOT)).replace("\\", "/")
+            for m in matches:
+                index.setdefault(m, [])
+                if rel not in index[m]:
+                    index[m].append(rel)
+                    total_refs += 1
+
+    # Write to docs/generated/
+    generated_dir = PROJECT_ROOT / "docs" / "generated"
+    generated_dir.mkdir(parents=True, exist_ok=True)
+    out_path = generated_dir / "traceability-index.json"
+    out_path.write_text(
+        json.dumps({"generated_at": datetime.now(timezone.utc).isoformat(),
+                    "files_scanned": files_scanned,
+                    "total_references": total_refs,
+                    "index": index},
+                   indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+
+    # Build summary
+    lines = [
+        f"## Traceability Index\n",
+        f"Files scanned: {files_scanned}",
+        f"Unique requirement IDs found: {len(index)}",
+        f"Total references: {total_refs}",
+        f"Written to: docs/generated/traceability-index.json\n",
+        "### Top 20 Most Referenced IDs",
+    ]
+    sorted_ids = sorted(index.items(), key=lambda x: len(x[1]), reverse=True)[:20]
+    for req_id, files in sorted_ids:
+        lines.append(f"  {req_id}: {len(files)} file(s)")
+
+    # Surface unimplemented requirements (in PRD but no code ref)
+    prd_reqs: set = set()
+    for prd_path in PRD_MAP.values():
+        full = PROJECT_ROOT / prd_path
+        if full.exists():
+            prd_reqs.update(pattern.findall(full.read_text(encoding="utf-8")))
+    orphan_reqs = prd_reqs - set(index.keys())
+    if orphan_reqs:
+        lines.append(f"\n### PRD Requirements With No Code Reference ({len(orphan_reqs)} orphans)")
+        for r in sorted(orphan_reqs)[:30]:
+            lines.append(f"  MISSING: {r}")
+        if len(orphan_reqs) > 30:
+            lines.append(f"  ... and {len(orphan_reqs) - 30} more")
+
+    return "\n".join(lines)
 
 
 if __name__ == "__main__":

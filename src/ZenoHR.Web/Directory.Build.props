@@ -1,0 +1,13 @@
+<Project>
+  <!--
+    REQ-OPS-001: Blazor Server nullable override.
+    CS8618 (non-nullable field uninitialized) is suppressed in the Web project only.
+    Blazor components legitimately have [Parameter] and [Inject] properties that are
+    assigned by the framework after construction — the compiler cannot verify this.
+    All other nullable warnings remain errors (inherited from root Directory.Build.props).
+    Do NOT add suppressions for any other warning code here.
+  -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CS8618</NoWarn>
+  </PropertyGroup>
+</Project>

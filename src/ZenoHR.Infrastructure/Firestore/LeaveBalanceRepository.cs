@@ -2,6 +2,7 @@
 // leave_balances: mutable (upsert). accrual_ledger subcollection: append-only (write-once).
 // SaveWithLedgerEntriesAsync writes balance + pending ledger entries atomically.
 
+using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
@@ -17,7 +18,7 @@ namespace ZenoHR.Infrastructure.Firestore;
 /// </summary>
 public sealed class LeaveBalanceRepository : BaseFirestoreRepository<LeaveBalance>
 {
-    public LeaveBalanceRepository(FirestoreDb db) : base(db) { }
+    public LeaveBalanceRepository(FirestoreDb db, ILogger<LeaveBalanceRepository> logger) : base(db, logger) { }
 
     protected override string CollectionName => "leave_balances";
     protected override ZenoHrErrorCode NotFoundErrorCode => ZenoHrErrorCode.LeaveBalanceNotFound;
