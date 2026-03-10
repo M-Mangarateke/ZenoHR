@@ -121,6 +121,50 @@ public sealed class StatutoryRuleSetRepository : BaseFirestoreRepository<Statuto
     public Task<Result<StatutoryRuleSet>> GetByIdAsync(string documentId, CancellationToken ct = default)
         => GetByIdAsync("SYSTEM", documentId, ct);
 
+    /// <summary>
+    /// Upserts a pending tax year rule set document.
+    /// Called by TaxYearImportService during the import workflow.
+    /// The document is written with status = "pending" — activation is a separate step.
+    /// CTL-SARS-001, REQ-COMP-015
+    /// </summary>
+    public async Task<Result> UpsertPendingTaxYearAsync(
+        string documentId,
+        Dictionary<string, object?> fields,
+        CancellationToken ct = default)
+    {
+        var docRef = Db.Collection("statutory_rule_sets").Document(documentId);
+        await docRef.SetAsync(fields!, cancellationToken: ct);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Updates an existing pending tax year document to status = "active".
+    /// Fails if the document does not exist.
+    /// Called by TaxYearImportService.ActivateAsync after regression passes.
+    /// CTL-SARS-001, REQ-COMP-015
+    /// </summary>
+    public async Task<Result> SetStatusAsync(
+        string documentId,
+        string status,
+        string actorUid,
+        CancellationToken ct = default)
+    {
+        var docRef = Db.Collection("statutory_rule_sets").Document(documentId);
+        var snapshot = await docRef.GetSnapshotAsync(ct);
+        if (!snapshot.Exists)
+            return Result.Failure(ZenoHrErrorCode.StatutoryRuleSetNotFound,
+                $"Statutory rule set '{documentId}' not found — cannot set status.");
+
+        var updates = new Dictionary<string, object?>
+        {
+            ["status"] = status,
+            [$"{status}_at"] = Timestamp.GetCurrentTimestamp(),
+            [$"{status}_by"] = actorUid,
+        };
+        await docRef.UpdateAsync(updates!, cancellationToken: ct);
+        return Result.Success();
+    }
+
     // ─── Helpers ────────────────────────────────────────────────────────────
 
     private static DateOnly ParseDateOnly(Dictionary<string, object?> data, string key)

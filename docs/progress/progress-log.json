@@ -1,7 +1,7 @@
 {
   "project": "ZenoHR",
   "current_phase": "Phase 4 - UI (Blazor Server)",
-  "last_updated": "2026-03-09T16:38:52.970176+00:00",
+  "last_updated": "2026-03-10T06:33:47.858562+00:00",
   "last_session_summary": "Progress log synced to match git history. Phase 2 complete (TASK-064 thru TASK-073). Phase 3 partial: TASK-081-086 done (payroll repos, orchestration, API, statutory); TASK-087+ (QuestPDF, EMP201, filing) still pending. Phase 4 scaffolded: TASK-101-104 (NavMenu, auth, RBAC, Login). Next: full Blazor UI pages from mockups (TASK-105+) and QuestPDF payslip (TASK-087).",
   "phases": [
     {
@@ -1147,14 +1147,16 @@
       "id": "TASK-089",
       "title": "EMP501 reconciliation service",
       "phase": "phase-3",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-088"
       ],
       "requirements": [
         "CTL-SARS-007"
-      ]
+      ],
+      "notes": "EMP501 service: Emp501Data records, IEmp501Generator, Emp501Generator (H/D/S/T CSV), validation, 11 tests pass.",
+      "completed_at": "2026-03-09"
     },
     {
       "id": "TASK-090",
@@ -1213,7 +1215,7 @@
       "id": "TASK-094",
       "title": "Integration tests: Payroll + Compliance modules (Firestore emulator)",
       "phase": "phase-3",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-086",
@@ -1221,7 +1223,9 @@
       ],
       "requirements": [
         "TC-PAY-010"
-      ]
+      ],
+      "notes": "PayrollRunRepositoryTests (8 tests) + PayrollResultRepositoryTests (4 tests). Covers CRUD, tenant isolation, status transitions, immutability guard (Filed → non-Filed rejected).",
+      "completed_at": "2026-03-10"
     },
     {
       "id": "TASK-095",
@@ -1442,40 +1446,46 @@
       "id": "TASK-109",
       "title": "Compliance scoring page (06-compliance.html)",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-091"
       ],
       "requirements": [
         "REQ-COMP-001"
-      ]
+      ],
+      "notes": "Compliance.razor: 3 SVG score rings (SARS/BCEA/POPIA), filing schedule, 14-control checklist, fail-state alert banner. Builds clean.",
+      "completed_at": "2026-03-09"
     },
     {
       "id": "TASK-110",
       "title": "Timesheet page (07-timesheet.html)",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-072"
       ],
       "requirements": [
         "REQ-HR-001"
-      ]
+      ],
+      "notes": "Timesheets.razor: weekly grid, BCEA violation detection, sticky action bar, week navigation.",
+      "completed_at": "2026-03-09"
     },
     {
       "id": "TASK-111",
       "title": "Audit trail page (08-audit.html)",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-049"
       ],
       "requirements": [
         "CTL-POPIA-008"
-      ]
+      ],
+      "notes": "Audit.razor: hash-chain table, 7 event type badges, filter chips, expandable rows, chain integrity banner.",
+      "completed_at": "2026-03-09"
     },
     {
       "id": "TASK-112",
@@ -1572,7 +1582,7 @@
       "id": "TASK-119",
       "title": "Payslip PDF download (client-side trigger, BCEA S.33 invariant check)",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-087",
@@ -1580,7 +1590,9 @@
       ],
       "requirements": [
         "REQ-HR-004"
-      ]
+      ],
+      "notes": "Payslip download button per employee row in Payroll.razor, toast notification, zenohr.downloadFile JS interop added.",
+      "completed_at": "2026-03-09"
     },
     {
       "id": "TASK-120",
@@ -1722,7 +1734,7 @@
       "id": "TASK-137",
       "title": "End-to-end integration tests (full payroll run â†’ payslip â†’ EMP201 CSV)",
       "phase": "phase-5",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-119",
@@ -1730,13 +1742,15 @@
       ],
       "requirements": [
         "TC-PAY-020"
-      ]
+      ],
+      "notes": "EndToEndPayrollTests (8 tests). Full pipeline: seed rules → orchestration → Firestore round-trip → EMP201 CSV → immutability guard → payslip invariant to the cent.",
+      "completed_at": "2026-03-10"
     },
     {
       "id": "TASK-138",
       "title": "Annual SARS tax year table import + regression + activation workflow",
       "phase": "phase-5",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-081"
@@ -1746,7 +1760,8 @@
         "CTL-SARS-001",
         "REQ-COMP-015"
       ],
-      "notes": "Triggered each February/March after SARS Budget Speech. Full workflow: (1) SaasAdmin or Director imports new JSON rule set file via /admin or /settings/compliance; (2) System validates schema, checksums, effective_from/effective_to dates; (3) Auto-runs regression pack against new tables: boundary salary bands (bracket minimums/maximums), UIF/SDL cap checks, ETI eligibility edge cases â€” same test scenarios as unit tests but run live against new StatutoryRuleSet; (4) Regression report shown to Compliance Officer (pass/fail per test); (5) Compliance Officer approves activation; (6) System sets new StatutoryRuleSet as active_version in Firestore â€” previous version archived; (7) Emits TaxTableVersionActivated domain event (invalidates caches, triggers notification to HR Manager); (8) AuditEvent created (actor=approver, action=TaxTableActivated, resource=statutory_rule_set). Regression pack must be runnable from Compliance screen UI â€” not just from command line. Applies to: PAYE bracket changes, rebate changes, UIF ceiling increases, SDL rate changes, ETI rate/band changes, BCEA threshold changes, MSFTC credit amount changes. Urgency: next required for 2026/2027 tax year starting 1 March 2026."
+      "notes": "TaxYearImportService: 5 new files (request/result/report records, interface, implementation). Regression: 5 gross samples, warn >R200, error >R1k, fail >R2k. 13 unit tests pass.",
+      "completed_at": "2026-03-10"
     }
   ],
   "phase6_tasks": [
