@@ -1,9 +1,269 @@
-@* REQ-SEC-002, PRD-15 S10: User Management — Director and HRManager only. *@
+@* REQ-HR-001, REQ-SEC-002, PRD-15 S10: User Management — Director and HRManager only. *@
 @* Assign and revoke role assignments for tenant users. *@
 @page "/settings/users"
 @attribute [Authorize(Roles = "Director,HRManager")]
 @using Microsoft.AspNetCore.Authorization
+@using System.Globalization
 
-<PageTitle>Users — ZenoHR</PageTitle>
-<h1>User Management</h1>
-<p>Assign roles, manage user access, and review active role assignments.</p>
+<PageTitle>Users — Settings — ZenoHR</PageTitle>
+
+@* ── Settings tab bar ─────────────────────────────────────────────────────── *@
+<div class="settings-tabs">
+    <a href="/settings/users"       class="settings-tab settings-tab-active">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+        Users
+    </a>
+    <a href="/settings/departments" class="settings-tab">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+        </svg>
+        Departments
+    </a>
+    <a href="/settings/company"     class="settings-tab">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+        Company
+    </a>
+    <a href="/settings/security"    class="settings-tab">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+        Security
+    </a>
+    <a href="/settings/archival"    class="settings-tab">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="20" height="5" x="2" y="3" rx="1" />
+            <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
+            <path d="M10 12h4" />
+        </svg>
+        Data Archival
+    </a>
+</div>
+
+@* ── Toolbar: search, filters, invite ─────────────────────────────────────── *@
+<div class="users-toolbar">
+    <div class="search-wrapper">
+        <svg class="search-icon-inline" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+        </svg>
+        <input type="text" placeholder="Search users by name or email..." class="form-input search-input"
+               @bind="_searchTerm" @bind:event="oninput" />
+    </div>
+    <select class="form-select filter-select" @bind="_roleFilter">
+        <option value="">All Roles</option>
+        <option value="Director">Director</option>
+        <option value="HRManager">HRManager</option>
+        <option value="Manager">Manager</option>
+        <option value="Employee">Employee</option>
+    </select>
+    <select class="form-select filter-select" @bind="_deptFilter">
+        <option value="">All Departments</option>
+        <option value="Executive">Executive</option>
+        <option value="Human Resources">Human Resources</option>
+        <option value="Operations">Operations</option>
+        <option value="Engineering">Engineering</option>
+        <option value="Finance">Finance</option>
+        <option value="Logistics">Logistics</option>
+    </select>
+    <button class="btn btn-primary btn-sm invite-btn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <line x1="19" x2="19" y1="8" y2="14" />
+            <line x1="22" x2="16" y1="11" y2="11" />
+        </svg>
+        Invite User
+    </button>
+</div>
+
+@* ── Users data table ─────────────────────────────────────────────────────── *@
+<div class="card table-card">
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Department</th>
+                    <th>Status</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in FilteredUsers)
+                {
+                    <tr>
+                        <td data-label="Name">
+                            <div class="person-cell">
+                                <div class="avatar @user.AvatarClass">@user.Initials</div>
+                                <div>
+                                    <div class="person-name">@user.Name</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td data-label="Email" class="td-muted">@user.Email</td>
+                        <td data-label="Role">
+                            <span class="badge badge-nodot @user.RoleChipClass" style="font-size:11px;">@user.Role</span>
+                        </td>
+                        <td data-label="Department" class="td-muted">@user.Department</td>
+                        <td data-label="Status">
+                            @if (user.Status == "Active")
+                            {
+                                <span class="badge badge-success">Active</span>
+                            }
+                            else if (user.Status == "On Leave")
+                            {
+                                <span class="badge badge-warning">On Leave</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-danger">Inactive</span>
+                            }
+                        </td>
+                        <td data-label="Actions" style="text-align:right;">
+                            <div class="flex gap-2 justify-end">
+                                <button class="btn btn-ghost btn-sm">Edit</button>
+                                @if (user.Status == "Inactive")
+                                {
+                                    <button class="btn btn-ghost btn-sm" style="color:var(--success);">Reactivate</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-ghost btn-sm" style="color:var(--danger);">Deactivate</button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="table-footer">
+        <span class="table-footer-count">Showing @FilteredUsers.Count of @_users.Count users</span>
+        <div class="flex gap-2">
+            <button class="btn btn-ghost btn-sm" disabled>← Prev</button>
+            <button class="btn btn-secondary btn-sm page-btn-active">1</button>
+            <button class="btn btn-ghost btn-sm">2</button>
+            <button class="btn btn-ghost btn-sm">Next →</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* ── Settings tab bar (shared across all settings pages) ── */
+    .settings-tabs { display: flex; gap: 2px; background: var(--bg-page); border: 1px solid var(--border); border-radius: var(--radius-lg, 12px); padding: 4px; width: fit-content; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .settings-tab { display: flex; align-items: center; gap: 0.5rem; padding: 8px 18px; border-radius: var(--radius-md, 8px); font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; border: none; background: transparent; text-decoration: none; white-space: nowrap; }
+    .settings-tab:hover { color: var(--text-primary); background: var(--bg-card); }
+    .settings-tab-active { background: var(--bg-card); color: var(--brand-primary); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+    /* ── Toolbar ── */
+    .users-toolbar { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap; }
+    .search-wrapper { position: relative; flex: none; max-width: 300px; }
+    .search-icon-inline { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none; }
+    .search-input { padding-left: 36px; height: 36px; border-radius: 9999px; }
+    .filter-select { width: 160px; height: 36px; font-size: 13px; }
+    .invite-btn { margin-left: auto; }
+
+    /* ── Table ── */
+    .table-card { padding: 0; overflow: hidden; }
+    .table-wrapper { overflow-x: auto; }
+    .table-wrapper table { width: 100%; border-collapse: collapse; }
+    .table-wrapper thead th { padding: 10px 16px; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); text-align: left; border-bottom: 1px solid var(--border); background: var(--bg-page); }
+    .table-wrapper tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+    .table-wrapper tbody tr:last-child { border-bottom: none; }
+    .table-wrapper tbody tr:hover { background: var(--bg-page); }
+    .table-wrapper td { padding: 12px 16px; font-size: 13.5px; color: var(--text-primary); }
+    .td-muted { color: var(--text-secondary); }
+
+    /* Person cell */
+    .person-cell { display: flex; align-items: center; gap: 0.75rem; }
+    .avatar { width: 32px; height: 32px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: white; flex-shrink: 0; }
+    .person-name { font-size: 13.5px; font-weight: 600; color: var(--text-primary); }
+
+    /* Avatar colors */
+    .av-1 { background: #ef4444; }
+    .av-2 { background: #f59e0b; }
+    .av-3 { background: #10b981; }
+    .av-4 { background: #3b82f6; }
+    .av-5 { background: #8b5cf6; }
+    .av-6 { background: #ec4899; }
+    .av-7 { background: #1d4777; }
+
+    /* Role chip colors */
+    .role-chip-director { background: #f0f4ff; color: #3730a3; }
+    .role-chip-hrmanager { background: var(--brand-primary-subtle, rgba(29,71,119,0.08)); color: var(--brand-primary); }
+    .role-chip-manager { background: var(--brand-accent-subtle, rgba(212,137,14,0.1)); color: var(--brand-accent, #d4890e); }
+    .role-chip-employee { background: var(--success-subtle, rgba(22,163,74,0.08)); color: var(--success, #16a34a); }
+
+    /* Table footer */
+    .table-footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .table-footer-count { font-size: 12px; color: var(--text-secondary); }
+    .page-btn-active { background: var(--brand-primary-subtle, rgba(29,71,119,0.08)); border-color: var(--brand-primary); color: var(--brand-primary); }
+
+    /* ── Mobile ── */
+    @@media (max-width: 640px) {
+        .settings-tabs { overflow-x: auto; width: 100%; }
+        .settings-tab { padding: 8px 14px; font-size: 12px; }
+        .users-toolbar { flex-direction: column; align-items: stretch; }
+        .search-wrapper { max-width: 100%; }
+        .filter-select { width: 100%; }
+        .invite-btn { margin-left: 0; }
+        .table-wrapper thead { display: none; }
+        .table-wrapper tbody tr { display: block; padding: 12px; border-bottom: 1px solid var(--border); }
+        .table-wrapper td { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border: none; font-size: 13px; }
+        .table-wrapper td::before { content: attr(data-label); font-weight: 600; color: var(--text-secondary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    }
+</style>
+
+@code {
+    // REQ-HR-001: User management sample data
+
+    private string _searchTerm = string.Empty;
+    private string _roleFilter = string.Empty;
+    private string _deptFilter = string.Empty;
+
+    private List<UserRow> FilteredUsers => _users
+        .Where(u => string.IsNullOrEmpty(_searchTerm)
+            || u.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)
+            || u.Email.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))
+        .Where(u => string.IsNullOrEmpty(_roleFilter) || u.Role == _roleFilter)
+        .Where(u => string.IsNullOrEmpty(_deptFilter) || u.Department == _deptFilter)
+        .ToList();
+
+    private readonly List<UserRow> _users =
+    [
+        new("Sarah Nkosi",      "sarah@zenowethu.co.za",    "HRManager", "Human Resources", "Active",   "SN", "av-7", "role-chip-hrmanager"),
+        new("James Mathebula",  "james@zenowethu.co.za",    "Director",  "Executive",       "Active",   "JM", "av-4", "role-chip-director"),
+        new("Thabo Molefe",     "thabo@zenowethu.co.za",    "Manager",   "Operations",      "On Leave", "TM", "av-7", "role-chip-manager"),
+        new("Lerato Dlamini",   "lerato@zenowethu.co.za",   "Employee",  "Engineering",     "Active",   "LD", "av-4", "role-chip-employee"),
+        new("Priya Naidoo",     "priya@zenowethu.co.za",    "Employee",  "Finance",         "Active",   "PN", "av-6", "role-chip-employee"),
+        new("Andre van Wyk",    "andre@zenowethu.co.za",    "Employee",  "Logistics",       "Inactive", "AV", "av-1", "role-chip-employee"),
+    ];
+
+    private sealed record UserRow(
+        string Name,
+        string Email,
+        string Role,
+        string Department,
+        string Status,
+        string Initials,
+        string AvatarClass,
+        string RoleChipClass);
+}

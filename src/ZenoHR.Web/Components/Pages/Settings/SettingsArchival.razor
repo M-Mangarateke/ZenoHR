@@ -1,0 +1,305 @@
+@* REQ-HR-001, REQ-SEC-002, REQ-COMP-004, CTL-POPIA-009, PRD-15 S10: Data Archival — Director and HRManager only. *@
+@* GAP-FEAT-002: 5-year retention policy with legal hold and download-before-delete workflow. *@
+@page "/settings/archival"
+@attribute [Authorize(Roles = "Director,HRManager")]
+@using Microsoft.AspNetCore.Authorization
+@using System.Globalization
+
+<PageTitle>Data Archival — Settings — ZenoHR</PageTitle>
+
+@* ── Settings tab bar ─────────────────────────────────────────────────────── *@
+<div class="settings-tabs">
+    <a href="/settings/users"       class="settings-tab">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+        Users
+    </a>
+    <a href="/settings/departments" class="settings-tab">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+        </svg>
+        Departments
+    </a>
+    <a href="/settings/company"     class="settings-tab">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+        Company
+    </a>
+    <a href="/settings/security"    class="settings-tab">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+        Security
+    </a>
+    <a href="/settings/archival"    class="settings-tab settings-tab-active">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="20" height="5" x="2" y="3" rx="1" />
+            <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" /><path d="M10 12h4" />
+        </svg>
+        Data Archival
+    </a>
+</div>
+
+@* ── KPI cards ────────────────────────────────────────────────────────────── *@
+<div class="archive-kpi-grid">
+    <div class="archive-kpi-card">
+        <div class="archive-kpi-label">Archived Employees</div>
+        <div class="archive-kpi-value">4</div>
+        <div class="archive-kpi-meta">Terminated &gt; 5 years ago</div>
+    </div>
+    <div class="archive-kpi-card">
+        <div class="archive-kpi-label">Archived Payroll Records</div>
+        <div class="archive-kpi-value">61</div>
+        <div class="archive-kpi-meta">Pay runs filed &gt; 5 years ago</div>
+    </div>
+    <div class="archive-kpi-card">
+        <div class="archive-kpi-label">Archived Audit Events</div>
+        <div class="archive-kpi-value">12,840</div>
+        <div class="archive-kpi-meta">Events older than 5 years</div>
+    </div>
+</div>
+
+@* ── Policy info banner ───────────────────────────────────────────────────── *@
+<div class="archive-info-banner">
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+         stroke="var(--brand-primary)" stroke-width="1.8" style="flex-shrink:0;margin-top:1px;">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" x2="12" y1="8" y2="12" />
+        <line x1="12" x2="12.01" y1="16" y2="16" />
+    </svg>
+    <span>After 5 years, records move to <em>archived</em> status and appear here. To free database space,
+        <strong>download the record first</strong>, then permanently remove it from ZenoHR. If you are not ready
+        to delete, leave it here — the record stays archived until you decide. Records under legal investigation
+        can be placed on <strong>Legal Hold</strong> to block deletion entirely.</span>
+</div>
+
+@* ── Archived employees table ─────────────────────────────────────────────── *@
+<div class="archive-table-card">
+    <div class="archive-table-header">
+        <div>
+            <div class="archive-table-title">Archived Employees</div>
+            <div class="archive-table-subtitle">Download a record, then remove it from ZenoHR to reclaim database space.</div>
+        </div>
+        <input type="text" placeholder="Search archived employees..." class="archive-search" @bind="_searchTerm" @bind:event="oninput" />
+    </div>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Employee</th>
+                    <th>Terminated</th>
+                    <th>Archived</th>
+                    <th>Status</th>
+                    <th style="text-align:right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var emp in FilteredArchived)
+                {
+                    <tr class="@emp.RowClass">
+                        <td data-label="Employee">
+                            <div class="archive-emp-name">@emp.Name</div>
+                            <div class="archive-emp-meta">@emp.EmpId &middot; @emp.Department</div>
+                        </td>
+                        <td data-label="Terminated" class="archive-date">@emp.Terminated</td>
+                        <td data-label="Archived" class="archive-date mono">@emp.Archived</td>
+                        <td data-label="Status">
+                            @if (emp.Status == "Legal Hold")
+                            {
+                                <span class="badge archive-badge-hold">Legal Hold</span>
+                            }
+                            else if (emp.Status == "Downloaded")
+                            {
+                                <span class="badge badge-success" style="font-size:0.7rem;">Downloaded</span>
+                                <div class="archive-download-date">@emp.DownloadDate</div>
+                            }
+                            else
+                            {
+                                <span class="badge archive-badge-archived">Archived</span>
+                            }
+                        </td>
+                        <td data-label="Actions" style="text-align:right;">
+                            <div class="archive-actions">
+                                @if (emp.Status == "Downloaded")
+                                {
+                                    <button class="btn btn-ghost btn-sm archive-action-btn">Re-download</button>
+                                    <button class="btn btn-sm archive-delete-btn">Remove from ZenoHR</button>
+                                }
+                                else if (emp.Status == "Legal Hold")
+                                {
+                                    <button class="btn btn-secondary btn-sm archive-action-btn">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                            <polyline points="7 10 12 15 17 10" />
+                                            <line x1="12" x2="12" y1="15" y2="3" />
+                                        </svg>
+                                        Download
+                                    </button>
+                                    <button class="btn btn-ghost btn-sm archive-action-btn" disabled style="opacity:0.4;cursor:not-allowed;"
+                                            title="Legal hold active — lift hold before removing">Remove from ZenoHR</button>
+                                    <button class="btn btn-ghost btn-sm archive-action-btn" style="color:var(--text-secondary);">Lift Hold</button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-secondary btn-sm archive-action-btn">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                            <polyline points="7 10 12 15 17 10" />
+                                            <line x1="12" x2="12" y1="15" y2="3" />
+                                        </svg>
+                                        Download
+                                    </button>
+                                    <button class="btn btn-ghost btn-sm archive-action-btn" disabled style="opacity:0.4;cursor:not-allowed;"
+                                            title="Download first to enable deletion">Remove from ZenoHR</button>
+                                    <button class="btn btn-ghost btn-sm archive-action-btn" style="color:var(--warning);">Legal Hold</button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@* ── Retention schedule ───────────────────────────────────────────────────── *@
+<div class="retention-card">
+    <div class="retention-title">Retention Schedule</div>
+    <div class="retention-grid">
+        <div class="retention-item">
+            <div class="retention-item-label">Employee Records</div>
+            <div class="retention-item-value">5 years from termination date</div>
+        </div>
+        <div class="retention-item">
+            <div class="retention-item-label">Payroll Records</div>
+            <div class="retention-item-value">5 years from filing date</div>
+        </div>
+        <div class="retention-item">
+            <div class="retention-item-label">Compliance Submissions</div>
+            <div class="retention-item-value">5 years from submission date</div>
+        </div>
+        <div class="retention-item">
+            <div class="retention-item-label">Audit Events</div>
+            <div class="retention-item-value">5 years from event date</div>
+        </div>
+    </div>
+    <div class="retention-footer">Archival runs daily at 02:00 SAST. Records marked <strong>Legal Hold</strong>
+        are never archived until the hold is lifted by a Director. All archival transitions are logged in the
+        Audit Trail (REQ-COMP-004, CTL-POPIA-009).</div>
+</div>
+
+<style>
+    /* ── Settings tab bar ── */
+    .settings-tabs { display: flex; gap: 2px; background: var(--bg-page); border: 1px solid var(--border); border-radius: var(--radius-lg, 12px); padding: 4px; width: fit-content; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .settings-tab { display: flex; align-items: center; gap: 0.5rem; padding: 8px 18px; border-radius: var(--radius-md, 8px); font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; border: none; background: transparent; text-decoration: none; white-space: nowrap; }
+    .settings-tab:hover { color: var(--text-primary); background: var(--bg-card); }
+    .settings-tab-active { background: var(--bg-card); color: var(--brand-primary); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+    /* ── KPI grid ── */
+    .archive-kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+    .archive-kpi-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg, 12px); padding: 18px 20px; }
+    .archive-kpi-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-secondary); margin-bottom: 6px; }
+    .archive-kpi-value { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 2rem; font-weight: 700; color: var(--text-primary); }
+    .archive-kpi-meta { font-size: 11.5px; color: var(--text-secondary); margin-top: 4px; }
+
+    /* ── Info banner ── */
+    .archive-info-banner { display: flex; gap: 10px; padding: 12px 16px; background: var(--brand-primary-subtle, rgba(29,71,119,0.04)); border: 1px solid rgba(29,71,119,0.15); border-radius: 10px; margin-bottom: 20px; font-size: 0.82rem; color: var(--text-secondary); }
+
+    /* ── Table card ── */
+    .archive-table-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg, 12px); overflow: hidden; margin-bottom: 20px; }
+    .archive-table-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 1px solid var(--border); }
+    .archive-table-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); }
+    .archive-table-subtitle { font-size: 0.74rem; color: var(--text-secondary); margin-top: 2px; }
+    .archive-search { padding: 6px 12px; border-radius: 9999px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 0.78rem; outline: none; width: 220px; }
+
+    .table-wrapper { overflow-x: auto; }
+    .table-wrapper table { width: 100%; border-collapse: collapse; }
+    .table-wrapper thead th { padding: 9px 14px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-secondary); text-align: left; background: var(--bg-page); }
+    .table-wrapper tbody tr { border-bottom: 1px solid var(--border); }
+    .table-wrapper tbody tr:last-child { border-bottom: none; }
+    .table-wrapper td { padding: 12px 14px; }
+
+    .archive-emp-name { font-size: 0.84rem; font-weight: 600; color: var(--text-primary); }
+    .archive-emp-meta { font-size: 0.74rem; color: var(--text-secondary); }
+    .archive-date { font-size: 0.82rem; color: var(--text-secondary); }
+    .mono { font-family: var(--font-mono, 'JetBrains Mono', monospace); }
+    .archive-download-date { font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px; }
+
+    .archive-badge-archived { background: rgba(107,114,128,0.12); color: var(--text-secondary); font-size: 0.7rem; }
+    .archive-badge-hold { background: rgba(217,119,6,0.12); color: var(--warning, #d97706); font-size: 0.7rem; }
+
+    .archive-actions { display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
+    .archive-action-btn { font-size: 0.74rem; }
+    .archive-delete-btn { font-size: 0.74rem; background: #fef2f2; color: #dc2626; border: 1px solid rgba(220,38,38,0.2); }
+
+    /* Row background tints */
+    .row-hold { background: rgba(217,119,6,0.04); }
+    .row-downloaded { background: rgba(22,163,74,0.03); }
+
+    /* ── Retention schedule ── */
+    .retention-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg, 12px); padding: 20px; }
+    .retention-title { font-size: 0.9rem; font-weight: 700; color: var(--text-primary); margin-bottom: 14px; }
+    .retention-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .retention-item { padding: 12px 14px; background: var(--bg-page); border-radius: var(--radius-md, 8px); }
+    .retention-item-label { font-size: 0.76rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .retention-item-value { font-size: 0.82rem; color: var(--text-primary); }
+    .retention-footer { font-size: 0.76rem; color: var(--text-secondary); margin-top: 12px; }
+
+    /* ── Mobile ── */
+    @@media (max-width: 768px) {
+        .archive-kpi-grid { grid-template-columns: 1fr; }
+        .retention-grid { grid-template-columns: 1fr; }
+    }
+    @@media (max-width: 640px) {
+        .settings-tabs { overflow-x: auto; width: 100%; }
+        .settings-tab { padding: 8px 14px; font-size: 12px; }
+        .archive-table-header { flex-direction: column; gap: 10px; }
+        .archive-search { width: 100%; }
+        .table-wrapper thead { display: none; }
+        .table-wrapper tbody tr { display: block; padding: 12px; }
+        .table-wrapper td { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border: none; font-size: 13px; }
+        .table-wrapper td::before { content: attr(data-label); font-weight: 600; color: var(--text-secondary); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    }
+</style>
+
+@code {
+    // REQ-HR-001, REQ-COMP-004, CTL-POPIA-009: Data archival sample data
+
+    private string _searchTerm = string.Empty;
+
+    private List<ArchivedEmployee> FilteredArchived => _archived
+        .Where(a => string.IsNullOrEmpty(_searchTerm)
+            || a.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)
+            || a.EmpId.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    private readonly List<ArchivedEmployee> _archived =
+    [
+        new("Lindiwe Nkosi",         "EMP-00012", "Sales",      "2019-11-30", "2024-11-30", "Archived",   null,          ""),
+        new("Hendrik du Plessis",    "EMP-00008", "Operations", "2019-08-15", "2024-08-15", "Legal Hold", null,          "row-hold"),
+        new("Priya Pillay",          "EMP-00019", "Finance",    "2020-03-31", "2025-03-31", "Downloaded", "19 Feb 2026", "row-downloaded"),
+        new("Siphamandla Mthethwa",  "EMP-00003", "Logistics",  "2018-12-01", "2023-12-01", "Archived",   null,          ""),
+    ];
+
+    private sealed record ArchivedEmployee(
+        string Name,
+        string EmpId,
+        string Department,
+        string Terminated,
+        string Archived,
+        string Status,
+        string? DownloadDate,
+        string RowClass);
+}

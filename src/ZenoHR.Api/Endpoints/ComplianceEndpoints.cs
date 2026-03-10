@@ -3,12 +3,15 @@
 // Director/HRManager roles only (REQ-SEC-002).
 
 using System.Security.Claims;
+using System.Globalization;
 using ZenoHR.Api.Auth;
 using ZenoHR.Domain.Errors;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Infrastructure.Services.Filing;
+using ZenoHR.Infrastructure.Services.Filing.Itreg;
 using ZenoHR.Module.Compliance.Entities;
 using ZenoHR.Module.Compliance.Enums;
+using ZenoHR.Module.Compliance.Services;
 
 namespace ZenoHR.Api.Endpoints;
 
@@ -58,6 +61,20 @@ public static class ComplianceEndpoints
             .WithName("DownloadComplianceSubmission")
             .Produces(200)
             .Produces(404);
+
+        // GET /api/compliance/employees/missing-tax-reference — employees missing valid tax refs
+        // CTL-SARS-006: ITREG workflow — identify employees needing SARS income tax registration
+        group.MapGet("/employees/missing-tax-reference", GetMissingTaxReferencesAsync)
+            .WithName("GetMissingTaxReferences")
+            .Produces<IReadOnlyList<MissingTaxReferenceEntry>>(200)
+            .Produces(400);
+
+        // POST /api/compliance/itreg/generate — generate ITREG export file
+        // CTL-SARS-006: Produces SARS e@syFile-compatible registration export
+        group.MapPost("/itreg/generate", GenerateItregAsync)
+            .WithName("GenerateItreg")
+            .Produces<string>(200, "text/plain")
+            .Produces(400);
 
         return app;
     }
@@ -167,6 +184,71 @@ public static class ComplianceEndpoints
         return Results.File(submission.GeneratedFileContent, "text/csv", fileName);
     }
 
+    // ── ITREG handlers ────────────────────────────────────────────────────────
+
+    // CTL-SARS-006: Returns employees with missing or invalid tax references
+    private static async Task<IResult> GetMissingTaxReferencesAsync(
+        ClaimsPrincipal user,
+        MissingTaxReferenceService missingTaxRefService,
+        CancellationToken ct)
+    {
+        var tenantId = user.FindFirstValue(ZenoHrClaimNames.TenantId)!;
+
+        var result = await missingTaxRefService.GetMissingTaxReferencesAsync(tenantId, ct);
+
+        return result.IsFailure
+            ? Results.BadRequest(result.Error.Message)
+            : Results.Ok(result.Value);
+    }
+
+    // CTL-SARS-006: Generates ITREG export for employees missing tax references
+    private static async Task<IResult> GenerateItregAsync(
+        ItregGenerateRequest request,
+        ClaimsPrincipal user,
+        MissingTaxReferenceService missingTaxRefService,
+        IComplianceEmployeeQuery employeeQuery,
+        CancellationToken ct)
+    {
+        var tenantId = user.FindFirstValue(ZenoHrClaimNames.TenantId)!;
+
+        // Retrieve employees missing tax references
+        var missingResult = await missingTaxRefService.GetMissingTaxReferencesAsync(tenantId, ct);
+        if (missingResult.IsFailure)
+            return Results.BadRequest(missingResult.Error.Message);
+
+        if (missingResult.Value.Count == 0)
+            return Results.BadRequest("No employees are missing tax references.");
+
+        // Get full employee data for ITREG records
+        var employees = await employeeQuery.GetAllEmployeeTaxSummariesAsync(tenantId, ct);
+        var missingIds = missingResult.Value.Select(m => m.EmployeeId).ToHashSet(StringComparer.Ordinal);
+
+        var records = employees
+            .Where(e => missingIds.Contains(e.EmployeeId))
+            .Select(e => new ItregRecord(
+                e.EmployeeId,
+                e.FullName,
+                e.IdNumber ?? string.Empty,
+                DateOnly.FromDateTime(DateTime.UtcNow), // Placeholder — real DOB from full employee record
+                string.Empty, // Residential address — requires full employee query
+                string.Empty, // Postal code — requires full employee query
+                e.EmploymentStartDate ?? DateOnly.FromDateTime(DateTime.UtcNow),
+                request.EmployerPayeReference,
+                null,
+                null))
+            .ToList();
+
+        var generateResult = ItregGenerator.Generate(
+            tenantId,
+            request.EmployerPayeReference,
+            records.AsReadOnly(),
+            DateTimeOffset.UtcNow);
+
+        return generateResult.IsFailure
+            ? Results.BadRequest(generateResult.Error.Message)
+            : Results.Text(generateResult.Value, "text/plain");
+    }
+
     // ── DTOs ─────────────────────────────────────────────────────────────────
 
     private static ComplianceSubmissionDto ToDto(ComplianceSubmission s) => new(
@@ -214,3 +296,9 @@ public sealed record ComplianceSubmissionDto(
     IReadOnlyList<string> ComplianceFlags,
     DateTimeOffset CreatedAt,
     string CreatedBy);
+
+/// <summary>
+/// Request body for ITREG export generation.
+/// CTL-SARS-006: Requires employer PAYE reference for SARS registration file header.
+/// </summary>
+public sealed record ItregGenerateRequest(string EmployerPayeReference);

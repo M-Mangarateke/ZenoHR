@@ -1,10 +1,19 @@
-@* REQ-SEC-002, PRD-15 S10: Settings — Director and HRManager only. *@
-@* Five admin tabs: Role Management, Departments, Users, Company Settings, Archival. *@
+@* REQ-HR-001, REQ-SEC-002, PRD-15 S10: Settings — Director and HRManager only. *@
+@* Five admin tabs: Users, Departments, Company, Security, Data Archival. *@
 @* Manager and Employee: None — route blocked, nav item absent. *@
 @page "/settings"
 @attribute [Authorize(Roles = "Director,HRManager")]
 @using Microsoft.AspNetCore.Authorization
+@inject NavigationManager Nav
 
 <PageTitle>Settings — ZenoHR</PageTitle>
-<h1>Settings</h1>
-<p>Manage roles, departments, users, company details, and data archival for Zenowethu (Pty) Ltd.</p>
+
+@* Redirect /settings to /settings/users (default tab) *@
+
+@code {
+    // REQ-HR-001
+    protected override void OnInitialized()
+    {
+        Nav.NavigateTo("/settings/users", replace: true);
+    }
+}

@@ -1,7 +1,7 @@
 {
   "project": "ZenoHR",
   "current_phase": "Phase 4 - UI (Blazor Server)",
-  "last_updated": "2026-03-10T08:12:54.551300+00:00",
+  "last_updated": "2026-03-10T10:53:42.661074+00:00",
   "last_session_summary": "Progress log synced to match git history. Phase 2 complete (TASK-064 thru TASK-073). Phase 3 partial: TASK-081-086 done (payroll repos, orchestration, API, statutory); TASK-087+ (QuestPDF, EMP201, filing) still pending. Phase 4 scaffolded: TASK-101-104 (NavMenu, auth, RBAC, Login). Next: full Blazor UI pages from mockups (TASK-105+) and QuestPDF payslip (TASK-087).",
   "phases": [
     {
@@ -1252,7 +1252,7 @@
       "id": "TASK-096",
       "title": "EMP601 certificate cancellation declaration generator",
       "phase": "phase-3",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-090"
@@ -1261,13 +1261,14 @@
       "requirements": [
         "CTL-SARS-005"
       ],
-      "notes": "EMP601 is used to cancel a previously submitted IRP5/IT3(a) certificate (e.g., incorrect values, duplicate). ZenoHR must: (1) Allow HR Manager to mark an issued certificate for cancellation with a mandatory reason; (2) Generate EMP601 package (same field structure as IRP5 but with cancellation indicator set); (3) Store cancellation record in compliance_submissions with original_certificate_id reference; (4) Prevent re-issuance until cancellation is acknowledged. Domain: CertificateCancellation entity with original_certificate_id, certificate_year, employee_id, cancellation_reason, status (pending/submitted/acknowledged). Required for e@syFile Employer import."
+      "notes": "Emp601Record, Emp601Generator (H/D/T CSV, cancellation declarations, InvariantCulture). 9/9 tests passing.",
+      "completed_at": "2026-03-10"
     },
     {
       "id": "TASK-097",
       "title": "EMP701 prior-year reconciliation adjustment workflow",
       "phase": "phase-3",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-089"
@@ -1276,7 +1277,8 @@
       "requirements": [
         "CTL-SARS-004"
       ],
-      "notes": "EMP701 is for adjustments to reconciliations from prior tax years (not the current year). Triggered when: (1) SARS issues a correction notice for a prior period; (2) Employer discovers an error in a finalized prior-year EMP501. ZenoHR must: store prior-year adjustment records referencing original reconciliation period and tax year; generate EMP701 package; apply double-entry principle (original + adjustment = corrected position); immutable â€” once submitted, only new correction adjustments allowed. Firestore collection: payroll_runs/{id}/adjustments already exists in schema. Domain entity: PriorYearAdjustment with tax_year, adjustment_type (paye/uif/sdl/eti), original_amount, adjustment_amount, corrected_amount, reason, submitted_at."
+      "notes": "Emp701AdjustmentRecord (computed diff props), Emp701Generator (H/D/T CSV, negative diffs supported). 11/11 tests passing.",
+      "completed_at": "2026-03-10"
     },
     {
       "id": "TASK-098",
