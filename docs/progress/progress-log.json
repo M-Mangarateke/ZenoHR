@@ -1,7 +1,7 @@
 {
   "project": "ZenoHR",
   "current_phase": "Phase 4 - UI (Blazor Server)",
-  "last_updated": "2026-03-10T10:53:42.661074+00:00",
+  "last_updated": "2026-03-10T16:12:00.054591+00:00",
   "last_session_summary": "Progress log synced to match git history. Phase 2 complete (TASK-064 thru TASK-073). Phase 3 partial: TASK-081-086 done (payroll repos, orchestration, API, statutory); TASK-087+ (QuestPDF, EMP201, filing) still pending. Phase 4 scaffolded: TASK-101-104 (NavMenu, auth, RBAC, Login). Next: full Blazor UI pages from mockups (TASK-105+) and QuestPDF payslip (TASK-087).",
   "phases": [
     {
@@ -1298,7 +1298,7 @@
       "id": "TASK-099",
       "title": "ITREG employee income tax registration assistance workflow",
       "phase": "phase-3",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-064"
@@ -1308,7 +1308,8 @@
         "CTL-SARS-006",
         "REQ-HR-001"
       ],
-      "notes": "Process for employees who do not yet have an income tax reference number. ZenoHR must: (1) Employee profile shows 'Tax Number Required' badge when income_tax_reference is null/invalid (CTL-SARS-006 already blocks payroll); (2) HR Manager sees bulk list of employees with missing/invalid tax refs on Compliance screen; (3) 'Register for Tax' workflow: exports employee details (SA ID, full name, DOB, residential address, employment start date, employer PAYE reference) in SARS ITREG-compatible format for manual submission via eFiling or e@syFile; (4) HR Manager enters assigned SARS tax reference number once received; (5) System validates format (10-digit, prefix 0/1/2), updates employee profile, clears the blocking flag. API endpoint: GET /compliance/employees/missing-tax-reference. UI: compliance screen badge + remediation modal with export button. Does NOT call SARS API directly (requires ISV accreditation â€” Phase 6)."
+      "notes": "ItregRecord, ItregGenerator, TaxReferenceValidator (10-digit, prefix 0-3), MissingTaxReferenceService, IComplianceEmployeeQuery, 2 API endpoints. 18/18 tests passing.",
+      "completed_at": "2026-03-10"
     },
     {
       "id": "TASK-100",
@@ -1510,14 +1511,16 @@
       "id": "TASK-113",
       "title": "Settings page â€” all 5 admin tabs (10-settings.html)",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-103"
       ],
       "requirements": [
         "REQ-HR-001"
-      ]
+      ],
+      "notes": "5-tab Settings UI: Users (search/filter/table), Departments (CRUD), Company (form), Security (MFA/session), Archival (retention/POPIA). All from 10-settings.html mockup. Dark+light mode, Director/HRManager auth.",
+      "completed_at": "2026-03-10"
     },
     {
       "id": "TASK-114",

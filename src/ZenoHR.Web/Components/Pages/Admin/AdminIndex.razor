@@ -1,9 +1,1393 @@
-@* REQ-SEC-002, PRD-15 S11: Admin Platform UI — SaasAdmin only. *@
+@* REQ-OPS-001, REQ-SEC-002, PRD-15 S11: Admin Platform UI — SaasAdmin only. *@
 @* SaasAdmin cannot access any tenant data. This page is platform operations only. *@
 @page "/admin"
 @attribute [Authorize(Roles = "SaasAdmin")]
 @using Microsoft.AspNetCore.Authorization
 
 <PageTitle>Admin — ZenoHR Platform</PageTitle>
-<h1>Platform Administration</h1>
-<p>Manage tenants, system health, seed data, and feature flags for the ZenoHR platform.</p>
+
+<style>
+    /* ── Admin-specific overrides — more technical, less warm ── */
+
+    .env-banner {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: 8px 20px;
+        background: #0f1f33;
+        border-bottom: 1px solid rgba(224, 90, 30, 0.3);
+        border-radius: var(--radius-lg);
+        margin-bottom: var(--space-5);
+        flex-shrink: 0;
+    }
+
+    [data-theme="dark"] .env-banner {
+        background: #060c18;
+        border-bottom-color: rgba(224, 90, 30, 0.25);
+    }
+
+    .env-banner-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: var(--radius-full);
+        background: #e05a1e;
+        box-shadow: 0 0 6px rgba(224, 90, 30, 0.7);
+        flex-shrink: 0;
+        animation: pulse-admin 2s ease-in-out infinite;
+    }
+
+    @@keyframes pulse-admin {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .env-banner-text {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #e05a1e;
+    }
+
+    .env-banner-sep {
+        width: 1px;
+        height: 14px;
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .env-banner-info {
+        font-size: 11px;
+        color: #94a3b8;
+        font-family: var(--font-mono);
+    }
+
+    /* Admin KPI cards */
+    .admin-kpi-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-md);
+        padding: var(--space-5) var(--space-6);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .admin-kpi-card::before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+    }
+
+    .admin-kpi-card.accent-blue::before { background: var(--brand-primary); }
+    .admin-kpi-card.accent-orange::before { background: #e05a1e; }
+    .admin-kpi-card.accent-green::before { background: var(--success); }
+    .admin-kpi-card.accent-amber::before { background: var(--warning); }
+
+    .admin-kpi-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-bottom: var(--space-2);
+    }
+
+    /* Health status orb */
+    .health-orb {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-full);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+        margin-bottom: var(--space-2);
+    }
+
+    .health-green {
+        background: var(--success-subtle);
+        color: var(--success);
+        box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.1);
+    }
+
+    [data-theme="dark"] .health-green {
+        background: rgba(22, 163, 74, 0.15);
+    }
+
+    /* Tenant table health dot */
+    .health-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: var(--radius-full);
+        flex-shrink: 0;
+    }
+
+    /* Platform event row */
+    .platform-event-row {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-3);
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-subtle);
+        font-size: 13px;
+    }
+
+    .platform-event-row:last-child { border-bottom: none; }
+
+    .platform-event-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .platform-event-info { flex: 1; min-width: 0; }
+
+    .platform-event-title {
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--text-primary);
+        line-height: 1.35;
+    }
+
+    .platform-event-meta {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-top: 2px;
+        font-family: var(--font-mono);
+    }
+
+    /* Seed data / job rows */
+    .seed-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: 11px 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .seed-row:last-child { border-bottom: none; }
+    .seed-info { flex: 1; min-width: 0; }
+
+    .seed-name {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--text-primary);
+        font-family: var(--font-mono);
+    }
+
+    .seed-version {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-top: 2px;
+        font-family: var(--font-mono);
+    }
+
+    .job-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .job-row:last-child { border-bottom: none; }
+    .job-info { flex: 1; min-width: 0; }
+
+    .job-name {
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .job-timing {
+        font-size: 10.5px;
+        color: var(--text-secondary);
+        font-family: var(--font-mono);
+        margin-top: 2px;
+    }
+
+    /* Job status pills */
+    .job-status-success { background: var(--success-subtle); color: var(--success); }
+    .job-status-failed { background: var(--danger-subtle); color: var(--danger); }
+    .job-status-running { background: var(--info-subtle); color: var(--info); }
+
+    .job-status-scheduled {
+        background: var(--bg-page);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-default);
+    }
+
+    [data-theme="dark"] .job-status-scheduled { background: var(--bg-elevated); }
+
+    .admin-section-header {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        margin-bottom: var(--space-5);
+    }
+
+    .admin-section-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        flex: 1;
+    }
+
+    /* Tenant plan badges */
+    .plan-free {
+        background: var(--bg-page);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-default);
+    }
+
+    .plan-starter { background: var(--brand-primary-subtle); color: var(--brand-primary); }
+    .plan-professional { background: var(--brand-accent-subtle); color: var(--brand-accent); }
+    .plan-enterprise { background: #f0f4ff; color: #3730a3; }
+
+    [data-theme="dark"] .plan-enterprise { background: rgba(55, 48, 163, 0.2); color: #a5b4fc; }
+    [data-theme="dark"] .plan-free { background: var(--bg-elevated); }
+
+    .form-select-admin {
+        height: 36px;
+        background: var(--bg-input);
+        border: 1.5px solid var(--border-default);
+        border-radius: var(--radius-sm);
+        padding: 0 var(--space-3);
+        font-size: 13px;
+        color: var(--text-primary);
+        font-family: var(--font-primary);
+        outline: none;
+        transition: all var(--transition-default);
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        padding-right: 30px;
+    }
+
+    /* Seed data icon box */
+    .seed-icon-box {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    /* Job status dot */
+    .job-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .job-dot-success {
+        background: var(--success);
+        box-shadow: 0 0 5px rgba(22, 163, 74, 0.5);
+    }
+
+    .job-dot-running {
+        background: var(--info);
+        box-shadow: 0 0 5px rgba(37, 99, 235, 0.5);
+        animation: pulse-admin 1.5s ease-in-out infinite;
+    }
+
+    .job-dot-failed {
+        background: var(--danger);
+        box-shadow: 0 0 5px rgba(220, 38, 38, 0.5);
+    }
+
+    .job-dot-scheduled {
+        background: var(--border-strong);
+    }
+
+    /* Wizard modal overlay */
+    .wizard-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(6, 12, 24, 0.72);
+        z-index: 400;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+    }
+
+    .wizard-modal {
+        background: var(--bg-surface);
+        border-radius: 12px;
+        width: 100%;
+        max-width: 680px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+    }
+
+    .wizard-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 28px;
+        border-bottom: 1px solid var(--border-default);
+    }
+
+    .wizard-steps-bar {
+        display: flex;
+        gap: 0;
+        padding: 16px 28px;
+        border-bottom: 1px solid var(--border-default);
+        background: var(--bg-subtle);
+    }
+
+    .wizard-step-num {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        font-size: 12px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 4px;
+    }
+
+    .wizard-step-active .wizard-step-num {
+        background: var(--brand-primary);
+        color: #fff;
+    }
+
+    .wizard-step-inactive .wizard-step-num {
+        background: var(--border-default);
+        color: var(--text-muted);
+    }
+
+    .wizard-step-label {
+        font-size: 10px;
+        font-weight: 600;
+    }
+
+    .wizard-step-active .wizard-step-label { color: var(--brand-primary); }
+    .wizard-step-inactive .wizard-step-label { color: var(--text-muted); }
+
+    .wizard-connector {
+        flex: 0;
+        display: flex;
+        align-items: center;
+        padding: 0 4px;
+        padding-bottom: 16px;
+    }
+
+    .wizard-connector-line {
+        width: 32px;
+        height: 1px;
+        background: var(--border-default);
+    }
+
+    .wizard-content { padding: 28px; }
+
+    .wizard-footer {
+        display: flex;
+        justify-content: space-between;
+        padding: 16px 28px;
+        border-top: 1px solid var(--border-default);
+        background: var(--bg-subtle);
+    }
+
+    .wizard-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px 20px;
+    }
+
+    .wizard-form-full { grid-column: 1 / -1; }
+
+    .wizard-info-box {
+        margin-top: 16px;
+        padding: 12px 14px;
+        border-radius: 6px;
+        font-size: 11px;
+    }
+
+    .wizard-info-primary {
+        background: var(--brand-primary-subtle);
+        border: 1px solid var(--brand-primary);
+        color: var(--brand-primary);
+    }
+
+    .wizard-info-warning {
+        background: var(--warning-subtle);
+        border: 1px solid var(--warning);
+        color: var(--warning);
+    }
+
+    .wizard-review-card {
+        padding: 12px 16px;
+        border: 1px solid var(--border-default);
+        border-radius: 6px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .wizard-review-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 2px;
+    }
+
+    .wizard-review-value {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .wizard-review-sub {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+
+    .wizard-seed-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border: 1px solid var(--border-default);
+        border-radius: 6px;
+        background: var(--bg-subtle);
+    }
+
+    .wizard-seed-name {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .wizard-seed-desc {
+        font-size: 10px;
+        color: var(--text-muted);
+    }
+
+    /* Provision progress */
+    .provision-progress-bar {
+        background: var(--border-default);
+        border-radius: 4px;
+        height: 6px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+
+    .provision-progress-fill {
+        height: 100%;
+        background: var(--brand-primary);
+        border-radius: 4px;
+        transition: width 0.6s ease;
+    }
+
+    .provision-done-box {
+        padding: 16px;
+        background: var(--success-subtle);
+        border: 1px solid var(--success);
+        border-radius: 8px;
+        text-align: center;
+    }
+
+    /* ── Mobile responsive ── */
+    @@media (max-width: 640px) {
+        .env-banner {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            padding: 12px;
+        }
+
+        .env-banner-sep { display: none; }
+        .admin-kpi-grid { grid-template-columns: 1fr !important; }
+        .admin-two-col { grid-template-columns: 1fr !important; }
+
+        .data-table thead { display: none; }
+        .data-table tbody tr {
+            display: block;
+            padding: 12px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .data-table td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            border: none;
+            font-size: 13px;
+        }
+        .data-table td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .platform-event-row,
+        .job-row,
+        .seed-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+        }
+
+        .admin-section-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .wizard-form-grid { grid-template-columns: 1fr; }
+    }
+</style>
+
+<!-- Environment Banner -->
+<!-- REQ-OPS-001: Platform environment indicator -->
+<div class="env-banner">
+    <div class="env-banner-dot"></div>
+    <span class="env-banner-text">PRODUCTION</span>
+    <div class="env-banner-sep"></div>
+    <span class="env-banner-info">Azure SA North (southafricanorth) · API v1.4.2 · 99.97% uptime (30d)</span>
+</div>
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="page-title" style="font-size: 1.3rem; font-weight: 700;">Platform Overview</h1>
+            <p class="page-subtitle">ZenoHR Control Plane · Last updated @DateTime.Now.ToString("yyyy-MM-dd HH:mm") SAST</p>
+        </div>
+        <div class="flex gap-3">
+            <button class="btn btn-sm"
+                    style="background: rgba(224,90,30,0.15); color: #e05a1e; border: 1px solid rgba(224,90,30,0.3); font-size: 12px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                </svg>
+                Maintenance Mode
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Row 1: KPI Cards -->
+<!-- REQ-OPS-001: Platform-level operational KPIs -->
+<div class="grid grid-cols-4 gap-4 mb-6 admin-kpi-grid">
+
+    <!-- Active Tenants -->
+    <div class="admin-kpi-card accent-blue">
+        <div class="admin-kpi-icon" style="background: var(--brand-primary-subtle); color: var(--brand-primary);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+        </div>
+        <div class="kpi-label">Active Tenants</div>
+        <div class="kpi-value" style="font-family: var(--font-mono);">@_activeTenants</div>
+        <div class="kpi-meta">
+            <span class="trend-up">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15" /></svg>
+                +6
+            </span>
+            this month
+        </div>
+    </div>
+
+    <!-- MRR -->
+    <div class="admin-kpi-card accent-orange">
+        <div class="admin-kpi-icon" style="background: rgba(224,90,30,0.1); color: #e05a1e;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" x2="12" y1="1" y2="23" />
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+        </div>
+        <div class="kpi-label">MRR (ZAR)</div>
+        <div class="kpi-value" style="font-size: 22px; letter-spacing: -1px; font-family: var(--font-mono);">R @_mrr</div>
+        <div class="kpi-meta">
+            <span class="trend-up">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15" /></svg>
+                4.2%
+            </span>
+            vs Jan 2026
+        </div>
+    </div>
+
+    <!-- System Health -->
+    <div class="admin-kpi-card accent-green">
+        <div class="health-orb health-green">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+            </svg>
+        </div>
+        <div class="kpi-label">System Health</div>
+        <div class="kpi-value" style="color: var(--success); font-size: 20px; letter-spacing: -0.5px;">Healthy</div>
+        <div class="kpi-meta">
+            <span style="color: var(--success); font-weight: 600; font-size: 11.5px;">All systems operational</span>
+        </div>
+    </div>
+
+    <!-- Active Users -->
+    <div class="admin-kpi-card accent-amber">
+        <div class="admin-kpi-icon" style="background: var(--warning-subtle); color: var(--warning);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+        </div>
+        <div class="kpi-label">Active Users (all tenants)</div>
+        <div class="kpi-value" style="font-family: var(--font-mono);">@_activeUsers</div>
+        <div class="kpi-meta">
+            <span class="trend-up">
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15" /></svg>
+                +248
+            </span>
+            week-on-week
+        </div>
+    </div>
+
+</div>
+
+<!-- Row 2: Tenant List + Platform Events -->
+<!-- REQ-OPS-001: Tenant management and platform event monitoring -->
+<div class="grid grid-cols-60-40 gap-4 mb-6 admin-two-col">
+
+    <!-- Tenant List -->
+    <div class="card" style="padding: 0; overflow: hidden;">
+        <div style="padding: var(--space-4) var(--space-5); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border-default);">
+            <div class="admin-section-title" style="margin-bottom: 0;">Tenants</div>
+            <div class="flex gap-2 items-center">
+                <select class="form-select-admin" style="width: 130px;" @bind="_selectedPlanFilter">
+                    <option value="All">All Plans</option>
+                    <option value="Professional">Professional</option>
+                    <option value="Enterprise">Enterprise</option>
+                    <option value="Starter">Starter</option>
+                </select>
+                <button class="btn btn-primary btn-sm" @onclick="OpenOnboardingWizard">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" x2="12" y1="5" y2="19" />
+                        <line x1="5" x2="19" y1="12" y2="12" />
+                    </svg>
+                    Onboard Tenant
+                </button>
+            </div>
+        </div>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Tenant</th>
+                        <th>Plan</th>
+                        <th>Employees</th>
+                        <th>Last Active</th>
+                        <th>Health</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var tenant in FilteredTenants)
+                    {
+                        <tr>
+                            <td data-label="Tenant">
+                                <div class="person-cell">
+                                    <div class="avatar avatar-sm" style="background: @tenant.AvatarBg; color: @tenant.AvatarColor;">@tenant.Initials</div>
+                                    <div>
+                                        <div class="person-name">@tenant.Name</div>
+                                        <div class="person-sub td-mono" style="font-size: 10.5px;">@tenant.TenantId</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td data-label="Plan">
+                                <span class="badge badge-nodot @GetPlanBadgeClass(tenant.Plan)" style="font-size: 10px;">@tenant.Plan</span>
+                            </td>
+                            <td data-label="Employees" class="td-mono td-muted">@tenant.EmployeeCount</td>
+                            <td data-label="Last Active" class="td-mono td-muted" style="font-size: 11.5px;">@tenant.LastActive</td>
+                            <td data-label="Health">
+                                <div class="flex items-center gap-2">
+                                    <div class="health-dot" style="background: @GetHealthColor(tenant.Health); box-shadow: 0 0 4px @GetHealthShadow(tenant.Health);"></div>
+                                    <span style="font-size: 12px; color: @GetHealthColor(tenant.Health);">@tenant.Health</span>
+                                </div>
+                            </td>
+                            <td data-label="Actions" style="text-align: right;">
+                                <div class="flex gap-2 justify-end">
+                                    <button class="btn btn-ghost btn-sm">View</button>
+                                    @if (tenant.Health == "Degraded")
+                                    {
+                                        <button class="btn btn-ghost btn-sm" style="color: var(--warning);">Investigate</button>
+                                    }
+                                    else if (tenant.Health == "Suspended")
+                                    {
+                                        <button class="btn btn-ghost btn-sm" style="color: var(--success);">Unsuspend</button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-ghost btn-sm">Configure</button>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div style="padding: 10px 16px; border-top: 1px solid var(--border-default); display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 12px; color: var(--text-muted);">Showing @FilteredTenants.Count of @_activeTenants tenants</span>
+            <div class="flex gap-2">
+                <button class="btn btn-ghost btn-sm" disabled>&#8592; Prev</button>
+                <button class="btn btn-secondary btn-sm" style="background: var(--brand-primary-subtle); border-color: var(--brand-primary); color: var(--brand-primary);">1</button>
+                <button class="btn btn-ghost btn-sm">2</button>
+                <button class="btn btn-ghost btn-sm">Next &#8594;</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Platform Events -->
+    <div class="card">
+        <div class="admin-section-header">
+            <span class="admin-section-title">Recent Platform Events</span>
+            <select class="form-select-admin" style="width: 110px;" @bind="_selectedEventFilter">
+                <option value="All">All Events</option>
+                <option value="Errors">Errors</option>
+                <option value="Provisioning">Provisioning</option>
+                <option value="System">System</option>
+            </select>
+        </div>
+        <div>
+            @foreach (var evt in _platformEvents)
+            {
+                <div class="platform-event-row">
+                    <div class="platform-event-icon" style="background: @evt.IconBg; color: @evt.IconColor;">
+                        @((MarkupString)evt.IconSvg)
+                    </div>
+                    <div class="platform-event-info">
+                        <div class="platform-event-title">@evt.Title</div>
+                        <div class="platform-event-meta">@evt.Meta</div>
+                    </div>
+                    <span class="badge badge-nodot @evt.BadgeClass" style="font-size: 10px;">@evt.BadgeText</span>
+                </div>
+            }
+        </div>
+    </div>
+
+</div>
+
+<!-- Row 3: Seed Data + Background Jobs -->
+<!-- REQ-OPS-001: Seed data version management and background job monitoring -->
+<div class="grid grid-cols-60-40 gap-4 admin-two-col">
+
+    <!-- Seed Data Versions -->
+    <div class="card">
+        <div class="admin-section-header">
+            <span class="admin-section-title">Seed Data Versions</span>
+            <span class="badge badge-warning badge-nodot" style="font-size: 11px;">2 updates available</span>
+        </div>
+        <div>
+            @foreach (var seed in _seedDataVersions)
+            {
+                <div class="seed-row">
+                    <div class="seed-icon-box" style="background: @seed.IconBg; color: @seed.IconColor;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                            <polyline points="14 2 14 8 20 8" />
+                        </svg>
+                    </div>
+                    <div class="seed-info">
+                        <div class="seed-name">@seed.FileName</div>
+                        <div class="seed-version">@seed.VersionInfo</div>
+                    </div>
+                    @if (seed.HasUpdate)
+                    {
+                        <span class="badge badge-warning badge-nodot" style="font-size: 10px;">Update Available</span>
+                        <button class="btn btn-accent btn-sm" style="margin-left: 8px;">Update</button>
+                    }
+                    else
+                    {
+                        <span class="badge badge-success badge-nodot" style="font-size: 10px;">Current</span>
+                        <button class="btn btn-ghost btn-sm" style="margin-left: 8px;">Update</button>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Background Jobs -->
+    <div class="card">
+        <div class="admin-section-header">
+            <span class="admin-section-title">Background Jobs</span>
+            <button class="btn btn-secondary btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="1 4 1 10 7 10" />
+                    <path d="M3.51 15a9 9 0 1 0 .49-3.51" />
+                </svg>
+                Refresh
+            </button>
+        </div>
+        <div>
+            @foreach (var job in _backgroundJobs)
+            {
+                <div class="job-row">
+                    <div class="job-dot @GetJobDotClass(job.Status)"></div>
+                    <div class="job-info">
+                        <div class="job-name">@job.Name</div>
+                        <div class="job-timing">@job.Timing</div>
+                    </div>
+                    <span class="badge badge-nodot @GetJobStatusClass(job.Status)" style="font-size: 10px;">@job.Status</span>
+                </div>
+            }
+        </div>
+    </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     Tenant Onboarding Wizard — 5-Step Modal
+     REQ-OPS-001, CTL-POPIA-003
+     ═══════════════════════════════════════════════════════════════════ -->
+@if (_showOnboardingWizard)
+{
+    <div class="wizard-overlay" @onclick="CloseOnboardingWizard">
+        <div class="wizard-modal" @onclick:stopPropagation>
+
+            <!-- Wizard Header -->
+            <div class="wizard-header">
+                <div>
+                    <div style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary);">Onboard New Tenant</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">5-step provisioning wizard</div>
+                </div>
+                <button class="btn btn-ghost btn-sm" @onclick="CloseOnboardingWizard" style="padding: 4px;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Step Indicators -->
+            <div class="wizard-steps-bar">
+                @for (int i = 1; i <= 5; i++)
+                {
+                    var step = i;
+                    @if (i > 1)
+                    {
+                        <div class="wizard-connector"><div class="wizard-connector-line"></div></div>
+                    }
+                    <div class="@(step == _wizardStep ? "wizard-step-active" : "wizard-step-inactive")"
+                         style="flex: 1; text-align: center; cursor: pointer;" @onclick="() => SetWizardStep(step)">
+                        <div class="wizard-step-num">@step</div>
+                        <div class="wizard-step-label">@GetStepLabel(step)</div>
+                    </div>
+                }
+            </div>
+
+            <!-- Step Content -->
+            <div class="wizard-content">
+
+                @if (_wizardStep == 1)
+                {
+                    <!-- Step 1: Company Details -->
+                    <div style="font-size: .95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Company Details</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 20px;">Enter the company's legal and payroll configuration.</div>
+                    <div class="wizard-form-grid">
+                        <div>
+                            <label class="form-label">Company Legal Name *</label>
+                            <input class="form-input" type="text" placeholder="Zenowethu (Pty) Ltd" @bind="_wizardCompanyName" />
+                        </div>
+                        <div>
+                            <label class="form-label">Registration Number *</label>
+                            <input class="form-input" type="text" placeholder="2024/123456/07" @bind="_wizardRegNumber" />
+                        </div>
+                        <div>
+                            <label class="form-label">Tax Reference Number *</label>
+                            <input class="form-input" type="text" placeholder="9 123 456 789" @bind="_wizardTaxRef" />
+                        </div>
+                        <div>
+                            <label class="form-label">UIF Reference Number *</label>
+                            <input class="form-input" type="text" placeholder="U0987654321" @bind="_wizardUifRef" />
+                        </div>
+                        <div>
+                            <label class="form-label">Pay Frequency *</label>
+                            <select class="form-select-admin" @bind="_wizardPayFrequency">
+                                <option>Monthly</option>
+                                <option>Weekly</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Pay Day (day of month / week)</label>
+                            <input class="form-input" type="text" placeholder="28 (monthly) or Friday (weekly)" @bind="_wizardPayDay" />
+                        </div>
+                        <div>
+                            <label class="form-label">Financial Year-End Month *</label>
+                            <select class="form-select-admin" @bind="_wizardYearEnd">
+                                <option>February (SARS default)</option>
+                                <option>March</option>
+                                <option>June</option>
+                                <option>December</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Trading Name (optional)</label>
+                            <input class="form-input" type="text" placeholder="Acme Tech" @bind="_wizardTradingName" />
+                        </div>
+                    </div>
+                }
+                else if (_wizardStep == 2)
+                {
+                    <!-- Step 2: SARS Configuration -->
+                    <div style="font-size: .95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">SARS Configuration</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 20px;">Configure SARS eFiling credentials. Stored in Azure Key Vault — never in Firestore.</div>
+                    <div class="wizard-form-grid">
+                        <div>
+                            <label class="form-label">PAYE Employer Reference *</label>
+                            <input class="form-input" type="text" placeholder="7234567890" @bind="_wizardPayeRef" />
+                        </div>
+                        <div>
+                            <label class="form-label">SDL Number</label>
+                            <input class="form-input" type="text" placeholder="L0123456789 (leave blank if SDL exempt)" @bind="_wizardSdlNumber" />
+                        </div>
+                        <div class="wizard-form-full">
+                            <label class="form-label">ISV Environment *</label>
+                            <div style="display: flex; gap: 12px; margin-top: 4px;">
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="radio" name="isvEnv" checked="@(_wizardIsvEnv == "Test")" @onchange='() => _wizardIsvEnv = "Test"' style="accent-color: var(--brand-primary);" />
+                                    <span style="font-size: 12px; font-weight: 500;">Test (eFiling sandbox)</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                                    <input type="radio" name="isvEnv" checked="@(_wizardIsvEnv == "Production")" @onchange='() => _wizardIsvEnv = "Production"' style="accent-color: var(--brand-primary);" />
+                                    <span style="font-size: 12px; font-weight: 500;">Production</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="wizard-form-full">
+                            <label class="form-label">eFiling API Endpoint</label>
+                            <input class="form-input" type="text" value="https://test.efiling.gov.za/api/v1"
+                                   style="font-family: var(--font-mono); font-size: 12px;" readonly />
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">Auto-populated for test environment. Update when ISV accreditation (IBIR-006) is approved.</div>
+                        </div>
+                    </div>
+                    <div class="wizard-info-box wizard-info-warning">
+                        <strong>Phase 1 note:</strong> Direct SARS API submission is Phase 2 (post-ISV accreditation). Phase 1 generates EMP201 CSV for manual upload. This config is saved for Phase 2 readiness.
+                    </div>
+                }
+                else if (_wizardStep == 3)
+                {
+                    <!-- Step 3: First Admin Account -->
+                    <div style="font-size: .95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">First Admin Account</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 16px;">The HR Manager is the primary day-to-day operator of ZenoHR. Create their account first — they will configure the system and add other users including the Director from Settings > Users.</div>
+                    <div class="wizard-form-grid">
+                        <div>
+                            <label class="form-label">Role *</label>
+                            <select class="form-select-admin" @bind="_wizardAdminRole">
+                                <option value="hrmanager">HR Manager (Recommended — primary operator)</option>
+                                <option value="director">Director (company owner / full access)</option>
+                            </select>
+                        </div>
+                        <div></div>
+                        <div>
+                            <label class="form-label">First Name *</label>
+                            <input class="form-input" type="text" placeholder="Sarah" @bind="_wizardAdminFirstName" />
+                        </div>
+                        <div>
+                            <label class="form-label">Last Name *</label>
+                            <input class="form-input" type="text" placeholder="Nkosi" @bind="_wizardAdminLastName" />
+                        </div>
+                        <div class="wizard-form-full">
+                            <label class="form-label">Work Email *</label>
+                            <input class="form-input" type="email" placeholder="sarah.nkosi@zenowethu.co.za" @bind="_wizardAdminEmail" />
+                            <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">Must be a company email address. Firebase Auth account created here. Welcome email sent here.</div>
+                        </div>
+                        <div class="wizard-form-full">
+                            <label class="form-label">Password Policy *</label>
+                            <select class="form-select-admin" @bind="_wizardPasswordPolicy">
+                                <option value="force_change">Force password change on first login (Recommended)</option>
+                                <option value="temp_password">Generate temporary password (auto-expire 24h)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="wizard-info-box wizard-info-primary">
+                        The HR Manager and Director have identical system access. The Director retains full authority over all functions. Additional accounts (Director, Managers, Employees) are added from Settings > Users after first login.
+                    </div>
+                }
+                else if (_wizardStep == 4)
+                {
+                    <!-- Step 4: Statutory Seed Data -->
+                    <div style="font-size: .95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Statutory Seed Data</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 20px;">These statutory rule sets will be seeded into the new tenant's Firestore collections. All pre-selected — do not modify unless explicitly required.</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px;">
+                        @foreach (var sd in _wizardSeedData)
+                        {
+                            <div class="wizard-seed-item">
+                                <input type="checkbox" checked disabled style="width: 15px; height: 15px; accent-color: var(--brand-primary);" />
+                                <div>
+                                    <div class="wizard-seed-name">@sd.Name</div>
+                                    <div class="wizard-seed-desc">@sd.Description</div>
+                                </div>
+                                <span class="badge badge-success badge-nodot" style="margin-left: auto; font-size: 10px;">Required</span>
+                            </div>
+                        }
+                    </div>
+                    <label style="display: flex; align-items: center; gap: 8px; padding: 12px 14px; background: var(--success-subtle); border: 1px solid var(--success); border-radius: 6px; cursor: pointer;">
+                        <input type="checkbox" @bind="_wizardSeedConfirmed" style="width: 16px; height: 16px; accent-color: var(--success); flex-shrink: 0;" />
+                        <span style="font-size: 12px; color: var(--success); font-weight: 600;">I confirm — seed all statutory rule sets listed above into the new tenant.</span>
+                    </label>
+                }
+                else if (_wizardStep == 5)
+                {
+                    <!-- Step 5: Review & Provision -->
+                    <div style="font-size: .95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Review &amp; Provision</div>
+                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 20px;">Review the configuration before provisioning. This action creates the tenant and cannot be undone.</div>
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                        <div class="wizard-review-card">
+                            <div>
+                                <div class="wizard-review-label">Company</div>
+                                <div class="wizard-review-value">@(string.IsNullOrEmpty(_wizardCompanyName) ? "Zenowethu (Pty) Ltd" : _wizardCompanyName)</div>
+                                <div class="wizard-review-sub">@_wizardPayFrequency payroll · @_wizardYearEnd year-end · UIF: @(string.IsNullOrEmpty(_wizardUifRef) ? "U0987654321" : _wizardUifRef)</div>
+                            </div>
+                            <button class="btn btn-ghost btn-sm" @onclick="() => SetWizardStep(1)">Edit</button>
+                        </div>
+                        <div class="wizard-review-card">
+                            <div>
+                                <div class="wizard-review-label">SARS</div>
+                                <div class="wizard-review-value">PAYE: @(string.IsNullOrEmpty(_wizardPayeRef) ? "7234567890" : _wizardPayeRef)</div>
+                                <div class="wizard-review-sub">ISV Environment: @_wizardIsvEnv (Phase 1 — CSV generation)</div>
+                            </div>
+                            <button class="btn btn-ghost btn-sm" @onclick="() => SetWizardStep(2)">Edit</button>
+                        </div>
+                        <div class="wizard-review-card">
+                            <div>
+                                <div class="wizard-review-label">Admin Account (@(_wizardAdminRole == "director" ? "Director" : "HR Manager"))</div>
+                                <div class="wizard-review-value">@(string.IsNullOrEmpty(_wizardAdminFirstName) ? "Sarah" : _wizardAdminFirstName) @(string.IsNullOrEmpty(_wizardAdminLastName) ? "Nkosi" : _wizardAdminLastName)</div>
+                                <div class="wizard-review-sub">@(string.IsNullOrEmpty(_wizardAdminEmail) ? "sarah.nkosi@zenowethu.co.za" : _wizardAdminEmail) · @(_wizardPasswordPolicy == "force_change" ? "Force password change on first login" : "Generate temporary password")</div>
+                            </div>
+                            <button class="btn btn-ghost btn-sm" @onclick="() => SetWizardStep(3)">Edit</button>
+                        </div>
+                        <div class="wizard-review-card">
+                            <div>
+                                <div class="wizard-review-label">Seed Data</div>
+                                <div class="wizard-review-value">5 statutory rule sets</div>
+                                <div class="wizard-review-sub">PAYE 2025/2026 · UIF/SDL · ETI · BCEA · Public Holidays</div>
+                            </div>
+                            <button class="btn btn-ghost btn-sm" @onclick="() => SetWizardStep(4)">Edit</button>
+                        </div>
+                    </div>
+
+                    @if (!_provisioningStarted && !_provisioningDone)
+                    {
+                        <button class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;" @onclick="StartProvisioning">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                                <polyline points="9 22 9 12 15 12 15 22" />
+                            </svg>
+                            &nbsp; Provision Tenant
+                        </button>
+                    }
+                    else if (_provisioningStarted && !_provisioningDone)
+                    {
+                        <div style="margin-bottom: 10px; font-size: 12px; font-weight: 600; color: var(--text-primary);">Provisioning...</div>
+                        <div class="provision-progress-bar">
+                            <div class="provision-progress-fill" style="width: @(_provisionPercent)%;"></div>
+                        </div>
+                        <div style="font-size: 11px; color: var(--text-muted);">@_provisionStatus</div>
+                    }
+                    else if (_provisioningDone)
+                    {
+                        <div class="provision-done-box">
+                            <div style="font-size: 14px; font-weight: 700; color: var(--success); margin-bottom: 4px;">Tenant Provisioned</div>
+                            <div style="font-size: 11px; color: var(--success);">Welcome email sent to @(string.IsNullOrEmpty(_wizardAdminEmail) ? "sarah.nkosi@zenowethu.co.za" : _wizardAdminEmail)</div>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">@(string.IsNullOrEmpty(_wizardCompanyName) ? "Zenowethu" : _wizardCompanyName) now appears in the tenant list with status: Active</div>
+                            <button class="btn btn-secondary btn-sm" style="margin-top: 12px;" @onclick="CloseOnboardingWizard">Close</button>
+                        </div>
+                    }
+                }
+            </div>
+
+            <!-- Wizard Footer Nav -->
+            <div class="wizard-footer">
+                @if (_wizardStep > 1)
+                {
+                    <button class="btn btn-ghost btn-sm" @onclick="WizardBack">&#8592; Back</button>
+                }
+                else
+                {
+                    <div></div>
+                }
+                <div style="flex: 1;"></div>
+                @if (_wizardStep < 5)
+                {
+                    <button class="btn btn-primary btn-sm" @onclick="WizardNext">Next &#8594;</button>
+                }
+            </div>
+
+        </div>
+    </div>
+}
+
+@code {
+    // REQ-OPS-001: Platform KPI sample data
+    private int _activeTenants = 148;
+    private string _mrr = "312,400";
+    private string _activeUsers = "18,342";
+
+    // Filters
+    private string _selectedPlanFilter = "All";
+    private string _selectedEventFilter = "All";
+
+    // Onboarding wizard state
+    private bool _showOnboardingWizard;
+    private int _wizardStep = 1;
+    private bool _provisioningStarted;
+    private bool _provisioningDone;
+    private int _provisionPercent;
+    private string _provisionStatus = "";
+
+    // Wizard form fields — REQ-OPS-001
+    private string _wizardCompanyName = "";
+    private string _wizardRegNumber = "";
+    private string _wizardTaxRef = "";
+    private string _wizardUifRef = "";
+    private string _wizardPayFrequency = "Monthly";
+    private string _wizardPayDay = "";
+    private string _wizardYearEnd = "February (SARS default)";
+    private string _wizardTradingName = "";
+    private string _wizardPayeRef = "";
+    private string _wizardSdlNumber = "";
+    private string _wizardIsvEnv = "Test";
+    private string _wizardAdminRole = "hrmanager";
+    private string _wizardAdminFirstName = "";
+    private string _wizardAdminLastName = "";
+    private string _wizardAdminEmail = "";
+    private string _wizardPasswordPolicy = "force_change";
+    private bool _wizardSeedConfirmed;
+
+    // REQ-OPS-001: Sample tenant data
+    private List<TenantRow> _tenants = new()
+    {
+        new("Acme Manufacturing", "T-000148", "Professional", 247, "Today 09:14", "OK", "AC", "linear-gradient(135deg,#1d4777,#2a6baa)", "white"),
+        new("Sable Engineering", "T-000147", "Enterprise", 834, "Today 08:52", "OK", "SB", "#f0f4ff", "#3730a3"),
+        new("Kruger Retail Group", "T-000139", "Professional", 412, "Yesterday", "Degraded", "KR", "var(--warning-subtle)", "var(--warning)"),
+        new("Nova Staffing Solutions", "T-000136", "Starter", 87, "2 days ago", "OK", "NV", "var(--brand-primary-subtle)", "var(--brand-primary)"),
+        new("Phoenix Logistics", "T-000121", "Starter", 43, "14 days ago", "Suspended", "PH", "var(--danger-subtle)", "var(--danger)")
+    };
+
+    // REQ-OPS-001: Platform event sample data
+    private List<PlatformEvent> _platformEvents = new()
+    {
+        new("Tenant T-000148 provisioned", "2026-02-20  08:00  ·  Acme Manufacturing",
+            "var(--success-subtle)", "var(--success)",
+            "<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/></svg>",
+            "badge-success", "OK"),
+        new("T-000139 — Firestore latency spike (380ms)", "2026-02-19  23:14  ·  Auto-resolved",
+            "var(--warning-subtle)", "var(--warning)",
+            "<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M22 12h-4l-3 9L9 3l-3 9H2'/></svg>",
+            "badge-warning", "Warn"),
+        new("EMP201 batch job completed — 142 tenants", "2026-02-19  22:00  ·  0 failures",
+            "var(--brand-primary-subtle)", "var(--brand-primary)",
+            "<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><polyline points='12 6 12 12 16 14'/></svg>",
+            "badge-primary", "System"),
+        new("T-000121 payment failed — subscription suspended", "2026-02-06  07:00  ·  Phoenix Logistics",
+            "var(--danger-subtle)", "var(--danger)",
+            "<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z'/><path d='M12 9v4'/><path d='M12 17h.01'/></svg>",
+            "badge-danger", "Error"),
+        new("Seed data updated — PAYE 2025-2026 v1.1", "2026-02-05  14:30  ·  Applied to all tenants",
+            "var(--success-subtle)", "var(--success)",
+            "<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/><polyline points='14 2 14 8 20 8'/></svg>",
+            "badge-success", "Update"),
+        new("Tenant T-000147 provisioned", "2026-02-03  09:12  ·  Sable Engineering",
+            "var(--brand-primary-subtle)", "var(--brand-primary)",
+            "<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/></svg>",
+            "badge-success", "OK")
+    };
+
+    // REQ-OPS-001: Seed data version sample data
+    private List<SeedDataVersion> _seedDataVersions = new()
+    {
+        new("sars-paye-2025-2026.json", "v1.1  ·  Updated 2026-02-05  ·  Applied to 148 tenants", false, "var(--brand-primary-subtle)", "var(--brand-primary)"),
+        new("sars-eti.json", "v1.0  ·  Updated 2025-11-01  ·  v1.1 available", true, "var(--warning-subtle)", "var(--warning)"),
+        new("sars-uif-sdl.json", "v1.2  ·  Updated 2026-01-15  ·  Applied to all tenants", false, "var(--success-subtle)", "var(--success)"),
+        new("bcea-leave.json", "v1.0  ·  Updated 2025-03-01  ·  v1.1 available", true, "var(--warning-subtle)", "var(--warning)"),
+        new("bcea-working-time.json", "v1.1  ·  Updated 2026-01-10  ·  Applied to all tenants", false, "var(--brand-primary-subtle)", "var(--brand-primary)"),
+        new("public-holidays-2026.json", "v1.0  ·  Updated 2025-11-20  ·  Applied to all tenants", false, "var(--info-subtle)", "var(--info)")
+    };
+
+    // REQ-OPS-001: Background job sample data
+    private List<BackgroundJob> _backgroundJobs = new()
+    {
+        new("EMP201 Batch Generation", "Last: 2026-02-19 22:00  ·  Next: 2026-03-01 22:00", "Success"),
+        new("Leave Accrual Engine", "Last: 2026-02-20 00:00  ·  Daily midnight", "Success"),
+        new("Payslip PDF Generation", "Started: 2026-02-20 09:00  ·  142 / 247 complete", "Running"),
+        new("SARS e-filing Reminder", "Last: 2026-02-18 08:00  ·  Exit code 1", "Failed"),
+        new("Audit Hash Verification", "Last: 2026-02-19 03:00  ·  Next: 2026-02-21 03:00", "Scheduled"),
+        new("Risk Score Refresh", "Last: 2026-02-20 06:00  ·  Daily 06:00", "Success"),
+        new("Subscription Renewal Check", "Last: 2026-02-01 00:01  ·  Next: 2026-03-01 00:01", "Scheduled")
+    };
+
+    // REQ-OPS-001: Wizard seed data items
+    private List<WizardSeedItem> _wizardSeedData = new()
+    {
+        new("PAYE Tax Tables 2025/2026", "7 brackets, rebates (primary/secondary/tertiary), annual threshold · sars-paye-2025-2026.json"),
+        new("UIF / SDL Rates 2025/2026", "1% UIF each side, R177.12 cap · 1% SDL · sars-uif-sdl.json"),
+        new("ETI Incentive Rules 2025/2026", "Age 18-29, 24-month tier, R7,500 max remuneration · sars-eti.json"),
+        new("BCEA Working Time + Leave Entitlements", "5 leave types, BCEA S.9-S.27 rules · bcea-leave.json + bcea-working-time.json"),
+        new("Public Holidays 2026", "South African statutory public holidays · sa-public-holidays.json")
+    };
+
+    // REQ-OPS-001: Filtered tenants based on plan filter
+    private List<TenantRow> FilteredTenants =>
+        _selectedPlanFilter == "All"
+            ? _tenants
+            : _tenants.Where(t => t.Plan == _selectedPlanFilter).ToList();
+
+    // REQ-OPS-001: Wizard navigation
+    private void OpenOnboardingWizard()
+    {
+        _showOnboardingWizard = true;
+        _wizardStep = 1;
+        _provisioningStarted = false;
+        _provisioningDone = false;
+        _provisionPercent = 0;
+    }
+
+    private void CloseOnboardingWizard()
+    {
+        _showOnboardingWizard = false;
+    }
+
+    private void SetWizardStep(int step)
+    {
+        _wizardStep = step;
+    }
+
+    private void WizardNext()
+    {
+        if (_wizardStep < 5) _wizardStep++;
+    }
+
+    private void WizardBack()
+    {
+        if (_wizardStep > 1) _wizardStep--;
+    }
+
+    // REQ-OPS-001: Simulated provisioning flow (UI only — no backend wiring)
+    private async Task StartProvisioning()
+    {
+        _provisioningStarted = true;
+        var steps = new (int Pct, string Msg)[]
+        {
+            (20, "Creating company_settings document..."),
+            (40, "Seeding 5 statutory rule sets..."),
+            (60, "Creating user_role_assignments..."),
+            (80, "Configuring Firestore security rules..."),
+            (95, "Sending welcome email..."),
+            (100, "Done!")
+        };
+
+        foreach (var (pct, msg) in steps)
+        {
+            _provisionPercent = pct;
+            _provisionStatus = msg;
+            StateHasChanged();
+            await Task.Delay(700);
+        }
+
+        _provisioningDone = true;
+        StateHasChanged();
+    }
+
+    // REQ-OPS-001: Helper methods
+    private static string GetStepLabel(int step) => step switch
+    {
+        1 => "Company",
+        2 => "SARS Config",
+        3 => "Director",
+        4 => "Seed Data",
+        5 => "Review",
+        _ => ""
+    };
+
+    private static string GetPlanBadgeClass(string plan) => plan switch
+    {
+        "Free" => "plan-free",
+        "Starter" => "plan-starter",
+        "Professional" => "plan-professional",
+        "Enterprise" => "plan-enterprise",
+        _ => "plan-free"
+    };
+
+    private static string GetHealthColor(string health) => health switch
+    {
+        "OK" => "var(--success)",
+        "Degraded" => "var(--warning)",
+        "Suspended" => "var(--danger)",
+        _ => "var(--text-muted)"
+    };
+
+    private static string GetHealthShadow(string health) => health switch
+    {
+        "OK" => "rgba(22,163,74,0.5)",
+        "Degraded" => "rgba(217,119,6,0.5)",
+        "Suspended" => "rgba(220,38,38,0.5)",
+        _ => "transparent"
+    };
+
+    private static string GetJobDotClass(string status) => status switch
+    {
+        "Success" => "job-dot-success",
+        "Running" => "job-dot-running",
+        "Failed" => "job-dot-failed",
+        "Scheduled" => "job-dot-scheduled",
+        _ => "job-dot-scheduled"
+    };
+
+    private static string GetJobStatusClass(string status) => status switch
+    {
+        "Success" => "job-status-success",
+        "Running" => "job-status-running",
+        "Failed" => "job-status-failed",
+        "Scheduled" => "job-status-scheduled",
+        _ => "job-status-scheduled"
+    };
+
+    // REQ-OPS-001: Data model records for sample data
+    private sealed record TenantRow(string Name, string TenantId, string Plan, int EmployeeCount, string LastActive, string Health, string Initials, string AvatarBg, string AvatarColor);
+    private sealed record PlatformEvent(string Title, string Meta, string IconBg, string IconColor, string IconSvg, string BadgeClass, string BadgeText);
+    private sealed record SeedDataVersion(string FileName, string VersionInfo, bool HasUpdate, string IconBg, string IconColor);
+    private sealed record BackgroundJob(string Name, string Timing, string Status);
+    private sealed record WizardSeedItem(string Name, string Description);
+}

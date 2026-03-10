@@ -1,21 +1,867 @@
-@* REQ-SEC-002, PRD-15 S14: Clock In / Out *@
-@* Employee: self-service clock in/out. Manager: team attendance status + flag absences. *@
-@* Director/HRManager: read all clock entries. SaasAdmin: None. *@
+@* REQ-HR-001, REQ-SEC-002, PRD-15 S14: Clock In / Out *@
+@* Employee: self-service clock in/out + weekly log. Manager: team attendance status + flag absences. *@
+@* Director/HRManager: full org view (all departments). SaasAdmin: None. *@
 @page "/clock-in"
 @attribute [Authorize(Roles = "Director,HRManager,Manager,Employee")]
 @using Microsoft.AspNetCore.Authorization
+@implements IDisposable
 
 <PageTitle>Clock In / Out — ZenoHR</PageTitle>
-<h1>Clock In / Out</h1>
 
-<AuthorizeView Roles="Employee">
-    <p>Clock in or out for today's shift.</p>
+<style>
+    /* ── Clock action button ─────────────────────────────── */
+    .clock-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        width: 100%;
+        max-width: 320px;
+        margin: 0 auto;
+        padding: 20px 32px;
+        border-radius: 16px;
+        font-size: 1.25rem;
+        font-weight: 800;
+        letter-spacing: -.3px;
+        border: none;
+        cursor: pointer;
+        transition: transform .12s, box-shadow .12s;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    }
+    .clock-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    }
+    .clock-btn:active { transform: translateY(0); }
+    .clock-btn.clock-in-btn { background: var(--brand-primary); color: #fff; }
+    .clock-btn.clock-out-btn { background: var(--brand-accent); color: #fff; }
+
+    /* ── Timer display ───────────────────────────────────── */
+    .timer-display {
+        font-family: var(--font-mono);
+        font-size: 3rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        letter-spacing: -.5px;
+        line-height: 1;
+        text-align: center;
+    }
+    .timer-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        text-align: center;
+        margin-top: 6px;
+    }
+
+    /* ── Status chip ─────────────────────────────────────── */
+    .ci-status-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 12px;
+        border-radius: 99px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .ci-status-chip .ci-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+    }
+    .ci-status-chip.ci-clocked-in {
+        background: var(--success-subtle);
+        color: var(--success);
+    }
+    .ci-status-chip.ci-clocked-in .ci-dot {
+        background: var(--success);
+        animation: ci-pulse 1.5s infinite;
+    }
+    .ci-status-chip.ci-clocked-out {
+        background: var(--surface-hover);
+        color: var(--text-muted);
+    }
+    .ci-status-chip.ci-clocked-out .ci-dot { background: var(--text-muted); }
+    .ci-status-chip.ci-not-in {
+        background: rgba(220, 38, 38, 0.08);
+        color: #dc2626;
+    }
+    .ci-status-chip.ci-not-in .ci-dot { background: #dc2626; }
+    .ci-status-chip.ci-on-leave {
+        background: var(--warning-subtle);
+        color: var(--warning);
+    }
+    .ci-status-chip.ci-on-leave .ci-dot { background: var(--warning); }
+
+    @@keyframes ci-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .4; }
+    }
+
+    /* ── Week log table ──────────────────────────────────── */
+    .week-log { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .week-log th {
+        text-align: left;
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: var(--text-muted);
+        font-weight: 600;
+        padding: 0 0 10px 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+    .week-log td {
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-subtle);
+        vertical-align: middle;
+    }
+    .week-log tr:last-child td { border-bottom: none; }
+    .week-log .day-name { font-weight: 600; color: var(--text-primary); }
+    .week-log .day-date { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+    .week-log .hours-mono {
+        font-family: var(--font-mono);
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    .week-log .today-row { background: var(--brand-primary-subtle); border-radius: 6px; }
+    .week-log .today-row td { color: var(--brand-primary); }
+    .week-log .today-row .day-date { color: var(--brand-primary); opacity: .7; }
+
+    /* ── Day status badges ───────────────────────────────── */
+    .day-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 99px;
+    }
+    .day-badge.ok { background: var(--success-subtle); color: var(--success); }
+    .day-badge.active { background: var(--brand-primary-subtle); color: var(--brand-primary); }
+    .day-badge.missing { background: rgba(220, 38, 38, 0.08); color: #dc2626; }
+    .day-badge.leave { background: var(--warning-subtle); color: var(--warning); }
+    .day-badge.future { background: var(--surface-hover); color: var(--text-muted); }
+
+    /* ── Team status table (Manager view) ───────────────── */
+    .team-status-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .team-status-table th {
+        text-align: left;
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: var(--text-muted);
+        font-weight: 600;
+        padding: 0 0 10px 0;
+        border-bottom: 2px solid var(--border-subtle);
+    }
+    .team-status-table td {
+        padding: 11px 0;
+        border-bottom: 1px solid var(--border-subtle);
+        vertical-align: middle;
+    }
+    .team-status-table tr:last-child td { border-bottom: none; }
+
+    /* ── Emp avatar mini ─────────────────────────────────── */
+    .emp-avatar-sm {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: var(--brand-primary-subtle);
+        color: var(--brand-primary);
+        font-size: 12px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    /* ── View toggle tabs ────────────────────────────────── */
+    .ci-view-toggle {
+        display: flex;
+        gap: 4px;
+        background: var(--surface-hover);
+        padding: 3px;
+        border-radius: var(--radius-md);
+        margin-bottom: 20px;
+        width: fit-content;
+    }
+    .ci-view-toggle button {
+        padding: 6px 16px;
+        border: none;
+        border-radius: var(--radius-md);
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+        background: transparent;
+        color: var(--text-secondary);
+        transition: all .15s;
+    }
+    .ci-view-toggle button.active {
+        background: var(--surface);
+        color: var(--brand-primary);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    /* ── Flag modal ──────────────────────────────────────── */
+    .ci-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 200;
+        align-items: center;
+        justify-content: center;
+    }
+    .ci-modal-overlay.show { display: flex; }
+    .ci-modal-box {
+        background: var(--surface);
+        border-radius: var(--radius-lg);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+        padding: 28px;
+        width: 100%;
+        max-width: 400px;
+        margin: 16px;
+    }
+    .ci-modal-title {
+        font-size: 1rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        margin-bottom: 4px;
+    }
+    .ci-modal-sub {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-bottom: 20px;
+    }
+    .ci-form-label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-bottom: 5px;
+        display: block;
+    }
+    .ci-form-select,
+    .ci-form-textarea {
+        width: 100%;
+        padding: 9px 12px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        font-size: 13px;
+        font-family: var(--font-sans);
+        background: var(--input-bg, var(--surface));
+        color: var(--text-primary);
+        box-sizing: border-box;
+        outline: none;
+        transition: border-color .15s;
+    }
+    .ci-form-select:focus,
+    .ci-form-textarea:focus { border-color: var(--brand-primary); }
+    .ci-form-textarea { resize: vertical; min-height: 80px; }
+
+    /* ── Mobile responsive ──────────────────────────────── */
+    @@media (max-width: 768px) {
+        .ci-grid-2col { grid-template-columns: 1fr !important; }
+        .timer-display { font-size: 2rem; }
+    }
+    @@media (max-width: 640px) {
+        .clock-btn { max-width: 100%; padding: 18px 24px; font-size: 1.1rem; min-height: 56px; }
+        .timer-display { font-size: 1.8rem; }
+        .ci-current-time { font-size: 1.6rem !important; }
+        .week-log thead { display: none; }
+        .week-log tbody { display: flex; flex-direction: column; gap: 10px; }
+        .week-log tbody tr {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 12px;
+            padding: 12px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-default);
+            border-radius: var(--radius-lg);
+            border-bottom: none;
+        }
+        .week-log tbody tr.today-row { border-color: var(--brand-primary); background: var(--brand-primary-subtle); }
+        .week-log td { padding: 2px 0; border-bottom: none; }
+        .week-log td:first-child { grid-column: 1 / -1; }
+        .week-log td:last-child { grid-column: 1 / -1; }
+        .ci-kpi-pills { flex-wrap: wrap !important; }
+        .team-status-table { font-size: 12px; }
+        .team-status-table th:nth-child(4),
+        .team-status-table td:nth-child(4) { display: none; }
+        .team-status-table th:nth-child(5),
+        .team-status-table td:nth-child(5) { display: none; }
+        .emp-avatar-sm { width: 28px; height: 28px; font-size: 10px; }
+        .ci-page-title { font-size: 1.2rem !important; }
+    }
+</style>
+
+@* ── View Toggle (Manager/Director/HRManager only) ───────────────── *@
+<AuthorizeView Roles="Director,HRManager,Manager">
+    <Authorized>
+        <div class="ci-view-toggle">
+            <button class="@(_activeTab == "my-clock" ? "active" : "")" @onclick='() => SetTab("my-clock")'>
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+                My Clock
+            </button>
+            <button class="@(_activeTab == "team" ? "active" : "")" @onclick='() => SetTab("team")'>
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px;">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                Team Status
+            </button>
+        </div>
+    </Authorized>
 </AuthorizeView>
 
-<AuthorizeView Roles="Manager">
-    <p>Team attendance status — today's clock-in state per team member. Flag suspected absences.</p>
+@* ══════════════════════════════════════════════════════════════════ *@
+@* EMPLOYEE VIEW — My Clock                                          *@
+@* ══════════════════════════════════════════════════════════════════ *@
+@if (_activeTab == "my-clock")
+{
+    <!-- REQ-HR-001: Employee self-service clock in/out -->
+    <div style="margin-bottom:24px;">
+        <h1 class="ci-page-title" style="font-size:1.5rem;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;margin:0 0 4px;">
+            Clock In / Out</h1>
+        <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">Week of @_weekStartDate.ToString("d MMM yyyy") · @_employeeName</p>
+    </div>
+
+    <div class="grid ci-grid-2col" style="grid-template-columns:1fr 1.4fr;gap:24px;align-items:start;">
+
+        <!-- Left: Clock action card -->
+        <div>
+            <div class="card" style="text-align:center;padding:36px 24px;">
+                <!-- Current time -->
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">
+                    Current Time</div>
+                <div class="ci-current-time" style="font-family:var(--font-mono);font-size:2rem;font-weight:800;color:var(--text-primary);margin-bottom:20px;">
+                    @_currentTime.ToString("HH:mm:ss")</div>
+
+                @if (!_isClockedIn)
+                {
+                    <!-- State 1: Not Clocked In -->
+                    <div class="ci-status-chip ci-clocked-out" style="margin: 0 auto 20px;">
+                        <div class="ci-dot"></div> Not clocked in
+                    </div>
+                    <button class="clock-btn clock-in-btn" @onclick="HandleClockIn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/>
+                            <line x1="15" x2="3" y1="12" y2="12"/>
+                        </svg>
+                        Clock In
+                    </button>
+                    <p style="margin-top:14px;font-size:12px;color:var(--text-muted);">Your start time will be recorded when you press the button.</p>
+                }
+                else
+                {
+                    <!-- State 2: Clocked In -->
+                    <div class="ci-status-chip ci-clocked-in" style="margin: 0 auto 12px;">
+                        <div class="ci-dot"></div> Clocked in since @_clockInTime.ToString("HH:mm")
+                    </div>
+                    <div class="timer-display">@FormatElapsed(_elapsed)</div>
+                    <div class="timer-label">Time elapsed today</div>
+                    <button class="clock-btn clock-out-btn" @onclick="HandleClockOut" style="margin-top:20px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" x2="9" y1="12" y2="12"/>
+                        </svg>
+                        Clock Out
+                    </button>
+                    <p style="margin-top:14px;font-size:12px;color:var(--text-muted);">Your end time will be recorded when you press the button.</p>
+                }
+            </div>
+
+            @if (_isClockedIn)
+            {
+                <!-- Today's session summary -->
+                <div class="card" style="margin-top:16px;">
+                    <div class="card-header" style="margin-bottom:12px;">
+                        <span class="card-title">Today's Session</span>
+                        <span class="day-badge active">In Progress</span>
+                    </div>
+                    <div style="display:flex;gap:24px;font-size:13px;">
+                        <div>
+                            <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">
+                                Clock In</div>
+                            <div style="font-family:var(--font-mono);font-weight:700;color:var(--text-primary);font-size:1.1rem;">
+                                @_clockInTime.ToString("HH:mm")</div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">
+                                Clock Out</div>
+                            <div style="font-family:var(--font-mono);font-weight:700;color:var(--text-muted);font-size:1.1rem;">
+                                —</div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;">
+                                Hours</div>
+                            <div style="font-family:var(--font-mono);font-weight:700;color:var(--text-primary);font-size:1.1rem;">
+                                @FormatHoursMinutes(_elapsed)</div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Right: This week's time log -->
+        <div class="card">
+            <div class="card-header" style="margin-bottom:16px;">
+                <span class="card-title">This Week</span>
+                <span style="font-size:12px;color:var(--text-muted);">@_weekStartDate.ToString("d") – @_weekEndDate.ToString("d MMM yyyy")</span>
+            </div>
+            <table class="week-log">
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Clock In</th>
+                        <th>Clock Out</th>
+                        <th>Hours</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in _weekLog)
+                    {
+                        <tr class="@(entry.IsToday ? "today-row" : "")">
+                            <td style="@(entry.IsToday ? "padding-left:8px;border-radius:6px 0 0 6px;" : "")">
+                                <div class="day-name" style="@(entry.IsToday ? "color:var(--brand-primary);" : "")">@entry.DayName</div>
+                                <div class="day-date">@entry.DateLabel</div>
+                            </td>
+                            <td class="hours-mono" style="@(entry.IsToday ? "color:var(--brand-primary);" : "")">@entry.ClockIn</td>
+                            <td class="hours-mono">@entry.ClockOut</td>
+                            <td class="hours-mono">@entry.Hours</td>
+                            <td style="@(entry.IsToday ? "padding-right:8px;border-radius:0 6px 6px 0;" : "")">
+                                @if (entry.Status == "Approved")
+                                {
+                                    <span class="day-badge ok">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none"
+                                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="20 6 9 17 4 12"/>
+                                        </svg>
+                                        Approved
+                                    </span>
+                                }
+                                else if (entry.Status == "In Progress")
+                                {
+                                    <span class="day-badge active">In Progress</span>
+                                }
+                                else if (entry.Status == "Future")
+                                {
+                                    <span class="day-badge future">—</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;font-size:12.5px;">
+                <span style="color:var(--text-muted);">Week total so far</span>
+                <span style="font-family:var(--font-mono);font-weight:700;color:var(--text-primary);">@_weekTotal</span>
+            </div>
+        </div>
+    </div>
+}
+
+@* ══════════════════════════════════════════════════════════════════ *@
+@* MANAGER / DIRECTOR / HRMANAGER VIEW — Team Attendance              *@
+@* ══════════════════════════════════════════════════════════════════ *@
+<AuthorizeView Roles="Director,HRManager,Manager">
+    <Authorized>
+        @if (_activeTab == "team")
+        {
+            <!-- REQ-HR-001: Manager team attendance monitoring -->
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:16px;">
+                <div>
+                    <h1 class="ci-page-title" style="font-size:1.5rem;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;margin:0 0 4px;">
+                        Team Attendance</h1>
+                    <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">@_departmentName · @DateTime.Now.ToString("dddd, d MMMM yyyy")</p>
+                </div>
+                <div class="ci-kpi-pills" style="display:flex;gap:8px;">
+                    <div style="text-align:center;padding:10px 18px;background:var(--success-subtle);border-radius:var(--radius-md);">
+                        <div style="font-size:1.4rem;font-weight:800;font-family:var(--font-mono);color:var(--success);">@_teamClockedIn</div>
+                        <div style="font-size:11px;font-weight:600;color:var(--success);text-transform:uppercase;letter-spacing:.05em;">Clocked In</div>
+                    </div>
+                    <div style="text-align:center;padding:10px 18px;background:rgba(220,38,38,0.08);border-radius:var(--radius-md);">
+                        <div style="font-size:1.4rem;font-weight:800;font-family:var(--font-mono);color:#dc2626;">@_teamNotIn</div>
+                        <div style="font-size:11px;font-weight:600;color:#dc2626;text-transform:uppercase;letter-spacing:.05em;">Not In</div>
+                    </div>
+                    <div style="text-align:center;padding:10px 18px;background:var(--warning-subtle);border-radius:var(--radius-md);">
+                        <div style="font-size:1.4rem;font-weight:800;font-family:var(--font-mono);color:var(--warning);">@_teamOnLeave</div>
+                        <div style="font-size:11px;font-weight:600;color:var(--warning);text-transform:uppercase;letter-spacing:.05em;">On Leave</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team status table -->
+            <div class="card">
+                <table class="team-status-table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Status</th>
+                            <th>Clock In</th>
+                            <th>Clock Out</th>
+                            <th>Hours Today</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var member in _teamMembers)
+                        {
+                            <tr style="@(member.Status == TeamMemberStatus.NotIn ? "background:rgba(220,38,38,0.04);" : "")">
+                                <td>
+                                    <div style="display:flex;align-items:center;gap:10px;">
+                                        <div class="emp-avatar-sm">@member.Initials</div>
+                                        <div>
+                                            <div style="font-weight:600;color:var(--text-primary);">@member.Name</div>
+                                            <div style="font-size:11px;color:var(--text-muted);">@member.JobTitle</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (member.Status == TeamMemberStatus.ClockedIn)
+                                    {
+                                        <span class="ci-status-chip ci-clocked-in">
+                                            <div class="ci-dot"></div> Clocked In
+                                        </span>
+                                    }
+                                    else if (member.Status == TeamMemberStatus.NotIn)
+                                    {
+                                        <span class="ci-status-chip ci-not-in">
+                                            <div class="ci-dot"></div> Not Clocked In
+                                        </span>
+                                    }
+                                    else if (member.Status == TeamMemberStatus.OnLeave)
+                                    {
+                                        <span class="ci-status-chip ci-on-leave">
+                                            <div class="ci-dot"></div> On Leave
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="ci-status-chip ci-clocked-out">
+                                            <div class="ci-dot"></div> Clocked Out
+                                        </span>
+                                    }
+                                </td>
+                                <td style="font-family:var(--font-mono);font-size:13px;@(member.ClockIn == "—" ? "color:var(--text-muted);" : "")">@member.ClockIn</td>
+                                <td style="font-family:var(--font-mono);font-size:13px;color:var(--text-muted);">@member.ClockOut</td>
+                                <td style="font-family:var(--font-mono);font-size:13px;@(member.HoursToday == "—" ? "color:var(--text-muted);" : "")">@member.HoursToday</td>
+                                <td>
+                                    @if (member.Status == TeamMemberStatus.NotIn)
+                                    {
+                                        <button class="btn btn-sm" @onclick="() => OpenFlagModal(member.Name)"
+                                                style="background:rgba(220,38,38,0.08);color:#dc2626;border:1px solid rgba(220,38,38,0.2);font-size:11.5px;gap:4px;display:inline-flex;align-items:center;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>
+                                            </svg>
+                                            Flag
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-ghost btn-sm" style="color:var(--text-muted);" disabled
+                                                title="@(member.Status == TeamMemberStatus.OnLeave ? "On leave" : "Employee is clocked in")">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>
+                                            </svg>
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Open Flags Section -->
+            @if (_openFlags.Count > 0)
+            {
+                <div style="margin-top:24px;">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);font-weight:700;margin-bottom:8px;">
+                        Open Flags</div>
+                    @foreach (var flag in _openFlags)
+                    {
+                        <div class="card" style="padding:16px 20px;margin-bottom:8px;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                                <div style="display:flex;align-items:center;gap:10px;">
+                                    <div style="width:34px;height:34px;border-radius:50%;background:rgba(220,38,38,0.08);color:#dc2626;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;">
+                                        @flag.Initials</div>
+                                    <div>
+                                        <div style="font-weight:600;font-size:13px;color:var(--text-primary);">@flag.EmployeeName <span style="font-size:11px;font-weight:400;color:var(--text-muted);">· @flag.Reason · @flag.Date</span></div>
+                                        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Flagged by: @flag.FlaggedBy at @flag.FlaggedTime</div>
+                                    </div>
+                                </div>
+                                <div style="display:flex;gap:6px;">
+                                    <button class="btn btn-ghost btn-sm" @onclick="() => DismissFlag(flag)">Dismiss</button>
+                                    <button class="btn btn-primary btn-sm" style="font-size:11.5px;" @onclick="() => ResolveFlag(flag)">Mark Resolved</button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </Authorized>
 </AuthorizeView>
 
-<AuthorizeView Roles="Director,HRManager">
-    <p>Full organisation clock entry view.</p>
-</AuthorizeView>
+@* ── Flag Absence Modal ──────────────────────────────────────────── *@
+<div class="ci-modal-overlay @(_showFlagModal ? "show" : "")" @onclick="CloseFlagModalOnBackdrop">
+    <div class="ci-modal-box" @onclick:stopPropagation="true">
+        <div class="ci-modal-title">Flag Attendance Concern</div>
+        <div class="ci-modal-sub">@_flagEmployeeName · @DateTime.Now.ToString("d MMM yyyy")</div>
+
+        <div style="margin-bottom:14px;">
+            <label class="ci-form-label">Reason</label>
+            <select class="ci-form-select" @bind="_flagReason">
+                <option value="suspected_absence" selected>Suspected absence — employee has not clocked in</option>
+                <option value="missing_clock_out">Missing clock-out — no clock-out recorded</option>
+                <option value="suspicious_hours">Suspicious hours — recorded time seems incorrect</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom:20px;">
+            <label class="ci-form-label">Notes (optional)</label>
+            <textarea class="ci-form-textarea" placeholder="Add any additional context for HR…" @bind="_flagNotes"></textarea>
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <button class="btn btn-ghost" @onclick="CloseFlagModal">Cancel</button>
+            <button class="btn btn-primary" @onclick="SubmitFlag" style="gap:6px;display:inline-flex;align-items:center;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>
+                </svg>
+                Submit Flag
+            </button>
+        </div>
+    </div>
+</div>
+
+@code {
+    // REQ-HR-001: Clock In / Out page — employee self-service + manager team view
+
+    // ── Timer state ──────────────────────────────────────────────
+    private System.Threading.Timer? _timer;
+    private DateTime _currentTime = DateTime.Now;
+    private bool _isClockedIn = true; // Sample: Sarah is clocked in
+    private DateTime _clockInTime = DateTime.Today.AddHours(8).AddMinutes(31); // Sample: 08:31
+    private TimeSpan _elapsed = TimeSpan.Zero;
+
+    // ── View toggle ──────────────────────────────────────────────
+    private string _activeTab = "my-clock";
+
+    // ── Employee info (sample data) ──────────────────────────────
+    private string _employeeName = "Sarah Nkosi";
+    private string _departmentName = "Engineering";
+    private DateTime _weekStartDate;
+    private DateTime _weekEndDate;
+    private string _weekTotal = "34h 11m";
+
+    // ── Week log (sample data) ───────────────────────────────────
+    private List<WeekLogEntry> _weekLog = new();
+
+    // ── Team data (sample) ───────────────────────────────────────
+    private int _teamClockedIn = 6;
+    private int _teamNotIn = 1;
+    private int _teamOnLeave = 1;
+    private List<TeamMember> _teamMembers = new();
+
+    // ── Flag modal state ─────────────────────────────────────────
+    private bool _showFlagModal;
+    private string _flagEmployeeName = "";
+    private string _flagReason = "suspected_absence";
+    private string _flagNotes = "";
+    private List<OpenFlag> _openFlags = new();
+
+    // REQ-HR-001: Initialize component with sample data and start timer
+    protected override void OnInitialized()
+    {
+        // Calculate current week (Monday–Friday)
+        var today = DateTime.Today;
+        var dayOfWeek = today.DayOfWeek == DayOfWeek.Sunday ? 6 : (int)today.DayOfWeek - 1;
+        _weekStartDate = today.AddDays(-dayOfWeek);
+        _weekEndDate = _weekStartDate.AddDays(4);
+
+        // Sample week log matching mockup
+        _weekLog = new List<WeekLogEntry>
+        {
+            new() { DayName = "Monday", DateLabel = _weekStartDate.ToString("d MMM"), ClockIn = "08:29", ClockOut = "17:03", Hours = "8h 34m", Status = "Approved", IsToday = false },
+            new() { DayName = "Tuesday", DateLabel = _weekStartDate.AddDays(1).ToString("d MMM"), ClockIn = "08:41", ClockOut = "16:55", Hours = "8h 14m", Status = "Approved", IsToday = false },
+            new() { DayName = "Wednesday", DateLabel = _weekStartDate.AddDays(2).ToString("d MMM"), ClockIn = "09:02", ClockOut = "17:30", Hours = "8h 28m", Status = "Approved", IsToday = false },
+            new() { DayName = "Thursday", DateLabel = _weekStartDate.AddDays(3).ToString("d MMM"), ClockIn = "08:15", ClockOut = "17:10", Hours = "8h 55m", Status = "Approved", IsToday = false },
+            new() { DayName = "Friday", DateLabel = _weekStartDate.AddDays(4).ToString("d MMM") + " — Today", ClockIn = "08:31", ClockOut = "—", Hours = "—", Status = "In Progress", IsToday = true },
+        };
+
+        // Sample team members matching mockup (REQ-HR-001: team attendance view)
+        _teamMembers = new List<TeamMember>
+        {
+            new() { Name = "Thabo Molefe", Initials = "TM", JobTitle = "Senior Developer", Status = TeamMemberStatus.ClockedIn, ClockIn = "08:31", ClockOut = "—", HoursToday = "0h 16m" },
+            new() { Name = "Lindiwe Dlamini", Initials = "LD", JobTitle = "Operations Manager", Status = TeamMemberStatus.ClockedIn, ClockIn = "07:58", ClockOut = "—", HoursToday = "0h 49m" },
+            new() { Name = "James Mathebula", Initials = "JM", JobTitle = "Junior Developer", Status = TeamMemberStatus.NotIn, ClockIn = "—", ClockOut = "—", HoursToday = "—" },
+            new() { Name = "Priya Naidoo", Initials = "PN", JobTitle = "Financial Analyst", Status = TeamMemberStatus.ClockedIn, ClockIn = "08:05", ClockOut = "—", HoursToday = "0h 42m" },
+            new() { Name = "Sipho Mthembu", Initials = "SM", JobTitle = "Sales Representative", Status = TeamMemberStatus.ClockedIn, ClockIn = "08:22", ClockOut = "—", HoursToday = "0h 25m" },
+            new() { Name = "Zanele Khumalo", Initials = "ZK", JobTitle = "Compliance Officer", Status = TeamMemberStatus.ClockedIn, ClockIn = "08:44", ClockOut = "—", HoursToday = "0h 03m" },
+            new() { Name = "Andre van Wyk", Initials = "AV", JobTitle = "Driver", Status = TeamMemberStatus.OnLeave, ClockIn = "—", ClockOut = "—", HoursToday = "—" },
+            new() { Name = "Nomsa Zulu", Initials = "NZ", JobTitle = "HR Officer", Status = TeamMemberStatus.ClockedIn, ClockIn = "08:10", ClockOut = "—", HoursToday = "0h 37m" },
+        };
+
+        // Start 1-second timer for live clock + elapsed time
+        _timer = new System.Threading.Timer(_ =>
+        {
+            _currentTime = DateTime.Now;
+            if (_isClockedIn)
+            {
+                _elapsed = _currentTime - _clockInTime;
+            }
+            InvokeAsync(StateHasChanged);
+        }, null, 0, 1000);
+    }
+
+    // REQ-HR-001: Clock in action
+    private void HandleClockIn()
+    {
+        _isClockedIn = true;
+        _clockInTime = DateTime.Now;
+        _elapsed = TimeSpan.Zero;
+        // TODO: Call TimeAttendance service to persist clock entry
+    }
+
+    // REQ-HR-001: Clock out action
+    private void HandleClockOut()
+    {
+        _isClockedIn = false;
+        // TODO: Call TimeAttendance service to persist clock-out
+    }
+
+    // ── View toggle ──────────────────────────────────────────────
+    private void SetTab(string tab)
+    {
+        _activeTab = tab;
+    }
+
+    // ── Flag modal ───────────────────────────────────────────────
+    // REQ-HR-001: Manager flags suspected absence
+    private void OpenFlagModal(string employeeName)
+    {
+        _flagEmployeeName = employeeName;
+        _flagReason = "suspected_absence";
+        _flagNotes = "";
+        _showFlagModal = true;
+    }
+
+    private void CloseFlagModal()
+    {
+        _showFlagModal = false;
+    }
+
+    private void CloseFlagModalOnBackdrop()
+    {
+        _showFlagModal = false;
+    }
+
+    private void SubmitFlag()
+    {
+        // REQ-HR-001: Create flag entry
+        var initials = string.Join("", _flagEmployeeName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(w => w[0]));
+        var reasonDisplay = _flagReason switch
+        {
+            "suspected_absence" => "Suspected absence",
+            "missing_clock_out" => "Missing clock-out",
+            "suspicious_hours" => "Suspicious hours",
+            "other" => "Other",
+            _ => _flagReason
+        };
+        _openFlags.Add(new OpenFlag
+        {
+            EmployeeName = _flagEmployeeName,
+            Initials = initials,
+            Reason = reasonDisplay,
+            Date = DateTime.Now.ToString("d MMM yyyy"),
+            FlaggedBy = "Sarah Nkosi (Manager)",
+            FlaggedTime = DateTime.Now.ToString("HH:mm"),
+        });
+        _showFlagModal = false;
+        // TODO: Persist flag to Firestore audit trail
+    }
+
+    private void DismissFlag(OpenFlag flag) => _openFlags.Remove(flag);
+
+    private void ResolveFlag(OpenFlag flag) => _openFlags.Remove(flag);
+
+    // ── Format helpers ───────────────────────────────────────────
+    private static string FormatElapsed(TimeSpan ts)
+    {
+        return $"{(int)ts.TotalHours:D2}:{ts.Minutes:D2}:{ts.Seconds:D2}";
+    }
+
+    private static string FormatHoursMinutes(TimeSpan ts)
+    {
+        return $"{(int)ts.TotalHours}h {ts.Minutes}m";
+    }
+
+    // ── IDisposable ──────────────────────────────────────────────
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
+
+    // ── View models ──────────────────────────────────────────────
+    // REQ-HR-001: Week log entry for employee's weekly time display
+    private sealed class WeekLogEntry
+    {
+        public string DayName { get; init; } = "";
+        public string DateLabel { get; init; } = "";
+        public string ClockIn { get; init; } = "";
+        public string ClockOut { get; init; } = "";
+        public string Hours { get; init; } = "";
+        public string Status { get; init; } = "";
+        public bool IsToday { get; init; }
+    }
+
+    // REQ-HR-001: Team member attendance status for manager view
+    private sealed class TeamMember
+    {
+        public string Name { get; init; } = "";
+        public string Initials { get; init; } = "";
+        public string JobTitle { get; init; } = "";
+        public TeamMemberStatus Status { get; init; }
+        public string ClockIn { get; init; } = "";
+        public string ClockOut { get; init; } = "";
+        public string HoursToday { get; init; } = "";
+    }
+
+    // REQ-HR-001: Attendance status enum
+    private enum TeamMemberStatus
+    {
+        Unknown = 0,
+        ClockedIn,
+        ClockedOut,
+        NotIn,
+        OnLeave
+    }
+
+    // REQ-HR-001: Open flag record for flagged absences
+    private sealed class OpenFlag
+    {
+        public string EmployeeName { get; init; } = "";
+        public string Initials { get; init; } = "";
+        public string Reason { get; init; } = "";
+        public string Date { get; init; } = "";
+        public string FlaggedBy { get; init; } = "";
+        public string FlaggedTime { get; init; } = "";
+    }
+}
