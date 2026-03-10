@@ -1,7 +1,7 @@
 {
   "project": "ZenoHR",
   "current_phase": "Phase 4 - UI (Blazor Server)",
-  "last_updated": "2026-03-10T07:24:21.442935+00:00",
+  "last_updated": "2026-03-10T08:12:54.551300+00:00",
   "last_session_summary": "Progress log synced to match git history. Phase 2 complete (TASK-064 thru TASK-073). Phase 3 partial: TASK-081-086 done (payroll repos, orchestration, API, statutory); TASK-087+ (QuestPDF, EMP201, filing) still pending. Phase 4 scaffolded: TASK-101-104 (NavMenu, auth, RBAC, Login). Next: full Blazor UI pages from mockups (TASK-105+) and QuestPDF payslip (TASK-087).",
   "phases": [
     {
@@ -1162,27 +1162,31 @@
       "id": "TASK-090",
       "title": "IRP5/IT3a certificate generator",
       "phase": "phase-3",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-089"
       ],
       "requirements": [
         "CTL-SARS-008"
-      ]
+      ],
+      "notes": "Irp5Certificate record, Irp5Generator (IRP5 vs IT3a, leap year), Irp5XmlSerializer (SARS e@syFile XML, InvariantCulture). 11/11 tests passing.",
+      "completed_at": "2026-03-10"
     },
     {
       "id": "TASK-091",
       "title": "ComplianceSubmission repository + filing workflow",
       "phase": "phase-3",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-088"
       ],
       "requirements": [
         "REQ-COMP-001"
-      ]
+      ],
+      "notes": "ComplianceSubmission entity + state machine, ComplianceSubmissionRepository (Firestore), FilingWorkflowService (EMP201/EMP501 orchestration), minimal API endpoints. 13/13 tests passing.",
+      "completed_at": "2026-03-10"
     },
     {
       "id": "TASK-092",
