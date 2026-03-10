@@ -8,7 +8,9 @@ using ZenoHR.Infrastructure.Audit;
 using ZenoHR.Infrastructure.Auth;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Infrastructure.Seeding;
+using ZenoHR.Infrastructure.Services.Filing;
 using ZenoHR.Infrastructure.Services.Filing.Emp201;
+using ZenoHR.Infrastructure.Services.Filing.Emp501;
 using ZenoHR.Infrastructure.Services.Payslip;
 
 namespace ZenoHR.Infrastructure.Extensions;
@@ -78,6 +80,13 @@ public static class FirestoreExtensions
 
         // CTL-SARS-006: EMP201 monthly PAYE/UIF/SDL filing generator (TASK-088)
         services.AddSingleton<IEmp201Generator, Emp201Generator>();
+
+        // REQ-COMP-002, CTL-SARS-006: EMP501 annual reconciliation generator (TASK-091)
+        services.AddSingleton<IEmp501Generator, Emp501Generator>();
+
+        // REQ-COMP-001, CTL-SARS-006: ComplianceSubmission repository + filing workflow (TASK-091)
+        services.AddSingleton<ComplianceSubmissionRepository>();
+        services.AddSingleton<FilingWorkflowService>();
 
         // REQ-SEC-002, REQ-SEC-003: RBAC — user role assignments repository
         // Note: ZenoHrClaimsTransformation (IClaimsTransformation) is registered in
