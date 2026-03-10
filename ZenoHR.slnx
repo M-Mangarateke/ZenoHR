@@ -22,5 +22,6 @@
     <Project Path="tests/ZenoHR.Module.Leave.Tests/ZenoHR.Module.Leave.Tests.csproj" />
     <Project Path="tests/ZenoHR.Module.Payroll.Tests/ZenoHR.Module.Payroll.Tests.csproj" />
     <Project Path="tests/ZenoHR.Module.TimeAttendance.Tests/ZenoHR.Module.TimeAttendance.Tests.csproj" />
+    <Project Path="tests/ZenoHR.Benchmarks/ZenoHR.Benchmarks.csproj" />
   </Folder>
 </Solution>

@@ -59,6 +59,7 @@ Desktop.ini
 appsettings.*.json
 !appsettings.json
 !appsettings.Development.json
+!appsettings.Production.json
 secrets.json
 .env
 .env.*

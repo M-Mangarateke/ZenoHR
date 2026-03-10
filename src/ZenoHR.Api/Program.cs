@@ -4,12 +4,11 @@
 // REQ-OPS-005: OpenTelemetry tracing + metrics wired here (TASK-032).
 // REQ-OPS-006: Azure Monitor export configured via AddZenoHrTelemetry() (TASK-032).
 
-using Microsoft.AspNetCore.RateLimiting;
-using System.Threading.RateLimiting;
 using ZenoHR.Api.Auth;
 using ZenoHR.Api.Endpoints;
 using ZenoHR.Api.Middleware;
 using ZenoHR.Api.Observability;
+using ZenoHR.Api.Security;
 using ZenoHR.Infrastructure.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -50,36 +49,8 @@ builder.Services.AddZenoHrCors(builder.Configuration);
 
 // Rate limiting — closes VUL-007: no rate limiting on API endpoints.
 // REQ-SEC-003: protect against DoS and credential-stuffing at the API layer.
-builder.Services.AddRateLimiter(options =>
-{
-    // General API: 120 requests per minute per IP (sliding window, no queue).
-    options.AddSlidingWindowLimiter("api", config =>
-    {
-        config.PermitLimit = 120;
-        config.Window = TimeSpan.FromMinutes(1);
-        config.SegmentsPerWindow = 6;
-        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        config.QueueLimit = 0;
-    });
-    // Payroll operations: stricter — 10 per minute per IP (payroll runs are heavy).
-    options.AddFixedWindowLimiter("payroll", config =>
-    {
-        config.PermitLimit = 10;
-        config.Window = TimeSpan.FromMinutes(1);
-    });
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.OnRejected = async (context, ct) =>
-    {
-        context.HttpContext.Response.Headers["Retry-After"] = "60";
-        await context.HttpContext.Response.WriteAsJsonAsync(
-            new Microsoft.AspNetCore.Mvc.ProblemDetails
-            {
-                Status = StatusCodes.Status429TooManyRequests,
-                Title = "Too many requests",
-                Detail = "Rate limit exceeded. Please retry after 60 seconds."
-            }, ct);
-    };
-});
+// Three named policies: general-api (sliding), auth-endpoints (fixed), payroll-ops (fixed).
+builder.Services.AddZenoHrRateLimiting(); // VUL-007
 
 // ── App pipeline ─────────────────────────────────────────────────────────────
 var app = builder.Build();
@@ -98,10 +69,17 @@ app.UseAuthentication();         // 7th: validate Firebase JWT (TASK-024)
 app.UseAuthorization();          // 8th: enforce policies (TASK-025)
 app.UseRateLimiter();            // 9th: rate limiting (REQ-SEC-003)
 
-// Health check endpoint — anonymous, no auth, no rate limit required
-// REQ-OPS-007: Health endpoint for Azure Container Apps liveness probe
+// Health check endpoints — anonymous, no auth, no rate limit required
+// REQ-OPS-007: Liveness + readiness probes for Azure Container Apps (TASK-148).
+// /health      → liveness  (is the process alive? returns 200 if so)
+// /health/ready → readiness (is the app ready to serve traffic? same check for now;
+//                            extend to verify Firestore connectivity when startup probe is added)
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "ZenoHR.Api" }))
    .WithName("HealthCheck")
+   .AllowAnonymous();
+
+app.MapGet("/health/ready", () => Results.Ok(new { status = "ready", service = "ZenoHR.Api" }))
+   .WithName("ReadinessCheck")
    .AllowAnonymous();
 
 // ── Module API endpoints (TASK-067, TASK-070, TASK-071, TASK-086) ─────────────

@@ -1,0 +1,183 @@
+# REQ-OPS-009: CD pipeline — build Docker image → Trivy scan → push to GHCR → deploy to Azure Container Apps.
+# This workflow handles the DEPLOY phase only. Build + test + SAST run in ci.yml.
+# Triggers on push to main/master (production deploy) after ci.yml passes.
+# PR pushes: Docker build + Trivy scan only (no push, no deploy).
+
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/zenohr
+  AZURE_CONTAINER_APP: zenohr-prod-app
+  AZURE_RESOURCE_GROUP: zenohr-prod-rg
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+# ── Job 1: Build, Test & Container Scan ──────────────────────────────────
+# Runs on every push and PR — acts as the container-layer security gate.
+# NOTE: .NET unit/integration/SAST tests run in ci.yml — not duplicated here.
+#       This job focuses on the Docker image lifecycle (build → scan → optionally push).
+jobs:
+  build-and-scan:
+    name: Docker Build & Trivy Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write  # Required for CodeQL SARIF upload
+    outputs:
+      image_digest: ${{ steps.push.outputs.digest }}
+      image_tags: ${{ steps.meta.outputs.tags }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        # Only authenticate on pushes to main/master — PRs use read-only token
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata (tags + labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+            type=ref,event=branch
+          labels: |
+            org.opencontainers.image.title=ZenoHR
+            org.opencontainers.image.description=ZenoHR SA HR/Payroll/Compliance Platform (Zenowethu Pty Ltd)
+            org.opencontainers.image.vendor=Zenowethu Pty Ltd
+
+      # Build image locally for scanning (cache to GitHub Actions cache for speed)
+      - name: Build Docker image (scan target)
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false  # Do NOT push yet — scan first (VUL-017 remediation)
+          load: true   # Load into local Docker daemon for Trivy
+          tags: zenohr:scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Trivy container scan — fails build on HIGH or CRITICAL CVEs (VUL-017 remediation)
+      # REQ-SEC-010: Container image scanning in CI/CD pipeline.
+      - name: Run Trivy vulnerability scan
+        id: trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'zenohr:scan'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'         # Fail the job if HIGH/CRITICAL CVEs found
+          ignore-unfixed: true   # Ignore CVEs with no available fix (reduces noise)
+          timeout: '10m'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: always()  # Upload even on failure so results are visible
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'container-image'
+
+      # Build + push image to GHCR only on main/master push AND after scan passed
+      - name: Build and push Docker image to GHCR
+        id: push
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # Provenance attestation for supply chain security (SLSA Level 1)
+          provenance: true
+          sbom: true
+
+# ── Job 2: Deploy to Azure Container Apps ────────────────────────────────
+# Only runs on pushes to main/master after build-and-scan passes.
+# Uses Azure federated credentials (OIDC) — no long-lived service principal secrets stored in GitHub.
+# REQ-OPS-009: Deploy to southafricanorth (POPIA data residency).
+  deploy:
+    name: Deploy to Azure Container Apps
+    needs: build-and-scan
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.get-url.outputs.app_url }}
+    permissions:
+      contents: read
+      id-token: write  # Required for OIDC login to Azure (no stored credentials)
+    steps:
+      - uses: actions/checkout@v4
+
+      # OIDC-based Azure login — preferred over AZURE_CREDENTIALS service principal JSON.
+      # Requires federated credential configured in Azure AD app registration.
+      # AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID set as GitHub environment secrets.
+      - name: Log in to Azure (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Deploy the sha-tagged image (immutable tag — never redeploy stale :latest)
+      # Image was scanned and pushed in build-and-scan job.
+      - name: Deploy to Azure Container Apps
+        id: deploy
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-$(git rev-parse --short HEAD)"
+          echo "Deploying image: ${IMAGE}"
+          az containerapp update \
+            --name ${{ env.AZURE_CONTAINER_APP }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --image "${IMAGE}" \
+            --output table
+
+      - name: Get Container App URL
+        id: get-url
+        run: |
+          URL=$(az containerapp show \
+            --name ${{ env.AZURE_CONTAINER_APP }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" \
+            --output tsv)
+          echo "app_url=https://${URL}" >> "$GITHUB_OUTPUT"
+          echo "Deployed to: https://${URL}"
+
+      # Post-deployment smoke test — verify /health responds 200 OK
+      # REQ-OPS-007: Deployment verification against liveness endpoint.
+      - name: Post-deployment health check
+        run: |
+          APP_URL="${{ steps.get-url.outputs.app_url }}"
+          echo "Running health check against ${APP_URL}/health ..."
+          for i in 1 2 3 4 5; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${APP_URL}/health" || echo "000")
+            echo "Attempt ${i}: HTTP ${STATUS}"
+            if [ "${STATUS}" = "200" ]; then
+              echo "Health check PASSED."
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::Health check FAILED after 5 attempts — deployment may be unhealthy."
+          exit 1

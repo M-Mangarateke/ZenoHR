@@ -1,0 +1,62 @@
+# REQ-OPS-009: Docker build context exclusions.
+# Keeps image lean — excludes build artifacts, test projects, dev tooling, and large media files.
+
+# .NET build outputs
+**/bin/
+**/obj/
+
+# Git metadata
+**/.git/
+**/.gitignore
+**/.gitattributes
+
+# Node / frontend tooling
+**/node_modules/
+**/.npm/
+
+# Visual Studio project user files
+**/*.user
+**/*.suo
+**/.vs/
+**/*.vsidx
+
+# Design assets not needed at runtime (screenshots are large PNGs — save image layers)
+docs/design/screenshots/
+docs/design/mockups/
+docs/design/brand/
+
+# Test projects (not deployed to production)
+tests/
+
+# Development configuration
+src/**/*.Development.json
+**/*.http
+
+# MCP server (Python tooling — dev only)
+.mcp/
+
+# Scripts (CI/deploy scripts run outside container)
+scripts/
+
+# Documentation source
+docs/prd/
+docs/progress/
+docs/generated/
+
+# Firebase emulator artifacts
+firebase-debug.log
+firestore-debug.log
+*.log
+
+# Coverage and test results
+TestResults/
+coverage-report/
+*.trx
+*.opencover.xml
+
+# PowerShell scripts
+*.ps1
+
+# Local check scripts
+*.chk.ps1
+update_compliance.js

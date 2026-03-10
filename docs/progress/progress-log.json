@@ -1,7 +1,7 @@
 {
   "project": "ZenoHR",
   "current_phase": "Phase 4 - UI (Blazor Server)",
-  "last_updated": "2026-03-10T06:33:47.858562+00:00",
+  "last_updated": "2026-03-10T06:56:15.226592+00:00",
   "last_session_summary": "Progress log synced to match git history. Phase 2 complete (TASK-064 thru TASK-073). Phase 3 partial: TASK-081-086 done (payroll repos, orchestration, API, statutory); TASK-087+ (QuestPDF, EMP201, filing) still pending. Phase 4 scaffolded: TASK-101-104 (NavMenu, auth, RBAC, Login). Next: full Blazor UI pages from mockups (TASK-105+) and QuestPDF payslip (TASK-087).",
   "phases": [
     {
@@ -1769,40 +1769,46 @@
       "id": "TASK-146",
       "title": "OWASP security scan + remediation",
       "phase": "phase-6",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-137"
       ],
       "requirements": [
         "REQ-SEC-007"
-      ]
+      ],
+      "notes": "VUL-001/002 (headers+CORS) already in place. Added RateLimitingExtensions (3 policies), RequireMfaAttribute (session_mfa claim), RoleAssignmentAuditService. 4 TC-SEC-022 tests pass.",
+      "completed_at": "2026-03-10"
     },
     {
       "id": "TASK-147",
       "title": "Load testing (500-employee payroll run, 15-min SLA validation)",
       "phase": "phase-6",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-085"
       ],
       "requirements": [
         "REQ-OPS-001"
-      ]
+      ],
+      "notes": "BenchmarkDotNet project: 4 benchmarks (single/batch sequential/parallel). LoadTestHarness: 500 employees in 14ms — SLA PASS (budget 900,000ms). Real 2025/26 SARS brackets used.",
+      "completed_at": "2026-03-10"
     },
     {
       "id": "TASK-148",
       "title": "Azure Container Apps deployment config (SA North region)",
       "phase": "phase-6",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-137"
       ],
       "requirements": [
         "REQ-OPS-009"
-      ]
+      ],
+      "notes": "Dockerfile (multi-stage, non-root), .dockerignore, azure/main.bicep (southafricanorth, 1-3 replicas), azure/keyvault.bicep (RBAC+purge), deploy.yml (OIDC+Trivy+GHCR), appsettings.Production.json.",
+      "completed_at": "2026-03-10"
     },
     {
       "id": "TASK-149",

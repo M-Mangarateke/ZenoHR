@@ -29,6 +29,7 @@
     <ProjectReference Include="..\..\src\ZenoHR.Domain\ZenoHR.Domain.csproj" />
     <ProjectReference Include="..\..\src\ZenoHR.Module.Payroll\ZenoHR.Module.Payroll.csproj" />
     <ProjectReference Include="..\..\src\ZenoHR.Infrastructure\ZenoHR.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\ZenoHR.Api\ZenoHR.Api.csproj" />
   </ItemGroup>
 
 </Project>
