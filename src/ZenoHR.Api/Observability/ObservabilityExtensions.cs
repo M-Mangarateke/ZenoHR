@@ -3,6 +3,7 @@
 // TC-OPS-004: Health endpoint and telemetry pipeline verified in integration tests.
 
 using Azure.Monitor.OpenTelemetry.AspNetCore;
+using OpenTelemetry.Trace;
 
 namespace ZenoHR.Api.Observability;
 
@@ -67,7 +68,11 @@ public static class ObservabilityExtensions
             .WithTracing(tracing =>
                 // Register ZenoHR's custom ActivitySource so custom spans are exported.
                 // Payroll calculations, audit writes, RBAC resolution will emit spans here.
-                tracing.AddSource(ActivitySourceName))
+                // VUL-022: LogRedactionProcessor strips PII fields before export to Azure Monitor.
+                // CTL-POPIA-001: national_id, tax_reference, bank_account redacted from all spans.
+                tracing
+                    .AddSource(ActivitySourceName)
+                    .AddProcessor(new LogRedactionProcessor()))
             .WithMetrics(metrics =>
                 // Register ZenoHR's custom meter for business metrics
                 // (payroll runs processed, leave requests, ETI calculations, etc.)

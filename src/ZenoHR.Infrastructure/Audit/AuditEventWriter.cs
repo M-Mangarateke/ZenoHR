@@ -86,6 +86,10 @@ public sealed partial class AuditEventWriter
                 }
 
                 // ── Step 2: Create the new event (links to previous via hash) ─
+                // VUL-011: Sanitize metadata before storage — strips HTML/script injection.
+                // CTL-SEC-008: Only valid JSON objects with no XSS patterns are stored.
+                var sanitizedMetadata = AuditMetadataSanitizer.Sanitize(request.Metadata);
+
                 var evt = AuditEvent.Create(
                     tenantId: request.TenantId,
                     actorId: request.ActorId,
@@ -93,7 +97,7 @@ public sealed partial class AuditEventWriter
                     action: request.Action,
                     resourceType: request.ResourceType,
                     resourceId: request.ResourceId,
-                    metadata: request.Metadata,
+                    metadata: sanitizedMetadata,
                     occurredAt: request.OccurredAt,
                     previousEventHash: previousHash);
 

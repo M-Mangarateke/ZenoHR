@@ -1,0 +1,21 @@
+# REQ-SEC-009: Require code owner approval for security-sensitive and compliance-critical files.
+# Any change to these paths requires the designated team's review before merging.
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Security-critical paths: authentication, Firestore rules, and security documentation.
+# Two reviewers required — configure branch protection accordingly.
+src/ZenoHR.Api/Auth/                    @zenowethu/security-reviewers
+src/ZenoHR.Api/Security/               @zenowethu/security-reviewers
+firestore.rules                          @zenowethu/security-reviewers
+docs/security/                           @zenowethu/security-reviewers
+
+# Payroll engine: statutory tax logic requires payroll SME review.
+# Changes here affect PAYE, UIF, SDL, ETI calculations — incorrect changes = legal liability.
+src/ZenoHR.Module.Payroll/Calculation/  @zenowethu/payroll-sme
+docs/seed-data/                          @zenowethu/payroll-sme
+
+# Deployment configuration: changes here affect production availability and data residency.
+# REQ-OPS-002: DevOps team must review all CI/CD and infrastructure changes.
+Dockerfile                               @zenowethu/devops
+azure/                                   @zenowethu/devops
+.github/workflows/                       @zenowethu/devops

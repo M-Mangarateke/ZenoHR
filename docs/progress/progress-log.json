@@ -1,7 +1,7 @@
 {
   "project": "ZenoHR",
   "current_phase": "Phase 4 - UI (Blazor Server)",
-  "last_updated": "2026-03-10T06:56:15.226592+00:00",
+  "last_updated": "2026-03-10T07:24:21.442935+00:00",
   "last_session_summary": "Progress log synced to match git history. Phase 2 complete (TASK-064 thru TASK-073). Phase 3 partial: TASK-081-086 done (payroll repos, orchestration, API, statutory); TASK-087+ (QuestPDF, EMP201, filing) still pending. Phase 4 scaffolded: TASK-101-104 (NavMenu, auth, RBAC, Login). Next: full Blazor UI pages from mockups (TASK-105+) and QuestPDF payslip (TASK-087).",
   "phases": [
     {
@@ -1814,14 +1814,16 @@
       "id": "TASK-149",
       "title": "GitHub Actions CI/CD pipeline (build â†’ test â†’ SAST â†’ deploy)",
       "phase": "phase-6",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-148"
       ],
       "requirements": [
         "REQ-OPS-002"
-      ]
+      ],
+      "notes": "ci-gate aggregator job + sla-smoke-test job added to ci.yml. CODEOWNERS (3 owner groups), PR template (security + traceability checklist), global.json verified. 0 errors.",
+      "completed_at": "2026-03-10"
     },
     {
       "id": "TASK-150",
@@ -1853,27 +1855,31 @@
       "id": "TASK-152",
       "title": "Firestore security rules hardening + audit",
       "phase": "phase-6",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-103"
       ],
       "requirements": [
         "REQ-SEC-005"
-      ]
+      ],
+      "notes": "Firestore rules: 6 gaps fixed (status PascalCase, payroll_results path, field validation, dept scoping, missing collections, VUL-028 documented). 12 rules JS unit tests. package.json for test runner.",
+      "completed_at": "2026-03-10"
     },
     {
       "id": "TASK-153",
       "title": "External penetration test + remediation",
       "phase": "phase-6",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-146"
       ],
       "requirements": [
         "REQ-SEC-007"
-      ]
+      ],
+      "notes": "VUL-009: role-scoped DTOs (Full/Profile/Self) + EmployeeDtoMapper. VUL-011: AuditMetadataSanitizer wired into AuditEventWriter. VUL-020: UnmaskRequest with 7 POPIA purpose codes. VUL-022: LogRedactionProcessor in OTel. 8 tests pass. Vuln register: 24 open, 2 mitigated.",
+      "completed_at": "2026-03-10"
     },
     {
       "id": "TASK-154",
