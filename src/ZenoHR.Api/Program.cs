@@ -5,6 +5,7 @@
 // REQ-OPS-006: Azure Monitor export configured via AddZenoHrTelemetry() (TASK-032).
 
 using ZenoHR.Api.Auth;
+using ZenoHR.Api.BackgroundServices;
 using ZenoHR.Api.Endpoints;
 using ZenoHR.Api.Middleware;
 using ZenoHR.Api.Observability;
@@ -51,6 +52,9 @@ builder.Services.AddZenoHrCors(builder.Configuration);
 // REQ-SEC-003: protect against DoS and credential-stuffing at the API layer.
 // Three named policies: general-api (sliding), auth-endpoints (fixed), payroll-ops (fixed).
 builder.Services.AddZenoHrRateLimiting(); // VUL-007
+
+// Background services — nightly analytics, EMP201 reminders, ETI expiry alerts (REQ-OPS-003)
+builder.Services.AddZenoHrBackgroundServices();
 
 // ── App pipeline ─────────────────────────────────────────────────────────────
 var app = builder.Build();

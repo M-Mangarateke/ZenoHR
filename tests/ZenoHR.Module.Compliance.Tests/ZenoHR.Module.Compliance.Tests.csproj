@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\ZenoHR.Api\ZenoHR.Api.csproj" />
     <ProjectReference Include="..\..\src\ZenoHR.Module.Compliance\ZenoHR.Module.Compliance.csproj" />
     <ProjectReference Include="..\..\src\ZenoHR.Domain\ZenoHR.Domain.csproj" />
     <ProjectReference Include="..\..\src\ZenoHR.Infrastructure\ZenoHR.Infrastructure.csproj" />
