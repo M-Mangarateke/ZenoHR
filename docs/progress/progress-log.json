@@ -1,7 +1,7 @@
 {
   "project": "ZenoHR",
   "current_phase": "Phase 4 - UI (Blazor Server)",
-  "last_updated": "2026-03-10T16:12:00.054591+00:00",
+  "last_updated": "2026-03-10T16:21:31.105010+00:00",
   "last_session_summary": "Progress log synced to match git history. Phase 2 complete (TASK-064 thru TASK-073). Phase 3 partial: TASK-081-086 done (payroll repos, orchestration, API, statutory); TASK-087+ (QuestPDF, EMP201, filing) still pending. Phase 4 scaffolded: TASK-101-104 (NavMenu, auth, RBAC, Login). Next: full Blazor UI pages from mockups (TASK-105+) and QuestPDF payslip (TASK-087).",
   "phases": [
     {
@@ -1526,14 +1526,16 @@
       "id": "TASK-114",
       "title": "Admin dashboard (11-admin.html) + tenant onboarding wizard Blazor implementation",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-103"
       ],
       "requirements": [
         "REQ-OPS-001"
-      ]
+      ],
+      "notes": "Full admin dashboard: 4 KPI cards, tenant table, platform events, seed data versions, background jobs, 5-step onboarding wizard. SaasAdmin-only, admin accent #e05a1e.",
+      "completed_at": "2026-03-10"
     },
     {
       "id": "TASK-115",
@@ -1565,14 +1567,16 @@
       "id": "TASK-117",
       "title": "Clock-in page (14-clock-in.html) â€” Employee self + Manager team view",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-071"
       ],
       "requirements": [
         "REQ-HR-001"
-      ]
+      ],
+      "notes": "Clock-in page: Employee view (live clock, in/out buttons, elapsed timer, weekly log) + Manager view (team KPI pills, attendance table, flag absence modal). Timer pattern with IDisposable.",
+      "completed_at": "2026-03-10"
     },
     {
       "id": "TASK-118",

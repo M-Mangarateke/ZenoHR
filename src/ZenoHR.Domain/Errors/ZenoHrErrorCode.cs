@@ -56,6 +56,8 @@ public enum ZenoHrErrorCode
     InvalidFilingPeriod = 5002,
     EfilingConnectionFailed = 5003,
     ComplianceCheckFailed = 5004,
+    InvalidBreachStatusTransition = 5005,
+    BreachNotInRequiredStatus = 5006,
 
     // ── 6xxx — Audit ─────────────────────────────────────────────────────────
     HashChainBroken = 6000,
