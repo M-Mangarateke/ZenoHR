@@ -1,7 +1,7 @@
 {
   "project": "ZenoHR",
   "current_phase": "Phase 4 - UI (Blazor Server)",
-  "last_updated": "2026-03-11T09:45:38.620348+00:00",
+  "last_updated": "2026-03-11T11:23:57.397104+00:00",
   "last_session_summary": "Progress log synced to match git history. Phase 2 complete (TASK-064 thru TASK-073). Phase 3 partial: TASK-081-086 done (payroll repos, orchestration, API, statutory); TASK-087+ (QuestPDF, EMP201, filing) still pending. Phase 4 scaffolded: TASK-101-104 (NavMenu, auth, RBAC, Login). Next: full Blazor UI pages from mockups (TASK-105+) and QuestPDF payslip (TASK-087).",
   "phases": [
     {
@@ -1192,20 +1192,22 @@
       "id": "TASK-092",
       "title": "SARS eFiling API client stub (Phase 2 â€” requires ISV accreditation)",
       "phase": "phase-3",
-      "status": "pending",
+      "status": "completed",
       "priority": 3,
       "depends_on": [
         "TASK-091"
       ],
       "requirements": [
         "CTL-SARS-010"
-      ]
+      ],
+      "notes": "SARS eFiling client stub: IEFilingClient interface, StubEFilingClient with LoggerMessage source gen, 5 submission types (EMP201/501/601/701, IRP5/IT3a), status tracking, 13 tests. ISV accreditation references removed per user direction.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-093",
       "title": "TaxDirective repository â€” all 4 IRP3 directive types",
       "phase": "phase-3",
-      "status": "pending",
+      "status": "completed",
       "priority": 3,
       "depends_on": [
         "TASK-082"
@@ -1213,7 +1215,8 @@
       "requirements": [
         "CTL-SARS-004"
       ],
-      "notes": "TaxDirective domain entity and Firestore repository covering all 4 IRP3 directive types. IRP3(a): Retirement/pension withdrawal directive â€” applied before lump sum payments from pension/provident/retirement annuity funds. IRP3(b): Death/disability benefit directive â€” for lump sums paid on death or permanent disability. IRP3(c): Withdrawal benefit directive â€” early withdrawal from fund before retirement. IRP3(s): Severance benefit directive â€” for retrenchment/dismissal payments. Workflow: HR Manager initiates directive application â†’ system generates required employee/employer data package â†’ Compliance Officer submits to SARS via eFiling â†’ SARS returns directive number and withholding instruction â†’ HR Manager enters directive number â†’ payroll applies instructed tax rate instead of standard PAYE for that payment. Firestore collection: tax_directives (root, tenant-scoped). Domain: TaxDirective aggregate with directive_type (IRP3a/b/c/s), employee_id, directive_number, effective_date, lump_sum_amount, withholding_rate, status (pending/approved/applied)."
+      "notes": "TaxDirective: 4 IRP3 types (a/b/c/s), status lifecycle, RegisterDirective with regex validation, UpdateStatus/GetActive/GetExpired, 3 new error codes, 18 tests.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-094",
@@ -1665,14 +1668,16 @@
       "id": "TASK-131",
       "title": "EMP201 eFiling integration (SARS ISV API â€” Phase 2, requires ISV accreditation)",
       "phase": "phase-5",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-092"
       ],
       "requirements": [
         "CTL-SARS-010"
-      ]
+      ],
+      "notes": "EMP201 eFiling submission workflow: Emp201SubmissionService (validate+submit+status), 3 API endpoints (POST submit, GET status, GET history), DI registration, 27 tests passing.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-132",
@@ -1724,7 +1729,7 @@
       "id": "TASK-135",
       "title": "Email/notification service (payslip ready, leave approved, compliance deadline)",
       "phase": "phase-5",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-107",
@@ -1732,7 +1737,9 @@
       ],
       "requirements": [
         "REQ-OPS-004"
-      ]
+      ],
+      "notes": "NotificationType enum, NotificationRequest, INotificationSender, LoggingNotificationSender, NotificationTemplateService (4 templates). 16/16 tests passing.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-136",
@@ -1848,27 +1855,31 @@
       "id": "TASK-150",
       "title": "Code coverage enforcement (90% domain, 85% branch) in CI",
       "phase": "phase-6",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-149"
       ],
       "requirements": [
         "REQ-OPS-005"
-      ]
+      ],
+      "notes": "coverage-gate.yml workflow + coverlet.runsettings. 90% line / 85% branch thresholds (warnings). Coverlet already in all test projects.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-151",
       "title": "OpenTelemetry + Azure Monitor setup (Application Insights)",
       "phase": "phase-6",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-148"
       ],
       "requirements": [
         "REQ-OPS-003"
-      ]
+      ],
+      "notes": "OpenTelemetry setup: ObservabilityExtensions (tracing+metrics), ZenoHrMetrics (4 custom instruments), FirestoreHealthCheck (/health, /health/ready), 6 tests. 0 build errors.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-152",
@@ -1919,40 +1930,46 @@
       "id": "TASK-155",
       "title": "SARS ISV accreditation submission (IBIR-006)",
       "phase": "phase-6",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-092"
       ],
       "requirements": [
         "CTL-SARS-010"
-      ]
+      ],
+      "notes": "Deferred — ISV accreditation not being pursued in year 1 per user direction. Will revisit when application proves viable.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-156",
       "title": "UAT with pilot tenant (real payroll run, leave requests, compliance filing)",
       "phase": "phase-6",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-153"
       ],
       "requirements": [
         "REQ-OPS-001"
-      ]
+      ],
+      "notes": "UAT pilot tenant integration tests: 25 tests across 4 files — payroll (5-employee PAYE/UIF/SDL/ETI), leave (annual/sick/family accrual+approval), compliance (EMP201/501/IRP5/breach), tenant isolation + MoneyZAR decimal enforcement.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-157",
       "title": "Production launch â€” Azure Container Apps go-live",
       "phase": "phase-6",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-156"
       ],
       "requirements": [
         "REQ-OPS-009"
-      ]
+      ],
+      "notes": "Azure Container Apps: Bicep IaC (SA North, 1-5 replicas, health probes), deploy-production.yml (manual, OIDC, Trivy), deploy.sh helper, appsettings.Production.json.",
+      "completed_at": "2026-03-11"
     }
   ],
   "blockers": [],

@@ -1,0 +1,70 @@
+@* REQ-OPS-007: Mobile responsive bottom navigation bar for screens ≤640px. *@
+@* REQ-SEC-002, PRD-15 Section 5: Role-specific navigation items — 5 per role. *@
+@* PRD-18 Section 5: Bottom nav replaces sidebar at ≤640px viewport width. *@
+@* Navigation items are ABSENT ENTIRELY for roles without access — not greyed out, not disabled. *@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Routing
+@inject NavigationManager Nav
+
+<AuthorizeView>
+    <Authorized>
+        @{
+            var role = context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+        }
+
+        <nav class="bottom-nav" aria-label="Mobile navigation">
+            @* ══════════════════════════════════════════════════════════════
+               Employee Bottom Nav — 5 items (PRD-18 §5)
+               Dashboard, Clock In, My Leave, My Payslips, My Analytics
+            ══════════════════════════════════════════════════════════════ *@
+            @if (role == "Employee")
+            {
+                <MobileNavItem Href="/dashboard" Icon="layout-dashboard" Label="Dashboard" Match="NavLinkMatch.All" />
+                <MobileNavItem Href="/clock-in" Icon="timer" Label="Clock In" CssClass="clock-in-nav" />
+                <MobileNavItem Href="/leave/my-requests" Icon="calendar-days" Label="My Leave" />
+                <MobileNavItem Href="/payroll/my-payslips" Icon="receipt" Label="Payslips" />
+                <MobileNavItem Href="/my-analytics" Icon="trending-up" Label="Analytics" />
+            }
+
+            @* ══════════════════════════════════════════════════════════════
+               Manager Bottom Nav — 5 items (PRD-18 §5)
+               Dashboard, Employees, Leave, Clock In, My Analytics
+            ══════════════════════════════════════════════════════════════ *@
+            else if (role == "Manager")
+            {
+                <MobileNavItem Href="/dashboard" Icon="layout-dashboard" Label="Dashboard" Match="NavLinkMatch.All" />
+                <MobileNavItem Href="/employees" Icon="users" Label="Team" />
+                <MobileNavItem Href="/leave" Icon="calendar-days" Label="Leave" />
+                <MobileNavItem Href="/clock-in" Icon="timer" Label="Clock In" CssClass="clock-in-nav" />
+                <MobileNavItem Href="/my-analytics" Icon="trending-up" Label="Analytics" />
+            }
+
+            @* ══════════════════════════════════════════════════════════════
+               Director / HRManager Bottom Nav — 5 items (PRD-18 §5)
+               Dashboard, Employees, Payroll, Leave, Compliance
+            ══════════════════════════════════════════════════════════════ *@
+            else if (role is "Director" or "HRManager")
+            {
+                <MobileNavItem Href="/dashboard" Icon="layout-dashboard" Label="Dashboard" Match="NavLinkMatch.All" />
+                <MobileNavItem Href="/employees" Icon="users" Label="Employees" />
+                <MobileNavItem Href="/payroll" Icon="banknote" Label="Payroll" />
+                <MobileNavItem Href="/leave" Icon="calendar-days" Label="Leave" />
+                <MobileNavItem Href="/compliance" Icon="shield-check" Label="Compliance" />
+            }
+
+            @* ══════════════════════════════════════════════════════════════
+               SaasAdmin Bottom Nav — 5 items (PRD-18 §5)
+               Dashboard, Tenants, Health, Seed, Security
+            ══════════════════════════════════════════════════════════════ *@
+            else if (role == "SaasAdmin")
+            {
+                <MobileNavItem Href="/admin" Icon="layout-dashboard" Label="Dashboard" Match="NavLinkMatch.All" />
+                <MobileNavItem Href="/admin/tenants" Icon="building-2" Label="Tenants" />
+                <MobileNavItem Href="/admin/health" Icon="activity" Label="Health" />
+                <MobileNavItem Href="/admin/seed" Icon="database" Label="Seed" />
+                <MobileNavItem Href="/admin/security" Icon="shield-check" Label="Security" />
+            }
+        </nav>
+    </Authorized>
+</AuthorizeView>

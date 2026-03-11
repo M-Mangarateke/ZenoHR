@@ -1,9 +1,10 @@
 @* REQ-OPS-001: ZenoHR main layout — sidebar navigation + content area. *@
 @* REQ-SEC-002: NavMenu is role-aware; sidebar items are absent for unauthorized roles. *@
+@* REQ-OPS-007: MobileBottomNav renders role-specific bottom bar at ≤640px (PRD-18 §5). *@
 @inherits LayoutComponentBase
 
 <div class="zenohr-shell">
-    <aside class="zenohr-sidebar" role="navigation" aria-label="Main navigation">
+    <aside class="sidebar zenohr-sidebar" role="navigation" aria-label="Main navigation">
         <NavMenu />
     </aside>
 
@@ -11,6 +12,8 @@
         <header class="zenohr-topbar" role="banner">
             <div class="topbar-breadcrumb"></div>
             <div class="topbar-actions">
+                @* REQ-OPS-008: Dark/light mode toggle in the header area *@
+                <ThemeToggle />
                 <AuthorizeView>
                     <Authorized>
                         <span class="topbar-role-badge">
@@ -25,6 +28,9 @@
             @Body
         </main>
     </div>
+
+    @* REQ-OPS-007: Mobile bottom navigation — visible only at ≤640px via CSS. *@
+    <MobileBottomNav />
 </div>
 
 <div id="blazor-error-ui" data-nosnippet>

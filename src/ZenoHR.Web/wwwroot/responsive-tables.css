@@ -1,0 +1,178 @@
+/* =====================================================
+   ZenoHR — Responsive Table → Card List (≤ 640px)
+   REQ-OPS-007: Mobile responsive table-to-card transformation
+   ===================================================== */
+
+/* ── Base: responsive-table opt-in class ────────────── */
+/* Tables using <ResponsiveTable> wrapper or the
+   .responsive-table class get automatic card-list
+   transformation at the mobile breakpoint (≤ 640px).
+
+   Each <td> MUST carry a data-label="Column Name" attribute
+   so the ::before pseudo-element can render the label.       */
+
+@media (max-width: 640px) {
+
+  /* ── Hide desktop table header ──────────────────────── */
+  .responsive-table thead {
+    display: none;
+  }
+
+  /* ── Table body becomes a vertical card stack ───────── */
+  .responsive-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--mobile-card-gap, 12px);
+  }
+
+  /* ── Each row becomes a card ────────────────────────── */
+  .responsive-table tbody tr {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2, 8px);
+    padding: var(--space-4, 16px);
+    background: var(--bg-surface, #ffffff);
+    border: 1px solid var(--border-default, #e2e8f0);
+    border-radius: var(--radius-lg, 12px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: box-shadow 150ms ease;
+  }
+
+  .responsive-table tbody tr:hover {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04),
+                0 1px 2px rgba(0, 0, 0, 0.06);
+  }
+
+  .responsive-table tbody tr:last-child {
+    border-bottom: 1px solid var(--border-default, #e2e8f0);
+  }
+
+  /* Remove default table-row border */
+  .responsive-table tbody tr + tr {
+    margin-top: 0;
+  }
+
+  /* ── Each cell becomes a label:value row ────────────── */
+  .responsive-table tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+    border: none;
+    border-bottom: none;
+    font-size: 13px;
+    color: var(--text-primary, #0f172a);
+  }
+
+  .responsive-table tbody td::before {
+    content: attr(data-label);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-secondary, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+    margin-right: var(--space-3, 12px);
+    min-width: 90px;
+  }
+
+  /* Hide label pseudo-element when data-label is empty or absent */
+  .responsive-table tbody td:not([data-label])::before,
+  .responsive-table tbody td[data-label=""]::before {
+    display: none;
+  }
+
+  /* ── Action cell: buttons in a row at card footer ──── */
+  .responsive-table tbody td[data-label="Actions"],
+  .responsive-table tbody td.td-actions {
+    border-top: 1px solid var(--border-subtle, #f1f5f9);
+    padding-top: var(--space-3, 12px);
+    margin-top: var(--space-2, 8px);
+    justify-content: flex-end;
+    gap: var(--space-2, 8px);
+  }
+
+  .responsive-table tbody td[data-label="Actions"]::before,
+  .responsive-table tbody td.td-actions::before {
+    display: none;
+  }
+
+  /* Ensure action buttons are at least touch-target min */
+  .responsive-table tbody td[data-label="Actions"] .btn,
+  .responsive-table tbody td.td-actions .btn {
+    min-height: 36px;
+    padding: 6px 12px;
+  }
+
+  /* ── Person cell layout within card ─────────────────── */
+  .responsive-table tbody td .person-cell {
+    width: 100%;
+  }
+
+  /* ── Full-span cell (empty state, etc.) ─────────────── */
+  .responsive-table tbody td[colspan] {
+    display: block;
+    text-align: center;
+  }
+
+  .responsive-table tbody td[colspan]::before {
+    display: none;
+  }
+
+  /* ── Table container adjustments ────────────────────── */
+  .responsive-table-container .table-wrapper {
+    overflow-x: visible;
+  }
+
+  .responsive-table-container .table-card {
+    padding: 0;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  /* ── Table footer stays visible (pagination) ────────── */
+  .responsive-table-container .table-footer {
+    flex-direction: column;
+    gap: var(--space-3, 12px);
+    align-items: center;
+    text-align: center;
+  }
+
+  /* ── Badge and chip sizing for cards ────────────────── */
+  .responsive-table .badge {
+    font-size: 11px;
+  }
+
+  /* ── Monetary values keep mono font ─────────────────── */
+  .responsive-table .td-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    font-size: 12px;
+  }
+}
+
+/* ── Print: always show table layout ──────────────────── */
+@media print {
+  .responsive-table thead {
+    display: table-header-group !important;
+  }
+
+  .responsive-table tbody {
+    display: table-row-group !important;
+  }
+
+  .responsive-table tbody tr {
+    display: table-row !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .responsive-table tbody td {
+    display: table-cell !important;
+  }
+
+  .responsive-table tbody td::before {
+    display: none !important;
+  }
+}

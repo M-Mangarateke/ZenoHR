@@ -4,7 +4,7 @@ namespace ZenoHR.Api.BackgroundServices;
 
 /// <summary>
 /// Registers ZenoHR background services for nightly analytics, EMP201 reminders,
-/// and ETI expiry alerts with the dependency injection container.
+/// ETI expiry alerts, and data archival with the dependency injection container.
 /// </summary>
 public static class BackgroundServiceRegistration
 {
@@ -16,6 +16,7 @@ public static class BackgroundServiceRegistration
         services.AddHostedService<NightlyAnalyticsService>();
         services.AddHostedService<Emp201ReminderService>();
         services.AddHostedService<EtiExpiryAlertService>();
+        services.AddHostedService<DataArchivalService>(); // CTL-POPIA-009, CTL-POPIA-015
         return services;
     }
 }

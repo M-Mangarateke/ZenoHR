@@ -1,0 +1,42 @@
+@* REQ-OPS-007: Reusable responsive table wrapper — transforms tables to card lists at ≤640px *@
+@* Usage: wrap any <table> with <ResponsiveTable> to opt into mobile card layout.
+   Each <td> should have data-label="Column Name" for mobile label rendering.
+   Action cells should use data-label="Actions" or class="td-actions".
+
+   Example:
+   <ResponsiveTable>
+       <table>
+           <thead><tr><th>Name</th><th>Email</th><th>Actions</th></tr></thead>
+           <tbody>
+               <tr>
+                   <td data-label="Name">John</td>
+                   <td data-label="Email">john@example.com</td>
+                   <td data-label="Actions"><button class="btn btn-sm">Edit</button></td>
+               </tr>
+           </tbody>
+       </table>
+   </ResponsiveTable>
+*@
+
+<div class="responsive-table-container @CssClass">
+    <CascadingValue Value="true" Name="IsResponsiveTable">
+        @ChildContent
+    </CascadingValue>
+</div>
+
+@code {
+    // REQ-OPS-007: Responsive table wrapper parameters
+
+    /// <summary>
+    /// Table content — must contain a &lt;table&gt; element with data-label attributes on each td.
+    /// The table element should include class="responsive-table" for mobile card transformation.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Additional CSS class(es) to apply to the wrapper container.
+    /// </summary>
+    [Parameter]
+    public string CssClass { get; set; } = string.Empty;
+}

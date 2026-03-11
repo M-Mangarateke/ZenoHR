@@ -1,9 +1,755 @@
-@* REQ-SEC-002, REQ-ANA-003: My Analytics — personal earnings, leave, and tax summary. *@
-@* All tenant users (self-access guarantee, PRD-15 §1.6). *@
+@* REQ-OPS-006, REQ-SEC-002: My Analytics — personal earnings, leave, and tax summary (TASK-116). *@
+@* All tenant users: Employee, Manager, HRManager, Director (self-access guarantee, PRD-15 §1.6). *@
 @page "/my-analytics"
 @attribute [Authorize(Roles = "Director,HRManager,Manager,Employee")]
 @using Microsoft.AspNetCore.Authorization
 
 <PageTitle>My Analytics — ZenoHR</PageTitle>
-<h1>My Analytics</h1>
-<p>Your personal earnings history, leave usage, and PAYE summary for the current tax year.</p>
+
+<style>
+    /* ── KPI icon variants ─────────────────────────────── */
+    .ma-kpi-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .ma-kpi-icon-blue { background: var(--brand-primary-subtle); color: var(--brand-primary); }
+    .ma-kpi-icon-orange { background: var(--brand-accent-subtle); color: var(--brand-accent); }
+    .ma-kpi-icon-green { background: var(--success-subtle); color: var(--success); }
+    .ma-kpi-icon-amber { background: var(--warning-subtle); color: var(--warning); }
+
+    /* ── Leave ring components ─────────────────────────── */
+    .ma-leave-rings-row {
+        display: flex;
+        gap: 24px;
+        padding: 0;
+    }
+    .ma-leave-ring-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 0 16px;
+        border-right: 1px solid var(--border-subtle);
+    }
+    .ma-leave-ring-item:last-child { border-right: none; }
+    .ma-leave-ring-svg-wrap {
+        position: relative;
+        width: 90px;
+        height: 90px;
+        margin-bottom: 10px;
+    }
+    .ma-leave-ring-svg {
+        transform: rotate(-90deg);
+        display: block;
+    }
+    .ma-ring-label-inner {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .ma-ring-value-inner {
+        font-family: var(--font-mono);
+        font-size: 1rem;
+        font-weight: 800;
+        line-height: 1;
+        color: var(--text-primary);
+    }
+    .ma-ring-sub-inner {
+        font-size: 10px;
+        color: var(--text-muted);
+        margin-top: 2px;
+        font-weight: 600;
+    }
+    .ma-leave-type-name {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 2px;
+    }
+    .ma-leave-type-ref {
+        font-size: 11px;
+        color: var(--text-muted);
+    }
+
+    /* ── Payslip summary table ─────────────────────────── */
+    .ma-payslip-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .ma-payslip-table th {
+        text-align: left;
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: var(--text-muted);
+        font-weight: 600;
+        padding: 0 8px 8px 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+    .ma-payslip-table th:last-child { text-align: right; }
+    .ma-payslip-table td {
+        padding: 9px 8px 9px 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+    .ma-payslip-table tr:last-child td { border-bottom: none; }
+    .ma-payslip-table .ma-td-right { text-align: right; }
+
+    /* ── IRP5 dark card ────────────────────────────────── */
+    .ma-card-irp5 {
+        background: var(--bg-sidebar);
+        border-radius: var(--radius-lg);
+        border-left: 3px solid var(--brand-accent);
+        padding: 24px;
+    }
+    .ma-irp5-label {
+        color: rgba(203, 213, 225, 0.55);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        font-weight: 600;
+        margin-bottom: 4px;
+    }
+    .ma-irp5-code {
+        font-size: 10px;
+        color: rgba(203, 213, 225, 0.35);
+        font-family: var(--font-mono);
+        margin-bottom: 4px;
+    }
+    .ma-irp5-value {
+        color: white;
+        font-family: var(--font-mono);
+        font-size: 20px;
+        font-weight: 800;
+        line-height: 1;
+    }
+    .ma-irp5-value-accent { color: var(--brand-accent); }
+    .ma-irp5-footer {
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        margin-top: 20px;
+        padding-top: 14px;
+        font-size: 12px;
+        color: rgba(203, 213, 225, 0.5);
+    }
+    .ma-irp5-footer strong { color: var(--brand-accent); }
+
+    /* ── Deductions legend ─────────────────────────────── */
+    .ma-legend-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 0;
+        font-size: 12px;
+    }
+    .ma-legend-swatch {
+        width: 10px;
+        height: 10px;
+        border-radius: 2px;
+        flex-shrink: 0;
+    }
+    .ma-legend-label { flex: 1; color: var(--text-secondary); }
+    .ma-legend-amount { font-family: var(--font-mono); font-weight: 600; color: var(--text-primary); }
+    .ma-legend-pct { font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); min-width: 44px; text-align: right; }
+
+    /* ── Attendance stat card ──────────────────────────── */
+    .ma-att-stat {
+        text-align: center;
+        padding: 16px;
+    }
+    .ma-att-value {
+        font-family: var(--font-mono);
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1;
+        margin-bottom: 4px;
+    }
+    .ma-att-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: .05em;
+    }
+
+    /* ── IRP5 table ────────────────────────────────────── */
+    .ma-irp5-table { width: 100%; border-collapse: collapse; }
+    .ma-irp5-table th {
+        text-align: left;
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: var(--text-muted);
+        font-weight: 600;
+        padding: 8px 12px;
+        border-bottom: 2px solid var(--border-subtle);
+        background: var(--bg-table-header);
+    }
+    .ma-irp5-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border-subtle);
+        font-size: 13px;
+    }
+    .ma-irp5-table tr:last-child td { border-bottom: none; }
+
+    /* ── Mobile responsive ─────────────────────────────── */
+    @@media (max-width: 768px) {
+        .ma-leave-rings-row { flex-wrap: wrap; gap: 16px; }
+        .ma-leave-ring-item {
+            flex: 0 0 calc(50% - 8px);
+            border-right: none;
+            padding: 0;
+        }
+        .ma-grid-60-40 { grid-template-columns: 1fr !important; }
+    }
+    @@media (max-width: 640px) {
+        .ma-leave-ring-item { flex: 0 0 100%; }
+        .ma-leave-ring-svg-wrap { width: 70px; height: 70px; }
+        .ma-leave-ring-svg { width: 70px; height: 70px; }
+        .ma-ring-value-inner { font-size: .9rem; }
+        .ma-grid-3 { grid-template-columns: 1fr !important; }
+        .ma-grid-4 { grid-template-columns: 1fr 1fr !important; }
+        .ma-irp5-value { font-size: 16px !important; }
+    }
+</style>
+
+@* ── Page Header ──────────────────────────────────────────── *@
+<div style="margin-bottom:24px;">
+    <h1 style="font-size:1.5rem;font-weight:800;color:var(--text-primary);letter-spacing:-.5px;margin:0 0 4px;">
+        My Analytics, <span style="color:var(--brand-primary);">@_employeeFirstName</span></h1>
+    <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">
+        Your personal earnings, leave &amp; tax summary · Tax year @_selectedTaxYear
+    </p>
+</div>
+
+@* ── Tax Year Selector ────────────────────────────────────── *@
+<div style="margin-bottom:20px;display:flex;align-items:center;gap:10px;">
+    <label style="font-size:12px;font-weight:600;color:var(--text-secondary);">Tax Year:</label>
+    <select style="padding:6px 12px;border:1px solid var(--border-default);border-radius:var(--radius-md);font-size:13px;font-family:var(--font-sans);background:var(--bg-input);color:var(--text-primary);"
+            @bind="_selectedTaxYear">
+        @foreach (var ty in _taxYears)
+        {
+            <option value="@ty">@ty</option>
+        }
+    </select>
+</div>
+
+@* ── Section 1: Personal KPIs ─────────────────────────────── *@
+<!-- REQ-OPS-006: Personal earnings, leave and tax KPIs -->
+<div class="grid ma-grid-3" style="grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
+
+    <!-- YTD Net Earnings -->
+    <div class="card kpi-card">
+        <div class="flex items-center justify-between mb-3">
+            <span class="kpi-label">YTD Net Earnings</span>
+            <div class="ma-kpi-icon ma-kpi-icon-green">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2.5"/>
+                    <path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>
+                </svg>
+            </div>
+        </div>
+        <div class="kpi-value" style="font-size:22px;letter-spacing:-0.5px;">@FormatZar(_ytdNetEarnings)</div>
+        <div class="kpi-meta">
+            <span style="color:var(--text-muted);font-size:11.5px;">@_monthsPaid of 12 months paid this tax year</span>
+        </div>
+    </div>
+
+    <!-- Annual Leave Remaining -->
+    <div class="card kpi-card">
+        <div class="flex items-center justify-between mb-3">
+            <span class="kpi-label">Annual Leave Remaining</span>
+            <div class="ma-kpi-icon ma-kpi-icon-amber">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/>
+                    <path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/>
+                    <path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+                </svg>
+            </div>
+        </div>
+        <div class="kpi-value" style="color:var(--brand-accent);">@_annualLeaveRemaining.ToString("0.#") days</div>
+        <div class="kpi-meta">
+            <span style="font-size:11.5px;color:var(--text-muted);">@_annualLeaveUsed.ToString("0.#") days used · @_annualLeaveEntitlement days entitlement</span>
+        </div>
+    </div>
+
+    <!-- YTD PAYE Paid -->
+    <div class="card kpi-card">
+        <div class="flex items-center justify-between mb-3">
+            <span class="kpi-label">YTD PAYE Paid</span>
+            <div class="ma-kpi-icon ma-kpi-icon-blue">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/>
+                    <path d="M14 8H8"/><path d="M16 12H8"/><path d="M13 16H8"/>
+                </svg>
+            </div>
+        </div>
+        <div class="kpi-value" style="font-size:22px;letter-spacing:-0.5px;">@FormatZar(_ytdPaye)</div>
+        <div class="kpi-meta">
+            <span style="font-size:11.5px;color:var(--text-muted);">Monthly avg @FormatZar(_monthlyAvgPaye)</span>
+        </div>
+    </div>
+</div>
+
+@* ── Section 2: Recent Payslips + Earnings Placeholder ────── *@
+<!-- REQ-OPS-006: Earnings summary with last payslip and next pay date -->
+<div class="grid ma-grid-60-40" style="grid-template-columns:1.5fr 1fr;gap:16px;margin-bottom:24px;">
+
+    <!-- Earnings card -->
+    <div class="card">
+        <div class="card-header" style="margin-bottom:16px;">
+            <span class="card-title">My Earnings — Last 12 Months</span>
+            <span class="badge badge-muted" style="font-size:11px;">Chart loads with live data</span>
+        </div>
+        <!-- Earnings summary stats -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px;">
+            <div>
+                <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Gross YTD</div>
+                <div style="font-family:var(--font-mono);font-size:1.1rem;font-weight:800;color:var(--text-primary);">@FormatZar(_ytdGrossIncome)</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Net YTD</div>
+                <div style="font-family:var(--font-mono);font-size:1.1rem;font-weight:800;color:var(--brand-primary);">@FormatZar(_ytdNetEarnings)</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Last Payslip</div>
+                <div style="font-family:var(--font-mono);font-size:1.1rem;font-weight:800;color:var(--text-primary);">@FormatZar(_lastPayslipNet)</div>
+            </div>
+            <div>
+                <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">Next Pay Date</div>
+                <div style="font-size:1.1rem;font-weight:800;color:var(--text-primary);">@_nextPayDate</div>
+            </div>
+        </div>
+        <!-- Placeholder for chart area -->
+        <div style="height:200px;background:var(--bg-table-header);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:12px;color:var(--text-muted);">Earnings trend chart — connects to payroll data</span>
+        </div>
+    </div>
+
+    <!-- Recent Payslips table -->
+    <div class="card">
+        <div class="card-header" style="margin-bottom:12px;">
+            <span class="card-title">Recent Payslips</span>
+            <a class="card-action" href="/payroll/my-payslips">All payslips</a>
+        </div>
+        <table class="ma-payslip-table">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th style="text-align:right;">Gross</th>
+                    <th style="text-align:right;">Net</th>
+                    <th style="text-align:right;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var slip in _recentPayslips)
+                {
+                    <tr>
+                        <td>
+                            <div style="font-size:13px;font-weight:600;color:var(--text-primary);">@slip.Month</div>
+                            <div style="font-size:11px;color:var(--text-muted);">PAYE @FormatZar(slip.Paye)</div>
+                        </td>
+                        <td class="ma-td-right" style="font-family:var(--font-mono);font-size:13px;">@FormatZar(slip.Gross)</td>
+                        <td class="ma-td-right" style="font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--brand-primary);">@FormatZar(slip.Net)</td>
+                        <td class="ma-td-right"><span class="badge badge-success">Paid</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@* ── Section 3: Tax Deductions Summary ────────────────────── *@
+<!-- REQ-OPS-006: Tax summary — PAYE/UIF YTD, total deductions -->
+<div class="grid ma-grid-60-40" style="grid-template-columns:1.5fr 1fr;gap:16px;margin-bottom:24px;">
+
+    <!-- Deductions trend placeholder -->
+    <div class="card">
+        <div class="card-header" style="margin-bottom:12px;">
+            <span class="card-title">YTD Deductions Trend</span>
+            <span class="badge badge-muted" style="font-size:11px;">12 months</span>
+        </div>
+        <div style="height:200px;background:var(--bg-table-header);border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;">
+            <span style="font-size:12px;color:var(--text-muted);">Deductions stacked trend — connects to payroll data</span>
+        </div>
+    </div>
+
+    <!-- This Month's Deductions breakdown -->
+    <div class="card">
+        <div class="card-header" style="margin-bottom:12px;">
+            <span class="card-title">This Month's Deductions</span>
+            <span class="badge badge-muted" style="font-size:11px;">@_currentMonthLabel</span>
+        </div>
+        <!-- Deductions total -->
+        <div style="text-align:center;margin-bottom:16px;">
+            <div style="font-family:var(--font-mono);font-size:1.5rem;font-weight:800;color:var(--text-primary);">@FormatZar(_monthlyTotalDeductions)</div>
+            <div style="font-size:11px;color:var(--text-muted);font-weight:600;">Total Deductions</div>
+        </div>
+        <!-- Legend rows -->
+        <div>
+            <div class="ma-legend-row">
+                <div class="ma-legend-swatch" style="background:#1d4777;"></div>
+                <span class="ma-legend-label">PAYE</span>
+                <span class="ma-legend-amount">@FormatZar(_monthlyPaye)</span>
+                <span class="ma-legend-pct">@ComputePct(_monthlyPaye, _monthlyTotalDeductions)</span>
+            </div>
+            <div class="ma-legend-row">
+                <div class="ma-legend-swatch" style="background:#d4890e;"></div>
+                <span class="ma-legend-label">UIF</span>
+                <span class="ma-legend-amount">@FormatZar(_monthlyUif)</span>
+                <span class="ma-legend-pct">@ComputePct(_monthlyUif, _monthlyTotalDeductions)</span>
+            </div>
+            <div class="ma-legend-row">
+                <div class="ma-legend-swatch" style="background:#16a34a;"></div>
+                <span class="ma-legend-label">Pension</span>
+                <span class="ma-legend-amount">@FormatZar(_monthlyPension)</span>
+                <span class="ma-legend-pct">@ComputePct(_monthlyPension, _monthlyTotalDeductions)</span>
+            </div>
+            <div class="ma-legend-row">
+                <div class="ma-legend-swatch" style="background:#2563eb;"></div>
+                <span class="ma-legend-label">Medical Aid</span>
+                <span class="ma-legend-amount">@FormatZar(_monthlyMedical)</span>
+                <span class="ma-legend-pct">@ComputePct(_monthlyMedical, _monthlyTotalDeductions)</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* ── Section 4: Leave Balance Rings ───────────────────────── *@
+<!-- REQ-OPS-006: Leave balance breakdown — Annual, Sick, Family Responsibility -->
+<div class="card" style="margin-bottom:24px;">
+    <div class="card-header" style="margin-bottom:16px;">
+        <span class="card-title">My Leave Balances</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+            <span class="badge badge-muted" style="font-size:11px;">@_leaveCycleLabel</span>
+            <a class="card-action" href="/leave/my-requests">Apply for Leave</a>
+        </div>
+    </div>
+
+    <div class="ma-leave-rings-row">
+        @foreach (var leave in _leaveBalances)
+        {
+            <div class="ma-leave-ring-item">
+                <div class="ma-leave-ring-svg-wrap">
+                    <svg class="ma-leave-ring-svg" width="90" height="90" viewBox="0 0 90 90">
+                        <circle cx="45" cy="45" r="36" fill="none" stroke="var(--border-subtle)" stroke-width="8" />
+                        @if (leave.IsApplicable)
+                        {
+                            <circle cx="45" cy="45" r="36" fill="none" stroke="@leave.Color" stroke-width="8"
+                                    stroke-linecap="round" stroke-dasharray="226.2"
+                                    stroke-dashoffset="@ComputeRingOffset(leave.Remaining, leave.Entitlement)" />
+                        }
+                    </svg>
+                    <div class="ma-ring-label-inner">
+                        @if (leave.IsApplicable)
+                        {
+                            <div class="ma-ring-value-inner" style="color:@leave.Color;">@leave.Remaining.ToString("0.#")</div>
+                            <div class="ma-ring-sub-inner">days</div>
+                        }
+                        else
+                        {
+                            <div class="ma-ring-value-inner" style="color:var(--text-muted);font-size:.85rem;">N/A</div>
+                        }
+                    </div>
+                </div>
+                <div class="ma-leave-type-name" style="@(!leave.IsApplicable ? "color:var(--text-muted);" : "")">@leave.TypeName</div>
+                <div class="ma-leave-type-ref">@(leave.IsApplicable ? $"of {leave.Entitlement} days" : "not applicable")</div>
+            </div>
+        }
+    </div>
+
+    <!-- Upcoming leave strip -->
+    @if (!string.IsNullOrEmpty(_nextLeaveType))
+    {
+        <div style="margin-top:20px;padding-top:14px;border-top:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <div style="font-size:13px;color:var(--text-secondary);">
+                Your next approved leave:
+                <strong style="color:var(--text-primary);">@_nextLeaveType</strong>
+                <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);margin:0 4px;">·</span>
+                <span style="font-family:var(--font-mono);font-size:12px;">@_nextLeaveDates</span>
+                <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);margin:0 4px;">·</span>
+                @_nextLeaveDays days
+            </div>
+            <span class="badge badge-success">Approved</span>
+        </div>
+    }
+</div>
+
+@* ── Section 5: Attendance Stats ──────────────────────────── *@
+<!-- REQ-OPS-006: Attendance statistics — days worked, late arrivals, avg hours -->
+<div class="card" style="margin-bottom:24px;">
+    <div class="card-header" style="margin-bottom:12px;">
+        <span class="card-title">Attendance This Month</span>
+        <span class="badge badge-muted" style="font-size:11px;">@_currentMonthLabel</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+        <div class="ma-att-stat">
+            <div class="ma-att-value" style="color:var(--brand-primary);">@_daysWorked</div>
+            <div class="ma-att-label">Days Worked</div>
+        </div>
+        <div class="ma-att-stat">
+            <div class="ma-att-value" style="color:var(--warning);">@_lateArrivals</div>
+            <div class="ma-att-label">Late Arrivals</div>
+        </div>
+        <div class="ma-att-stat">
+            <div class="ma-att-value" style="color:var(--success);">@_avgHoursPerDay</div>
+            <div class="ma-att-label">Avg Hours/Day</div>
+        </div>
+        <div class="ma-att-stat">
+            <div class="ma-att-value">@_daysAbsent</div>
+            <div class="ma-att-label">Days Absent</div>
+        </div>
+    </div>
+</div>
+
+@* ── Section 6: YTD Tax Summary (IRP5 Preview) ───────────── *@
+<!-- REQ-OPS-006: Tax summary — PAYE, UIF, SDL YTD with IRP5 codes -->
+<div class="ma-card-irp5" style="margin-bottom:24px;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;">
+        <div>
+            <div style="font-size:14px;font-weight:700;color:white;margin-bottom:2px;">YTD Tax Summary — IRP5 Preview</div>
+            <div style="font-size:12px;color:rgba(203,213,225,0.5);">Statutory deductions year-to-date · Based on @_monthsPaid finalized payslips</div>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <span class="badge badge-muted" style="background:rgba(255,255,255,0.08);color:rgba(203,213,225,0.7);font-size:11px;">Tax year @_selectedTaxYear</span>
+            <span class="badge badge-muted" style="background:rgba(255,255,255,0.08);color:rgba(203,213,225,0.7);font-size:11px;">@_monthsPaid of 12 months</span>
+        </div>
+    </div>
+
+    <div class="grid ma-grid-4" style="grid-template-columns:repeat(4,1fr);gap:16px;">
+        <div>
+            <div class="ma-irp5-label">YTD Gross Income</div>
+            <div class="ma-irp5-code">IRP5 code 3699</div>
+            <div class="ma-irp5-value">@FormatZar(_ytdGrossIncome)</div>
+        </div>
+        <div>
+            <div class="ma-irp5-label">YTD PAYE Deducted</div>
+            <div class="ma-irp5-code">IRP5 code 4102</div>
+            <div class="ma-irp5-value">@FormatZar(_ytdPaye)</div>
+        </div>
+        <div>
+            <div class="ma-irp5-label">YTD UIF Deducted</div>
+            <div class="ma-irp5-code">IRP5 code 4141</div>
+            <div class="ma-irp5-value">@FormatZar(_ytdUif)</div>
+        </div>
+        <div>
+            <div class="ma-irp5-label">YTD Net Received</div>
+            <div class="ma-irp5-code">3699 minus deductions</div>
+            <div class="ma-irp5-value ma-irp5-value-accent">@FormatZar(_ytdNetEarnings)</div>
+        </div>
+    </div>
+
+    <div class="ma-irp5-footer">
+        Projected annual PAYE liability based on current earnings trajectory:
+        <strong>@FormatZar(_projectedAnnualPaye)</strong> ·
+        Effective tax rate: <strong>@_effectiveTaxRate%</strong> ·
+        SDL (employer): <strong>@FormatZar(_ytdSdl)</strong> ·
+        IRP5 certificate issued at tax year-end
+    </div>
+</div>
+
+@* ── Section 7: IRP5 Certificate Table ────────────────────── *@
+<!-- REQ-OPS-006: IRP5 certificate preview with SARS codes -->
+<div class="card" style="padding:0;overflow:hidden;margin-bottom:24px;">
+    <div style="padding:18px 24px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <div>
+            <h3 style="font-size:.95rem;font-weight:700;margin:0 0 2px;">IRP5 Certificate — Tax Year @_selectedTaxYear</h3>
+            <p style="font-size:.78rem;color:var(--text-secondary);margin:0;">Tax ref: <span style="font-family:var(--font-mono);">@_taxRefNumber</span> · Certificate: IRP5 (tax deducted)</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+            <button class="btn btn-outline btn-sm" disabled title="Available at tax year-end">
+                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>
+                </svg>
+                Download PDF
+            </button>
+        </div>
+    </div>
+    <div style="overflow-x:auto;">
+        <table class="ma-irp5-table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Description</th>
+                    <th style="text-align:right;">YTD Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var line in _irp5Lines)
+                {
+                    <tr style="@(line.IsCredit ? "background:rgba(39,174,96,.04);" : "")">
+                        <td style="font-family:var(--font-mono);font-weight:600;@(line.IsCredit ? "color:#27ae60;" : line.IsDanger ? "color:var(--danger);" : "")">@line.Code</td>
+                        <td style="color:@(line.IsCredit ? "#27ae60" : "var(--text-secondary)");">@line.Description</td>
+                        <td style="text-align:right;font-family:var(--font-mono);@(line.IsCredit ? "color:#27ae60;" : line.IsDanger ? "color:var(--danger);" : "")">@line.Amount</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div style="padding:14px 24px;border-top:1px solid var(--border-subtle);background:var(--bg-table-header);font-size:.78rem;color:var(--text-secondary);">
+        Use this certificate when completing your annual ITR12 return on SARS eFiling.
+    </div>
+</div>
+
+@code {
+    // REQ-OPS-006: My Analytics page — personal earnings, leave, and tax summary (TASK-116)
+
+    // ── Employee info (sample data for UI scaffold) ──────────────
+    private string _employeeFirstName = "Sarah";
+    private string _taxRefNumber = "9123456789";
+
+    // ── Tax year selector ────────────────────────────────────────
+    private string _selectedTaxYear = "1 Mar 2025 – 28 Feb 2026";
+    private readonly List<string> _taxYears = new()
+    {
+        "1 Mar 2025 – 28 Feb 2026",
+        "1 Mar 2024 – 28 Feb 2025",
+        "1 Mar 2023 – 29 Feb 2024"
+    };
+
+    // ── KPI values (sample — will connect to payroll service) ────
+    // REQ-OPS-006: Earnings summary
+    private decimal _ytdGrossIncome = 313500m;
+    private decimal _ytdNetEarnings = 231480m;
+    private decimal _lastPayslipNet = 21040m;
+    private string _nextPayDate = "25 Mar 2026";
+    private int _monthsPaid = 11;
+
+    // REQ-OPS-006: Tax summary — PAYE, UIF, SDL YTD
+    private decimal _ytdPaye = 48360m;
+    private decimal _ytdUif = 1947m;
+    private decimal _ytdSdl = 3135m; // 1% employer-only
+    private decimal _monthlyAvgPaye = 4396m;
+    private decimal _projectedAnnualPaye = 52680m;
+    private string _effectiveTaxRate = "16.8";
+
+    // ── Monthly deductions breakdown ─────────────────────────────
+    private string _currentMonthLabel = "Feb 2026";
+    private decimal _monthlyPaye = 5430m;
+    private decimal _monthlyUif = 177m;
+    private decimal _monthlyPension = 1425m;
+    private decimal _monthlyMedical = 428m;
+    private decimal _monthlyTotalDeductions = 7460m;
+
+    // ── Leave balances ───────────────────────────────────────────
+    // REQ-OPS-006: Leave balance breakdown
+    private string _leaveCycleLabel = "2025/2026 cycle";
+    private decimal _annualLeaveRemaining = 15.5m;
+    private decimal _annualLeaveUsed = 6.5m;
+    private int _annualLeaveEntitlement = 21;
+    private string _nextLeaveType = "Annual Leave";
+    private string _nextLeaveDates = "3–7 Mar 2026";
+    private int _nextLeaveDays = 5;
+
+    private List<LeaveBalanceItem> _leaveBalances = new();
+
+    // ── Attendance stats ─────────────────────────────────────────
+    // REQ-OPS-006: Attendance stats — days worked, late arrivals, avg hours/day
+    private int _daysWorked = 18;
+    private int _lateArrivals = 2;
+    private string _avgHoursPerDay = "8.2";
+    private int _daysAbsent = 0;
+
+    // ── Recent payslips ──────────────────────────────────────────
+    private List<PayslipSummary> _recentPayslips = new();
+
+    // ── IRP5 certificate lines ───────────────────────────────────
+    private List<Irp5Line> _irp5Lines = new();
+
+    // REQ-OPS-006: Initialize with sample data matching mockup
+    protected override void OnInitialized()
+    {
+        // Leave balances matching mockup
+        _leaveBalances = new List<LeaveBalanceItem>
+        {
+            new() { TypeName = "Annual", Remaining = 15.5m, Entitlement = 21, Color = "#1d4777", IsApplicable = true },
+            new() { TypeName = "Sick", Remaining = 28.5m, Entitlement = 30, Color = "var(--danger)", IsApplicable = true },
+            new() { TypeName = "Family", Remaining = 2.8m, Entitlement = 3, Color = "var(--brand-accent)", IsApplicable = true },
+            new() { TypeName = "Parental", Remaining = 9.0m, Entitlement = 10, Color = "var(--info)", IsApplicable = true },
+            new() { TypeName = "Maternity", Remaining = 0m, Entitlement = 0, Color = "var(--border-subtle)", IsApplicable = false },
+        };
+
+        // Recent payslips matching mockup
+        _recentPayslips = new List<PayslipSummary>
+        {
+            new() { Month = "Feb 2026", Gross = 28500m, Net = 21040m, Paye = 5430m },
+            new() { Month = "Jan 2026", Gross = 28500m, Net = 21040m, Paye = 5430m },
+            new() { Month = "Dec 2025", Gross = 28500m, Net = 21040m, Paye = 5430m },
+            new() { Month = "Nov 2025", Gross = 27800m, Net = 20540m, Paye = 5230m },
+            new() { Month = "Oct 2025", Gross = 27800m, Net = 20540m, Paye = 5230m },
+            new() { Month = "Sep 2025", Gross = 27800m, Net = 20540m, Paye = 5230m },
+        };
+
+        // IRP5 certificate lines matching mockup
+        _irp5Lines = new List<Irp5Line>
+        {
+            new() { Code = "3601", Description = "Salary, wages (subject to PAYE)", Amount = "R 582,000.00" },
+            new() { Code = "4001", Description = "Employee pension fund contribution", Amount = "(R 40,740.00)" },
+            new() { Code = "4005", Description = "Medical scheme contributions (employee)", Amount = "(R 20,400.00)" },
+            new() { Code = "4116", Description = "Medical Scheme Fees Tax Credit (Sec 6A)", Amount = "(R 4,368.00)", IsCredit = true },
+            new() { Code = "4102", Description = "PAYE (employees' tax deducted)", Amount = "R 116,601.00", IsDanger = true },
+            new() { Code = "4141", Description = "UIF contribution (employee)", Amount = "R 2,125.44" },
+            new() { Code = "4472", Description = "Employer pension fund contribution", Amount = "R 40,740.00" },
+            new() { Code = "4474", Description = "Employer medical scheme contribution", Amount = "R 24,000.00" },
+        };
+    }
+
+    // ── Format helpers ───────────────────────────────────────────
+    // REQ-OPS-006: All monetary values formatted as ZAR with R prefix
+    private static string FormatZar(decimal amount)
+    {
+        return $"R {amount:N0}";
+    }
+
+    private static string ComputePct(decimal part, decimal total)
+    {
+        if (total == 0m) return "0%";
+        return $"{part / total * 100m:F1}%";
+    }
+
+    private static string ComputeRingOffset(decimal remaining, int entitlement)
+    {
+        if (entitlement == 0) return "226.2";
+        var fraction = (double)(remaining / entitlement);
+        var offset = 226.2 * (1.0 - fraction);
+        return offset.ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    // ── View models ──────────────────────────────────────────────
+    // REQ-OPS-006: Leave balance display item
+    private sealed class LeaveBalanceItem
+    {
+        public string TypeName { get; init; } = "";
+        public decimal Remaining { get; init; }
+        public int Entitlement { get; init; }
+        public string Color { get; init; } = "";
+        public bool IsApplicable { get; init; }
+    }
+
+    // REQ-OPS-006: Payslip summary for recent payslips table
+    private sealed class PayslipSummary
+    {
+        public string Month { get; init; } = "";
+        public decimal Gross { get; init; }
+        public decimal Net { get; init; }
+        public decimal Paye { get; init; }
+    }
+
+    // REQ-OPS-006: IRP5 certificate line item
+    private sealed class Irp5Line
+    {
+        public string Code { get; init; } = "";
+        public string Description { get; init; } = "";
+        public string Amount { get; init; } = "";
+        public bool IsCredit { get; init; }
+        public bool IsDanger { get; init; }
+    }
+}

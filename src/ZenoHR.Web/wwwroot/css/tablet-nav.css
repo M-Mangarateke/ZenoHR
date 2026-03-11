@@ -1,0 +1,207 @@
+/* =====================================================
+   Tablet Navigation — Icon-only collapsed drawer (641–1024px)
+   REQ-OPS-007: Responsive icon-only drawer navigation for tablet viewports.
+   Overrides the default max-width:1024px rule that hides sidebar entirely.
+   Sidebar collapses to 64px (icon-only), expands to 260px on hover.
+   ===================================================== */
+
+/* ── Tablet range: 641px – 1024px ── */
+@media (min-width: 641px) and (max-width: 1024px) {
+
+  /* REQ-OPS-007: Show sidebar as collapsed icon-only strip instead of hiding it */
+  .sidebar {
+    transform: translateX(0) !important;
+    width: var(--sidebar-collapsed, 64px);
+    transition: width 0.2s ease;
+    overflow: visible;
+  }
+
+  /* REQ-OPS-007: Expand sidebar to full width on hover */
+  .sidebar:hover {
+    width: var(--sidebar-width, 260px);
+  }
+
+  /* ── Main content offset ── */
+  .main-wrapper,
+  .main-content,
+  .zenohr-body {
+    margin-left: var(--sidebar-collapsed, 64px) !important;
+    transition: margin-left 0.2s ease;
+  }
+
+  .sidebar:hover ~ .main-wrapper,
+  .sidebar:hover ~ .main-content,
+  .sidebar:hover ~ .zenohr-body {
+    margin-left: var(--sidebar-width, 260px) !important;
+  }
+
+  /* ── Hide drawer-open state override ── */
+  .sidebar.drawer-open {
+    transform: translateX(0);
+  }
+
+  /* ── Logo text: hidden in collapsed, visible on hover ── */
+  .sidebar .sidebar-logo-text,
+  .sidebar .brand-name {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition: opacity 0.15s ease, width 0.2s ease;
+  }
+
+  .sidebar:hover .sidebar-logo-text,
+  .sidebar:hover .brand-name {
+    opacity: 1;
+    width: auto;
+    pointer-events: auto;
+  }
+
+  /* ── Nav section labels: hidden in collapsed, visible on hover ── */
+  .sidebar .nav-section-label {
+    opacity: 0;
+    height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+    transition: opacity 0.15s ease, height 0.2s ease;
+  }
+
+  .sidebar:hover .nav-section-label {
+    opacity: 1;
+    height: auto;
+    padding-top: var(--space-3, 12px);
+    padding-bottom: var(--space-2, 8px);
+  }
+
+  /* ── Nav item labels: hidden in collapsed, visible on hover ── */
+  .sidebar .nav-label {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: opacity 0.15s ease, width 0.2s ease;
+  }
+
+  .sidebar:hover .nav-label {
+    opacity: 1;
+    width: auto;
+  }
+
+  /* ── Nav items: center icon when collapsed ── */
+  .sidebar .nav-item,
+  .sidebar .nav-item-link {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+    transition: all 0.2s ease;
+  }
+
+  .sidebar:hover .nav-item,
+  .sidebar:hover .nav-item-link {
+    justify-content: flex-start;
+    padding-left: var(--space-3, 12px);
+    padding-right: var(--space-3, 12px);
+  }
+
+  /* ── Nav icon: ensure it stays visible and centered in collapsed ── */
+  .sidebar .nav-icon {
+    flex-shrink: 0;
+    margin: 0 auto;
+    transition: margin 0.2s ease;
+  }
+
+  .sidebar:hover .nav-icon {
+    margin: 0;
+  }
+
+  /* ── Active indicator bar: hide in collapsed to avoid visual clutter ── */
+  .sidebar .nav-item.active::before,
+  .sidebar .nav-item-link.active::before {
+    display: none;
+  }
+
+  .sidebar:hover .nav-item.active::before,
+  .sidebar:hover .nav-item-link.active::before {
+    display: block;
+  }
+
+  /* ── Nav badge: hide in collapsed, show on hover ── */
+  .sidebar .nav-badge {
+    display: none;
+  }
+
+  .sidebar:hover .nav-badge {
+    display: inline-flex;
+  }
+
+  /* ── User panel at bottom: hide text in collapsed ── */
+  .sidebar .nav-user-panel,
+  .sidebar .sidebar-user {
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .sidebar .nav-user-name,
+  .sidebar .nav-signout-btn,
+  .sidebar .user-name,
+  .sidebar .user-role,
+  .sidebar .sidebar-user-info {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+    transition: opacity 0.15s ease, width 0.2s ease;
+  }
+
+  .sidebar:hover .nav-user-name,
+  .sidebar:hover .nav-signout-btn,
+  .sidebar:hover .user-name,
+  .sidebar:hover .user-role,
+  .sidebar:hover .sidebar-user-info {
+    opacity: 1;
+    width: auto;
+  }
+
+  /* =====================================================
+     CSS Tooltips — show label on icon hover when collapsed
+     REQ-OPS-007: Tooltips on collapsed nav icons
+     Uses data-nav-label attribute set on NavItem component.
+     ===================================================== */
+
+  /* Tooltip container positioning */
+  .sidebar .nav-item-link {
+    position: relative;
+  }
+
+  /* Tooltip pseudo-element: visible only when sidebar is collapsed */
+  .sidebar .nav-item-link[data-nav-label]::after {
+    content: attr(data-nav-label);
+    position: absolute;
+    left: calc(var(--sidebar-collapsed, 64px) - 4px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--bg-elevated, #1e293b);
+    color: var(--text-primary, #f1f5f9);
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: var(--radius-md, 8px);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 300;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    transition: opacity 0.15s ease;
+  }
+
+  /* Show tooltip on hover — only when sidebar is NOT expanded */
+  .sidebar:not(:hover) .nav-item-link[data-nav-label]:hover::after {
+    opacity: 1;
+  }
+
+  /* Hide tooltip when sidebar is expanded (labels are visible) */
+  .sidebar:hover .nav-item-link[data-nav-label]::after {
+    opacity: 0;
+    pointer-events: none;
+  }
+}

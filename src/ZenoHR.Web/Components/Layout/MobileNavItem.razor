@@ -1,0 +1,33 @@
+@* REQ-OPS-007: Individual mobile bottom navigation item with Lucide icon + label. *@
+@* REQ-SEC-002: Active state indicator uses brand-primary color per design tokens. *@
+@inject NavigationManager Nav
+
+<NavLink class="@ItemCssClass" href="@Href" Match="@Match">
+    <svg class="bottom-nav-icon" width="22" height="22" stroke-width="1.5" aria-hidden="true">
+        <use href="/icons/lucide-sprite.svg#@Icon" />
+    </svg>
+    <span class="bottom-nav-label">@Label</span>
+</NavLink>
+
+@code {
+    // REQ-OPS-007: Parameters for mobile bottom nav item rendering.
+
+    /// <summary>Navigation target route.</summary>
+    [Parameter, EditorRequired] public string Href { get; set; } = "/";
+
+    /// <summary>Lucide icon name (e.g. "layout-dashboard", "timer").</summary>
+    [Parameter, EditorRequired] public string Icon { get; set; } = "circle";
+
+    /// <summary>Short label displayed below the icon.</summary>
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+
+    /// <summary>Optional additional CSS class (e.g. "clock-in-nav" for accent styling).</summary>
+    [Parameter] public string? CssClass { get; set; }
+
+    /// <summary>NavLink match mode. Defaults to Prefix.</summary>
+    [Parameter] public NavLinkMatch Match { get; set; } = NavLinkMatch.Prefix;
+
+    private string ItemCssClass => string.IsNullOrEmpty(CssClass)
+        ? "bottom-nav-item"
+        : $"bottom-nav-item {CssClass}";
+}

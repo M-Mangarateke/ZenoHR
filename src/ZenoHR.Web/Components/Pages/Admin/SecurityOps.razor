@@ -1,0 +1,1359 @@
+@* REQ-SEC-005, PRD-15 S11: Security Operations Centre — SaasAdmin only. *@
+@* OWASP coverage, vulnerability tracking, incident timeline, POPIA controls, security event log. *@
+@page "/admin/security"
+@attribute [Authorize(Roles = "SaasAdmin")]
+@using Microsoft.AspNetCore.Authorization
+@rendermode InteractiveServer
+
+<PageTitle>Security Ops — ZenoHR Platform</PageTitle>
+
+<style>
+    /* ── Admin-specific overrides ── */
+
+    .env-banner {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: 8px 20px;
+        background: #0f1f33;
+        border-bottom: 1px solid rgba(224, 90, 30, 0.3);
+        border-radius: var(--radius-lg);
+        margin-bottom: var(--space-5);
+        flex-shrink: 0;
+    }
+
+    [data-theme="dark"] .env-banner {
+        background: #060c18;
+        border-bottom-color: rgba(224, 90, 30, 0.25);
+    }
+
+    .env-banner-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: var(--radius-full);
+        background: #e05a1e;
+        box-shadow: 0 0 6px rgba(224, 90, 30, 0.7);
+        flex-shrink: 0;
+        animation: pulse-admin 2s ease-in-out infinite;
+    }
+
+    @@keyframes pulse-admin {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.5; }
+    }
+
+    .env-banner-text {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #e05a1e;
+    }
+
+    .env-banner-sep {
+        width: 1px;
+        height: 14px;
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .env-banner-info {
+        font-size: 11px;
+        color: #94a3b8;
+        font-family: var(--font-mono);
+    }
+
+    /* Security score ring */
+    .sec-score-ring {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .sec-score-ring svg {
+        transform: rotate(-90deg);
+    }
+
+    .sec-score-label {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .sec-score-number {
+        font-family: var(--font-mono);
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--success);
+        line-height: 1;
+    }
+
+    .sec-score-sub {
+        font-size: 9px;
+        color: var(--text-secondary);
+        margin-top: 1px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    /* Admin KPI cards */
+    .admin-kpi-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-md);
+        padding: var(--space-5) var(--space-6);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .admin-kpi-card::before {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+    }
+
+    .admin-kpi-card.accent-blue::before { background: var(--brand-primary); }
+    .admin-kpi-card.accent-green::before { background: var(--success); }
+    .admin-kpi-card.accent-amber::before { background: var(--warning); }
+    .admin-kpi-card.accent-red::before { background: var(--danger); }
+
+    .admin-kpi-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-bottom: var(--space-2);
+    }
+
+    /* OWASP coverage table */
+    .owasp-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: 9px 0;
+        border-bottom: 1px solid var(--border-subtle);
+        font-size: 12.5px;
+    }
+
+    .owasp-row:last-child { border-bottom: none; }
+
+    .owasp-id {
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 700;
+        width: 56px;
+        flex-shrink: 0;
+        color: var(--text-muted);
+    }
+
+    .owasp-name {
+        flex: 1;
+        min-width: 0;
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .owasp-control {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-top: 1px;
+    }
+
+    .owasp-status {
+        flex-shrink: 0;
+    }
+
+    /* Threat feed */
+    .threat-row {
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-3);
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .threat-row:last-child { border-bottom: none; }
+
+    .threat-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 1px;
+    }
+
+    .threat-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .threat-title {
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--text-primary);
+        line-height: 1.35;
+    }
+
+    .threat-meta {
+        font-size: 10.5px;
+        color: var(--text-secondary);
+        margin-top: 2px;
+        font-family: var(--font-mono);
+    }
+
+    .threat-severity { flex-shrink: 0; }
+
+    /* Vuln severity badges */
+    .vuln-sev-critical { background: #fef2f2; color: #b91c1c; }
+    .vuln-sev-high { background: #fff7ed; color: #c2410c; }
+    .vuln-sev-medium { background: #fffbeb; color: #b45309; }
+    .vuln-sev-low { background: #f0fdf4; color: #15803d; }
+
+    [data-theme="dark"] .vuln-sev-critical { background: rgba(185, 28, 28, 0.2); color: #fca5a5; }
+    [data-theme="dark"] .vuln-sev-high { background: rgba(194, 65, 12, 0.2); color: #fdba74; }
+    [data-theme="dark"] .vuln-sev-medium { background: rgba(180, 83, 9, 0.2); color: #fcd34d; }
+    [data-theme="dark"] .vuln-sev-low { background: rgba(21, 128, 61, 0.2); color: #86efac; }
+
+    /* Auth anomaly log */
+    .auth-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-subtle);
+        font-size: 12.5px;
+    }
+
+    .auth-row:last-child { border-bottom: none; }
+
+    .auth-indicator {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .auth-info { flex: 1; min-width: 0; }
+
+    .auth-event {
+        font-weight: 500;
+        color: var(--text-primary);
+        line-height: 1.3;
+    }
+
+    .auth-detail {
+        font-size: 10.5px;
+        color: var(--text-secondary);
+        margin-top: 1px;
+        font-family: var(--font-mono);
+    }
+
+    /* Infrastructure card */
+    .infra-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-md);
+        padding: var(--space-5);
+    }
+
+    .infra-card-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--space-4);
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .infra-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 7px 0;
+        border-bottom: 1px solid var(--border-subtle);
+        font-size: 12px;
+    }
+
+    .infra-row:last-child { border-bottom: none; }
+    .infra-key { color: var(--text-secondary); }
+
+    .infra-val {
+        font-family: var(--font-mono);
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+
+    .infra-val.ok { color: var(--success); }
+    .infra-val.warn { color: var(--warning); }
+    .infra-val.danger { color: var(--danger); }
+
+    /* POPIA controls grid */
+    .popia-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--space-3);
+    }
+
+    .popia-item {
+        background: var(--bg-page);
+        border: 1px solid var(--border-default);
+        border-radius: var(--radius-lg);
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .popia-item.pass { border-color: rgba(22, 163, 74, 0.3); background: rgba(22, 163, 74, 0.04); }
+    .popia-item.partial { border-color: rgba(217, 119, 6, 0.3); background: rgba(217, 119, 6, 0.04); }
+    .popia-item.fail { border-color: rgba(220, 38, 38, 0.3); background: rgba(220, 38, 38, 0.04); }
+
+    [data-theme="dark"] .popia-item.pass { background: rgba(22, 163, 74, 0.08); }
+    [data-theme="dark"] .popia-item.partial { background: rgba(217, 119, 6, 0.08); }
+    [data-theme="dark"] .popia-item.fail { background: rgba(220, 38, 38, 0.08); }
+
+    .popia-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .popia-label {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .popia-id {
+        font-size: 10px;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+    }
+
+    /* Remediation tracker */
+    .remed-row {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .remed-row:last-child { border-bottom: none; }
+    .remed-info { flex: 1; min-width: 0; }
+
+    .remed-title {
+        font-size: 12.5px;
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+
+    .remed-meta {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-top: 2px;
+        font-family: var(--font-mono);
+    }
+
+    /* Incident banner */
+    .incident-banner {
+        background: rgba(220, 38, 38, 0.06);
+        border: 1px solid rgba(220, 38, 38, 0.2);
+        border-radius: var(--radius-lg);
+        padding: 12px 16px;
+        margin-bottom: var(--space-5);
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-3);
+    }
+
+    [data-theme="dark"] .incident-banner {
+        background: rgba(220, 38, 38, 0.1);
+        border-color: rgba(220, 38, 38, 0.3);
+    }
+
+    .incident-icon {
+        width: 36px;
+        height: 36px;
+        background: var(--danger-subtle);
+        color: var(--danger);
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .incident-body { flex: 1; }
+
+    .incident-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--danger);
+    }
+
+    .incident-detail {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-top: 3px;
+    }
+
+    .incident-actions {
+        display: flex;
+        gap: var(--space-2);
+        margin-top: 8px;
+    }
+
+    /* Risk matrix */
+    .risk-matrix {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 3px;
+        margin-top: var(--space-4);
+    }
+
+    .risk-cell {
+        aspect-ratio: 1;
+        border-radius: var(--radius-sm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform var(--transition-fast);
+    }
+
+    .risk-cell:hover { transform: scale(1.1); }
+    .risk-cell.low { background: #dcfce7; color: #15803d; }
+    .risk-cell.medium { background: #fef9c3; color: #854d0e; }
+    .risk-cell.high { background: #fed7aa; color: #c2410c; }
+    .risk-cell.critical { background: #fecaca; color: #b91c1c; }
+    .risk-cell.active { box-shadow: 0 0 0 2px var(--brand-primary); }
+
+    [data-theme="dark"] .risk-cell.low { background: rgba(21, 128, 61, 0.25); color: #86efac; }
+    [data-theme="dark"] .risk-cell.medium { background: rgba(133, 77, 14, 0.25); color: #fde68a; }
+    [data-theme="dark"] .risk-cell.high { background: rgba(194, 65, 12, 0.25); color: #fdba74; }
+    [data-theme="dark"] .risk-cell.critical { background: rgba(185, 28, 28, 0.25); color: #fca5a5; }
+
+    /* Form select */
+    .form-select {
+        height: 36px;
+        background: var(--bg-input);
+        border: 1.5px solid var(--border-default);
+        border-radius: var(--radius-sm);
+        padding: 0 30px 0 var(--space-3);
+        font-size: 13px;
+        color: var(--text-primary);
+        font-family: var(--font-primary);
+        outline: none;
+        transition: all var(--transition-default);
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+    }
+
+    /* ── Mobile responsive ── */
+    @@media (max-width: 640px) {
+        .env-banner {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            padding: 12px;
+        }
+
+        .env-banner-sep { display: none; }
+
+        .sec-kpi-grid { grid-template-columns: 1fr !important; }
+        .sec-two-col { grid-template-columns: 1fr !important; }
+        .sec-three-col { grid-template-columns: 1fr !important; }
+        .popia-grid { grid-template-columns: 1fr !important; }
+
+        .data-table thead { display: none; }
+        .data-table tbody tr {
+            display: block;
+            padding: 12px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+        .data-table td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            border: none;
+            font-size: 13px;
+        }
+        .data-table td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: var(--text-secondary);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .threat-row,
+        .auth-row,
+        .remed-row {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 6px;
+        }
+
+        .incident-banner { flex-direction: column; }
+    }
+</style>
+
+<!-- REQ-SEC-005: Environment Banner -->
+<div class="env-banner">
+    <div class="env-banner-dot"></div>
+    <span class="env-banner-text">PRODUCTION</span>
+    <div class="env-banner-sep"></div>
+    <span class="env-banner-info">Azure SA North (southafricanorth) · OWASP Top 10:2021 Coverage: @_owaspCoveredCount/10 · CTL-POPIA: @_popiaPassCount/15 controls passing</span>
+</div>
+
+<!-- Page Header -->
+<div class="page-header">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="page-title" style="font-size: 1.3rem; font-weight: 700;">Security Operations Centre</h1>
+            <p class="page-subtitle">Platform Security Posture · Last scanned @DateTime.Now.ToString("yyyy-MM-dd HH:mm") SAST</p>
+        </div>
+        <div class="flex gap-3 items-center">
+            @if (_activeIncidents.Count > 0)
+            {
+                <!-- REQ-SEC-005: Active incident indicator -->
+                <div style="display:flex;align-items:center;gap:6px;background:rgba(220,38,38,0.12);border:1px solid rgba(220,38,38,0.25);border-radius:var(--radius-md);padding:6px 12px;">
+                    <div style="width:7px;height:7px;border-radius:50%;background:var(--danger);animation:pulse-admin 1.5s ease-in-out infinite;"></div>
+                    <span style="font-size:11px;font-weight:700;color:var(--danger);">@_activeIncidents.Count Active Incident@(_activeIncidents.Count != 1 ? "s" : "")</span>
+                </div>
+            }
+            <button class="btn btn-sm"
+                    style="background:rgba(29,71,119,0.15);color:#4a8fd4;border:1px solid rgba(29,71,119,0.3);font-size:12px;"
+                    @onclick="RunScan"
+                    disabled="@_isScanning">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="1 4 1 10 7 10" />
+                    <path d="M3.51 15a9 9 0 1 0 .49-3.51" />
+                </svg>
+                @(_isScanning ? "Scanning..." : "Run Scan")
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- REQ-SEC-005: Active Incident Banner -->
+@foreach (var incident in _activeIncidents)
+{
+    <div class="incident-banner">
+        <div class="incident-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+            </svg>
+        </div>
+        <div class="incident-body">
+            <div class="incident-title">@incident.Id · @incident.Title</div>
+            <div class="incident-detail">@incident.Detail</div>
+            <div class="incident-actions">
+                <button class="btn btn-sm btn-danger">Escalate to Sev-1</button>
+                <button class="btn btn-sm btn-secondary">View Full Incident</button>
+                <button class="btn btn-sm btn-ghost">Notify Tenant</button>
+            </div>
+        </div>
+        <span class="badge badge-danger badge-nodot" style="font-size:11px;flex-shrink:0;">@incident.Severity Open</span>
+    </div>
+}
+
+<!-- REQ-SEC-005: Row 1 — Security Score + KPI Cards -->
+<div class="grid sec-kpi-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;gap:var(--card-gap);margin-bottom:var(--card-gap);">
+
+    <!-- Security Score -->
+    <div class="admin-kpi-card accent-blue"
+         style="flex-direction:row;align-items:center;gap:var(--space-4);padding:var(--space-4) var(--space-5);">
+        <div class="sec-score-ring">
+            <svg width="72" height="72" viewBox="0 0 72 72">
+                <circle cx="36" cy="36" r="30" fill="none" stroke="var(--border-default)" stroke-width="6" />
+                <circle cx="36" cy="36" r="30" fill="none" stroke="var(--success)" stroke-width="6"
+                        stroke-dasharray="@GetScoreArc(_securityScore) 188.5" stroke-linecap="round" />
+            </svg>
+            <div class="sec-score-label">
+                <span class="sec-score-number">@_securityScore</span>
+                <span class="sec-score-sub">/100</span>
+            </div>
+        </div>
+        <div>
+            <div class="kpi-label">Security Score</div>
+            <div style="font-size:11px;color:var(--success);font-weight:600;margin-top:4px;">@GetScoreRating(_securityScore)</div>
+            <div style="font-size:10.5px;color:var(--text-secondary);margin-top:2px;">+3 vs last month</div>
+        </div>
+    </div>
+
+    <!-- Open Vulnerabilities -->
+    <div class="admin-kpi-card accent-amber">
+        <div class="admin-kpi-icon" style="background:var(--warning-subtle);color:var(--warning);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" x2="12" y1="8" y2="12" />
+                <line x1="12" x2="12.01" y1="16" y2="16" />
+            </svg>
+        </div>
+        <div class="kpi-label">Open Vulnerabilities</div>
+        <div class="kpi-value">@_openVulnCount</div>
+        <div class="kpi-meta">
+            <span style="color:var(--warning);font-weight:600;">@_criticalVulnCount Critical · @_highVulnCount High · @_mediumVulnCount Med</span>
+        </div>
+    </div>
+
+    <!-- Active Incidents -->
+    <div class="admin-kpi-card accent-red">
+        <div class="admin-kpi-icon" style="background:var(--danger-subtle);color:var(--danger);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                <path d="M12 9v4" />
+                <path d="M12 17h.01" />
+            </svg>
+        </div>
+        <div class="kpi-label">Active Incidents</div>
+        <div class="kpi-value" style="color:var(--danger);">@_activeIncidents.Count</div>
+        <div class="kpi-meta">
+            @if (_activeIncidents.Count > 0)
+            {
+                <span class="trend-down">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.5">
+                        <polyline points="18 9 12 15 6 9" />
+                    </svg>
+                    @_activeIncidents[0].Severity
+                </span>
+                <text> @_activeIncidents[0].ShortDesc</text>
+            }
+        </div>
+    </div>
+
+    <!-- POPIA Compliance -->
+    <div class="admin-kpi-card accent-green">
+        <div class="admin-kpi-icon" style="background:var(--success-subtle);color:var(--success);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                <path d="m9 12 2 2 4-4" />
+            </svg>
+        </div>
+        <div class="kpi-label">POPIA Compliance</div>
+        <div class="kpi-value" style="color:var(--success);">@_popiaPercentage%</div>
+        <div class="kpi-meta">@_popiaPassCount / 15 controls passing</div>
+    </div>
+</div>
+
+<!-- REQ-SEC-005: Row 2 — OWASP Coverage + Threat Feed -->
+<div class="grid sec-two-col" style="grid-template-columns:60% 1fr;gap:var(--card-gap);margin-bottom:var(--card-gap);">
+
+    <!-- OWASP Top 10 Coverage -->
+    <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:var(--space-4) var(--space-5);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-default);">
+            <div>
+                <div style="font-size:14px;font-weight:600;color:var(--text-primary);">OWASP Top 10:2021 Coverage</div>
+                <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">@_owaspCoveredCount of 10 categories addressed</div>
+            </div>
+            <span class="badge @(_owaspCoveredCount == 10 ? "badge-success" : "badge-warning") badge-nodot" style="font-size:11px;">@_owaspCoveredCount/10 Covered</span>
+        </div>
+        <div style="padding:var(--space-3) var(--space-5);">
+            @foreach (var item in _owaspCategories)
+            {
+                <div class="owasp-row">
+                    <div class="owasp-id">@item.Id</div>
+                    <div>
+                        <div class="owasp-name">@item.Name</div>
+                        <div class="owasp-control">@item.Controls</div>
+                    </div>
+                    <div class="owasp-status">
+                        <span class="badge @GetOwaspBadgeClass(item.Status) badge-nodot" style="font-size:10px;">@item.Status</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Threat Intelligence Feed -->
+    <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-5);">
+            <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Threat Intelligence Feed</div>
+            <select class="form-select" style="width:110px;font-size:12px;" @bind="_threatSeverityFilter">
+                <option value="All">All Severity</option>
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+            </select>
+        </div>
+
+        @foreach (var threat in FilteredThreats)
+        {
+            <div class="threat-row">
+                <div class="threat-icon" style="background:@threat.IconBg;color:@threat.IconColor;">
+                    @((MarkupString)threat.IconSvg)
+                </div>
+                <div class="threat-info">
+                    <div class="threat-title">@threat.Title</div>
+                    <div class="threat-meta">@threat.Meta</div>
+                </div>
+                <span class="badge @GetThreatBadgeClass(threat.Severity) badge-nodot" style="font-size:10px;">@threat.Severity</span>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- REQ-SEC-005: Row 3 — Vulnerability Tracker + Auth Anomalies -->
+<div class="grid sec-two-col" style="grid-template-columns:60% 1fr;gap:var(--card-gap);margin-bottom:var(--card-gap);">
+
+    <!-- Vulnerability Tracker -->
+    <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:var(--space-4) var(--space-5);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border-default);">
+            <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Vulnerability Tracker</div>
+            <div class="flex gap-2 items-center">
+                <select class="form-select" style="width:110px;font-size:12px;" @bind="_vulnStatusFilter">
+                    <option value="All">All Status</option>
+                    <option value="Open">Open</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Resolved">Resolved</option>
+                </select>
+                <button class="btn btn-primary btn-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2.5">
+                        <line x1="12" x2="12" y1="5" y2="19" />
+                        <line x1="5" x2="19" y1="12" y2="12" />
+                    </svg>
+                    Log Finding
+                </button>
+            </div>
+        </div>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID / Finding</th>
+                        <th>Severity</th>
+                        <th>Component</th>
+                        <th>Status</th>
+                        <th>Due</th>
+                        <th style="text-align:right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var vuln in FilteredVulnerabilities)
+                    {
+                        <tr style="@(vuln.Status == "Resolved" ? "background:var(--success-subtle);" : "")">
+                            <td>
+                                <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">@vuln.Id</div>
+                                <div style="font-size:12.5px;font-weight:500;color:var(--text-primary);margin-top:1px;">@vuln.Finding</div>
+                            </td>
+                            <td>
+                                <span class="badge badge-nodot @GetVulnSeverityClass(vuln.Severity)" style="font-size:10px;padding:2px 8px;">@vuln.Severity</span>
+                            </td>
+                            <td style="font-size:12px;color:var(--text-secondary);">@vuln.Component</td>
+                            <td>
+                                <span class="badge @GetVulnStatusBadgeClass(vuln.Status) badge-nodot" style="font-size:10px;">@vuln.Status</span>
+                            </td>
+                            <td style="font-family:var(--font-mono);font-size:11px;color:@GetVulnDueColor(vuln);">@vuln.Due</td>
+                            <td style="text-align:right;"><button class="btn btn-ghost btn-sm">View</button></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div style="padding:10px 16px;border-top:1px solid var(--border-default);display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12px;color:var(--text-muted);">@_openVulnCount open · @_resolvedVulnCount resolved this month</span>
+            <button class="btn btn-ghost btn-sm">View All (@_vulnerabilities.Count)</button>
+        </div>
+    </div>
+
+    <!-- Auth Anomaly Log -->
+    <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-5);">
+            <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Auth Anomaly Log</div>
+            <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Last 24h · All tenants</span>
+        </div>
+
+        <!-- Summary bar -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-2);margin-bottom:var(--space-4);">
+            <div style="background:var(--danger-subtle);border:1px solid rgba(220,38,38,0.15);border-radius:var(--radius-md);padding:8px 10px;text-align:center;">
+                <div style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:var(--danger);">@_failedLogins</div>
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:1px;">Failed Logins</div>
+            </div>
+            <div style="background:var(--warning-subtle);border:1px solid rgba(217,119,6,0.15);border-radius:var(--radius-md);padding:8px 10px;text-align:center;">
+                <div style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:var(--warning);">@_anomalyCount</div>
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:1px;">Anomalies</div>
+            </div>
+            <div style="background:var(--success-subtle);border:1px solid rgba(22,163,74,0.15);border-radius:var(--radius-md);padding:8px 10px;text-align:center;">
+                <div style="font-size:18px;font-weight:700;font-family:var(--font-mono);color:var(--success);">@_authOkCount.ToString("N0")</div>
+                <div style="font-size:10px;color:var(--text-secondary);margin-top:1px;">Auth OK</div>
+            </div>
+        </div>
+
+        @foreach (var entry in _authEvents)
+        {
+            <div class="auth-row">
+                <div class="auth-indicator" style="background:@entry.IndicatorColor;@(entry.HasGlow ? $"box-shadow:0 0 4px {entry.GlowColor};" : "")"></div>
+                <div class="auth-info">
+                    <div class="auth-event">@entry.Event</div>
+                    <div class="auth-detail">@entry.Detail</div>
+                </div>
+                @if (!string.IsNullOrEmpty(entry.ActionLabel))
+                {
+                    <button class="btn btn-ghost btn-sm" style="font-size:11px;flex-shrink:0;">@entry.ActionLabel</button>
+                }
+                else
+                {
+                    <span class="badge @entry.BadgeClass badge-nodot" style="font-size:10px;flex-shrink:0;">@entry.BadgeText</span>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- REQ-SEC-005: Row 4 — Infrastructure Security + Risk Matrix + Dependencies -->
+<div class="grid sec-three-col" style="grid-template-columns:1fr 1fr 1fr;gap:var(--card-gap);margin-bottom:var(--card-gap);">
+
+    <!-- Infrastructure Security -->
+    <div class="infra-card">
+        <div class="infra-card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="var(--brand-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="8" x="2" y="2" rx="2" ry="2" />
+                <rect width="20" height="8" x="2" y="14" rx="2" ry="2" />
+                <line x1="6" x2="6.01" y1="6" y2="6" />
+                <line x1="6" x2="6.01" y1="18" y2="18" />
+            </svg>
+            Infrastructure Security
+        </div>
+        @foreach (var item in _infraItems)
+        {
+            <div class="infra-row">
+                <span class="infra-key">@item.Key</span>
+                <span class="infra-val @item.StatusClass">@item.Value</span>
+            </div>
+        }
+    </div>
+
+    <!-- Risk Matrix -->
+    <div class="infra-card">
+        <div class="infra-card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="var(--brand-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                <path d="m2 17 10 5 10-5" />
+                <path d="m2 12 10 5 10-5" />
+            </svg>
+            Risk Matrix (Probability x Impact)
+        </div>
+        <div style="display:flex;gap:var(--space-3);align-items:flex-start;margin-top:var(--space-2);">
+            <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:9px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;flex-shrink:0;">
+                Impact
+            </div>
+            <div style="flex:1;">
+                <div class="risk-matrix">
+                    @foreach (var cell in _riskMatrixCells)
+                    {
+                        <div class="risk-cell @cell.Level @(cell.IsActive ? "active" : "")" title="@cell.Tooltip">
+                            @cell.Label
+                        </div>
+                    }
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-top:6px;">
+                    <span style="font-size:9px;color:var(--text-muted);">Low Prob.</span>
+                    <span style="font-size:9px;color:var(--text-muted);">Probability</span>
+                    <span style="font-size:9px;color:var(--text-muted);">High Prob.</span>
+                </div>
+            </div>
+        </div>
+        <div style="margin-top:var(--space-3);display:flex;gap:var(--space-2);flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:4px;">
+                <div style="width:10px;height:10px;border-radius:2px;background:#dcfce7;"></div>
+                <span style="font-size:10px;color:var(--text-secondary);">Low</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;">
+                <div style="width:10px;height:10px;border-radius:2px;background:#fef9c3;"></div>
+                <span style="font-size:10px;color:var(--text-secondary);">Medium</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;">
+                <div style="width:10px;height:10px;border-radius:2px;background:#fed7aa;"></div>
+                <span style="font-size:10px;color:var(--text-secondary);">High</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;">
+                <div style="width:10px;height:10px;border-radius:2px;background:#fecaca;"></div>
+                <span style="font-size:10px;color:var(--text-secondary);">Critical</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-secondary);">
+                * = active concern
+            </div>
+        </div>
+    </div>
+
+    <!-- Dependency & Key Vault Health -->
+    <div class="infra-card">
+        <div class="infra-card-title">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="var(--brand-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                <line x1="12" x2="12" y1="22.08" y2="12" />
+            </svg>
+            Dependency &amp; Key Vault Health
+        </div>
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:var(--space-2);">NuGet Dependencies</div>
+        @foreach (var item in _nugetItems)
+        {
+            <div class="infra-row">
+                <span class="infra-key">@item.Key</span>
+                <span class="infra-val @item.StatusClass">@item.Value</span>
+            </div>
+        }
+        <div style="height:1px;background:var(--border-default);margin:var(--space-3) 0;"></div>
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:var(--space-2);">Azure Key Vault</div>
+        @foreach (var item in _keyVaultItems)
+        {
+            <div class="infra-row">
+                <span class="infra-key">@item.Key</span>
+                <span class="infra-val @item.StatusClass">@item.Value</span>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- REQ-SEC-005: Row 5 — POPIA Controls Grid -->
+<div class="card" style="margin-bottom:var(--card-gap);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-5);">
+        <div>
+            <div style="font-size:14px;font-weight:600;color:var(--text-primary);">POPIA Controls Status (CTL-POPIA-001 to CTL-POPIA-015)</div>
+            <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">@_popiaPassCount passing · @_popiaPartialCount partial · @_popiaFailCount failing · South African Protection of Personal Information Act compliance</div>
+        </div>
+        <button class="btn btn-secondary btn-sm">Download DPIA Report</button>
+    </div>
+    <div class="popia-grid">
+        @foreach (var control in _popiaControls)
+        {
+            <div class="popia-item @control.StatusClass">
+                <div class="popia-dot" style="background:@control.DotColor;"></div>
+                <div>
+                    <div class="popia-label">@control.Name</div>
+                    <div class="popia-id">@control.Id</div>
+                </div>
+            </div>
+        }
+    </div>
+    @if (_popiaPartialControls.Count > 0)
+    {
+        <div style="margin-top:var(--space-4);padding:10px 14px;background:rgba(217,119,6,0.06);border:1px solid rgba(217,119,6,0.2);border-radius:var(--radius-lg);display:flex;align-items:center;gap:var(--space-3);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                 stroke="var(--warning)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" x2="12" y1="8" y2="12" />
+                <line x1="12" x2="12.01" y1="16" y2="16" />
+            </svg>
+            <span style="font-size:12px;color:var(--text-secondary);">
+                @foreach (var partial in _popiaPartialControls)
+                {
+                    <strong style="color:var(--warning);">@partial.Id Partial:</strong>
+                    <text> @partial.Note </text>
+                }
+            </span>
+        </div>
+    }
+</div>
+
+<!-- REQ-SEC-005: Row 6 — Remediation Tracker + Pen Test & Certifications -->
+<div class="grid sec-two-col" style="grid-template-columns:60% 1fr;gap:var(--card-gap);">
+
+    <!-- Remediation Tracker -->
+    <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-5);">
+            <div style="font-size:14px;font-weight:600;color:var(--text-primary);">Remediation Tracker</div>
+            <div style="display:flex;gap:var(--space-2);">
+                <span class="badge badge-danger badge-nodot" style="font-size:10px;">@_overdueRemediations Overdue</span>
+                <span class="badge badge-warning badge-nodot" style="font-size:10px;">@_dueThisMonthRemediations Due this month</span>
+            </div>
+        </div>
+        @foreach (var item in _remediationItems)
+        {
+            <div class="remed-row">
+                <div style="width:4px;height:36px;border-radius:var(--radius-full);background:@item.BarColor;flex-shrink:0;"></div>
+                <div class="remed-info">
+                    <div class="remed-title">@item.Title</div>
+                    <div class="remed-meta">@item.Meta</div>
+                </div>
+                <span class="badge @item.BadgeClass badge-nodot" style="font-size:10px;flex-shrink:0;">@item.BadgeText</span>
+            </div>
+        }
+    </div>
+
+    <!-- Pen Test & Certifications -->
+    <div class="card">
+        <div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:var(--space-5);">Pen Test &amp; Certifications</div>
+
+        <!-- Last pen test -->
+        <div style="background:var(--bg-page);border:1px solid var(--border-default);border-radius:var(--radius-lg);padding:var(--space-4);margin-bottom:var(--space-4);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-2);">
+                <div style="font-size:12.5px;font-weight:600;color:var(--text-primary);">Last Penetration Test</div>
+                <span class="badge badge-success badge-nodot" style="font-size:10px;">Passed</span>
+            </div>
+            <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-secondary);line-height:1.6;">
+                Provider: SecureSA Pen Testing (Pty) Ltd<br>
+                Date: 2025-11-10 — 2025-11-14<br>
+                Scope: External + internal + social engineering<br>
+                Findings: 0 Critical / 0 High / 3 Medium (all remediated)<br>
+                Next test: Q3 2026 (scheduled)
+            </div>
+        </div>
+
+        <!-- Security Standards Status -->
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-muted);margin-bottom:var(--space-3);">Security Standards Status</div>
+
+        @foreach (var cert in _certifications)
+        {
+            <div class="remed-row">
+                <div class="popia-dot" style="background:@cert.DotColor;"></div>
+                <div class="remed-info">
+                    <div class="remed-title" style="font-size:12.5px;">@cert.Name</div>
+                    <div class="remed-meta">@cert.Detail</div>
+                </div>
+                <span class="badge @cert.BadgeClass badge-nodot" style="font-size:10px;flex-shrink:0;">@cert.BadgeText</span>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    // REQ-SEC-005: Security Operations Centre — SaasAdmin only
+
+    // Scan state
+    private bool _isScanning;
+
+    // Filters
+    private string _threatSeverityFilter = "All";
+    private string _vulnStatusFilter = "All";
+
+    // KPI values
+    private int _securityScore = 87;
+    private int _failedLogins = 18;
+    private int _anomalyCount = 2;
+    private int _authOkCount = 4219;
+
+    // Computed from data
+    private int _owaspCoveredCount => _owaspCategories.Count(c => c.Status == "Covered");
+    private int _popiaPassCount => _popiaControls.Count(c => c.StatusClass == "pass");
+    private int _popiaPartialCount => _popiaControls.Count(c => c.StatusClass == "partial");
+    private int _popiaFailCount => _popiaControls.Count(c => c.StatusClass == "fail");
+    private int _popiaPercentage => (int)Math.Round(_popiaPassCount * 100.0 / _popiaControls.Count);
+    private int _openVulnCount => _vulnerabilities.Count(v => v.Status is "Open" or "In Progress");
+    private int _resolvedVulnCount => _vulnerabilities.Count(v => v.Status == "Resolved");
+    private int _criticalVulnCount => _vulnerabilities.Count(v => v.Severity == "Critical" && v.Status is "Open" or "In Progress");
+    private int _highVulnCount => _vulnerabilities.Count(v => v.Severity == "High" && v.Status is "Open" or "In Progress");
+    private int _mediumVulnCount => _vulnerabilities.Count(v => v.Severity == "Medium" && v.Status is "Open" or "In Progress");
+    private int _overdueRemediations => _remediationItems.Count(r => r.BadgeText == "Overdue" || r.BadgeClass == "badge-danger");
+    private int _dueThisMonthRemediations => _remediationItems.Count(r => r.BadgeClass == "badge-warning");
+
+    // Filtered data
+    private IEnumerable<ThreatEntry> FilteredThreats => _threatSeverityFilter == "All"
+        ? _threatEntries
+        : _threatEntries.Where(t => t.Severity == _threatSeverityFilter || t.Severity == "Cleared");
+
+    private IEnumerable<VulnerabilityRow> FilteredVulnerabilities => _vulnStatusFilter == "All"
+        ? _vulnerabilities
+        : _vulnerabilities.Where(v => v.Status == _vulnStatusFilter);
+
+    private List<PopiaControl> _popiaPartialControls => _popiaControls
+        .Where(c => c.StatusClass == "partial")
+        .ToList();
+
+    // REQ-SEC-005: Score arc calculation for SVG ring
+    private static string GetScoreArc(int score)
+    {
+        var circumference = 2 * Math.PI * 30; // r=30
+        var arc = score / 100.0 * circumference;
+        return arc.ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    private static string GetScoreRating(int score) => score switch
+    {
+        >= 90 => "Excellent",
+        >= 80 => "Good",
+        >= 60 => "Fair",
+        _ => "Poor"
+    };
+
+    private static string GetOwaspBadgeClass(string status) => status switch
+    {
+        "Covered" => "badge-success",
+        "Partial" => "badge-warning",
+        "Not Covered" => "badge-danger",
+        _ => "badge-muted"
+    };
+
+    private static string GetThreatBadgeClass(string severity) => severity switch
+    {
+        "Critical" => "badge-danger",
+        "High" => "badge-danger",
+        "Medium" => "badge-warning",
+        "Low" => "badge-info",
+        "Cleared" => "badge-success",
+        _ => "badge-muted"
+    };
+
+    private static string GetVulnSeverityClass(string severity) => severity switch
+    {
+        "Critical" => "vuln-sev-critical",
+        "High" => "vuln-sev-high",
+        "Medium" => "vuln-sev-medium",
+        "Low" => "vuln-sev-low",
+        _ => ""
+    };
+
+    private static string GetVulnStatusBadgeClass(string status) => status switch
+    {
+        "Open" => "badge-warning",
+        "In Progress" => "badge-warning",
+        "Resolved" => "badge-success",
+        "Accepted" => "badge-info",
+        _ => "badge-muted"
+    };
+
+    private static string GetVulnDueColor(VulnerabilityRow vuln) => vuln.Status switch
+    {
+        "Resolved" => "var(--success)",
+        _ when vuln.Due == "Done" => "var(--success)",
+        _ => "var(--warning)"
+    };
+
+    // REQ-SEC-005: Run security scan action
+    private async Task RunScan()
+    {
+        _isScanning = true;
+        StateHasChanged();
+        await Task.Delay(2000); // Simulate scan
+        _isScanning = false;
+        StateHasChanged();
+    }
+
+    // ── Sample data ──
+
+    // REQ-SEC-005: Active incidents
+    private List<IncidentEntry> _activeIncidents = new()
+    {
+        new("INC-2026-009", "Auth Anomaly — Brute Force Detected", "Sev-2",
+            "Tenant T-000139 user account experienced 18 failed login attempts from IP 102.176.48.12 (ZA, ISP: Vodacom) over 6 minutes. Account auto-locked. MFA re-verification pending. Opened 2026-02-22 05:47 SAST.",
+            "INC-2026-009 brute force")
+    };
+
+    // REQ-SEC-005: OWASP Top 10:2021 categories
+    private List<OwaspCategory> _owaspCategories = new()
+    {
+        new("A01:2021", "Broken Access Control", "RBAC (PRD-15) + Firestore security rules + tenant_id on all queries + [Authorize] on all routes", "Covered"),
+        new("A02:2021", "Cryptographic Failures", "AES-256-GCM for PII fields · TLS 1.3 · SHA-256 hash chain · Azure Key Vault HSM", "Covered"),
+        new("A03:2021", "Injection", "Firestore SDK typed methods · Blazor auto-encoding · FluentValidation at API boundary", "Covered"),
+        new("A04:2021", "Insecure Design", "CDD 4-persona · MoneyZAR value object · Threat model per feature · Payroll transaction locks", "Covered"),
+        new("A05:2021", "Security Misconfiguration", "HSTS · CSP · X-Frame-Options DENY · CORS allowlist · No debug endpoints in prod", "Partial"),
+        new("A06:2021", "Vulnerable Components", "Dependabot weekly scan · dotnet-ossindex in CI · Trivy container scan · Pin Lucide CDN hash", "Partial"),
+        new("A07:2021", "Auth Failures", "Firebase Auth + MFA enforced for admin roles · RS256 JWT · Token revocation on logout · FIDO2 for SaasAdmin", "Covered"),
+        new("A08:2021", "Data & Software Integrity", "SHA-256 hash chain on audit trail · Immutable finalized records · Signed commits + container images", "Covered"),
+        new("A09:2021", "Security Logging & Monitoring", "OpenTelemetry → Azure Monitor · AuditEvent collection · Real-time alert thresholds · 13-month retention", "Covered"),
+        new("A10:2021", "SSRF", "Azure Firewall egress allowlist · No user-controllable URLs · QuestPDF: no remote fetch · Metadata endpoint blocked", "Covered")
+    };
+
+    // REQ-SEC-005: Threat intelligence feed
+    private List<ThreatEntry> _threatEntries = new()
+    {
+        new("Brute force — T-000139 account locked", "2026-02-22 05:47 SAST · 18 attempts · 102.176.48.12 (ZA)", "High",
+            "var(--danger-subtle)", "var(--danger)",
+            "<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M18 8h1a4 4 0 0 1 0 8h-1'/><path d='M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z'/><line x1='6' x2='6' y1='1' y2='4'/><line x1='10' x2='10' y1='1' y2='4'/><line x1='14' x2='14' y1='1' y2='4'/></svg>"),
+        new("Impossible travel detected — Director login", "2026-02-21 22:10 SAST · ZA → GB in 22 min · T-000147", "Medium",
+            "var(--warning-subtle)", "var(--warning)",
+            "<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4'/><polyline points='10 17 15 12 10 7'/><line x1='15' x2='3' y1='12' y2='12'/></svg>"),
+        new("Bulk payslip download — 47 files in 3 min", "2026-02-21 14:38 SAST · Rate limit triggered · T-000148", "Medium",
+            "var(--warning-subtle)", "var(--warning)",
+            "<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/><polyline points='14 2 14 8 20 8'/><path d='M9 15l2 2 4-4'/></svg>"),
+        new("Port scan detected — API gateway", "2026-02-21 11:02 SAST · WAF blocked 312 req · 41.185.0.0/16", "Low",
+            "var(--info-subtle)", "var(--info)",
+            "<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><path d='m4.93 4.93 14.14 14.14'/></svg>"),
+        new("Audit hash chain verified — all 12,840 events intact", "2026-02-22 03:00 SAST · Nightly job · 0 anomalies", "Cleared",
+            "var(--success-subtle)", "var(--success)",
+            "<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/><path d='m9 12 2 2 4-4'/></svg>"),
+        new("CVE-2025-6725 Telerik Blazor PDF — not affected", "2026-02-20 09:00 SAST · Dependency scan confirmed · No Telerik dependency", "Cleared",
+            "var(--success-subtle)", "var(--success)",
+            "<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M21 2H3v16h5l3 3 3-3h5V2z'/><path d='M9 12 11 14l4-4'/></svg>")
+    };
+
+    // REQ-SEC-005: Vulnerability tracker data (from vulnerability register)
+    private List<VulnerabilityRow> _vulnerabilities = new()
+    {
+        new("VLN-2026-014", "CSP: missing nonce on script-src", "High", "ZenoHR.Web / Blazor Server", "In Progress", "2026-03-01"),
+        new("VLN-2026-013", "CORS: staging env allows all origins", "Medium", "ZenoHR.Api / ASP.NET Core", "Open", "2026-03-08"),
+        new("VLN-2026-011", "Lucide CDN: unpinned @latest reference", "Medium", "All HTML mockups / CDN", "Open", "2026-03-15"),
+        new("VLN-2026-009", "sars-eti.json: outdated v1.0 rule set", "Low", "Seed Data / Compliance", "Resolved", "Done"),
+        new("VLN-2026-007", "Firestore rules: missing explicit deny on audit_events", "High", "Firestore / Security Rules", "Resolved", "Done")
+    };
+
+    // REQ-SEC-005: Auth anomaly log entries
+    private List<AuthEventEntry> _authEvents = new()
+    {
+        new("Brute force — 18 attempts, account locked", "user: k.dlamini@krugerretail.co.za · 05:47 · 102.176.48.12",
+            "var(--danger)", true, "rgba(220,38,38,0.5)", "Investigate", "", ""),
+        new("Impossible travel — ZA to GB in 22 minutes", "user: director@sableeng.co.za · 22:10 · T-000147",
+            "var(--warning)", false, "", "Review", "", ""),
+        new("New device login — MFA verified", "user: hr@acmemfg.co.za · 14:22 · Chrome/Win11 (new)",
+            "var(--warning)", false, "", "", "badge-warning", "Monitored"),
+        new("3 failed logins — incorrect password", "user: p.ferreira@novastaffing.co.za · 09:14 · 41.0.0.0/8",
+            "var(--border-strong)", false, "", "", "badge-muted", "Auto-reset"),
+        new("SaasAdmin login — FIDO2 verified", "admin@zenohr.io · 09:00 · Known device (Slack alert sent)",
+            "var(--success)", false, "", "", "badge-success", "OK"),
+        new("Mass auth OK — 4,219 successful logins", "All tenants · 24h window · No anomalies in pattern",
+            "var(--success)", false, "", "", "badge-success", "Normal")
+    };
+
+    // REQ-SEC-005: Infrastructure security items
+    private List<InfraItem> _infraItems = new()
+    {
+        new("TLS Version", "TLS 1.3 only", "ok"),
+        new("HSTS", "max-age=31536000", "ok"),
+        new("CSP nonce", "Partial (in progress)", "warn"),
+        new("X-Frame-Options", "DENY", "ok"),
+        new("CORS policy", "Allowlist (prod)", "ok"),
+        new("Firestore rules", "Last validated 2026-02-20", "ok"),
+        new("Container user", "non-root (app)", "ok"),
+        new("Managed Identity", "Enabled", "ok"),
+        new("Egress Firewall", "Azure Firewall UDR", "ok"),
+        new("Binary drift detect", "Defender enabled", "ok")
+    };
+
+    // REQ-SEC-005: NuGet dependency health
+    private List<InfraItem> _nugetItems = new()
+    {
+        new("Total packages", "47", ""),
+        new("Known CVEs", "0 Critical / 0 High", "ok"),
+        new("Outdated", "3 minor updates", "warn"),
+        new("Last Dependabot scan", "Today 06:00", "ok"),
+        new("Container scan (Trivy)", "0 Critical", "ok")
+    };
+
+    // REQ-SEC-005: Azure Key Vault health
+    private List<InfraItem> _keyVaultItems = new()
+    {
+        new("Secrets stored", "12", ""),
+        new("Oldest secret age", "78 days", "warn"),
+        new("Auto-rotation", "90-day policy active", "ok"),
+        new("HSM backing", "Premium (HSM)", "ok"),
+        new("Access logs", "Streamed to Monitor", "ok")
+    };
+
+    // REQ-SEC-005: POPIA controls (CTL-POPIA-001 to CTL-POPIA-015)
+    private List<PopiaControl> _popiaControls = new()
+    {
+        new("CTL-POPIA-001", "Data Minimisation", "pass", "var(--success)", ""),
+        new("CTL-POPIA-002", "Purpose Limitation", "pass", "var(--success)", ""),
+        new("CTL-POPIA-003", "Access Control (RBAC)", "pass", "var(--success)", ""),
+        new("CTL-POPIA-004", "Encryption at Rest", "pass", "var(--success)", ""),
+        new("CTL-POPIA-005", "Encryption in Transit", "pass", "var(--success)", ""),
+        new("CTL-POPIA-006", "Breach Detection", "pass", "var(--success)", ""),
+        new("CTL-POPIA-007", "Monthly Access Review", "pass", "var(--success)", ""),
+        new("CTL-POPIA-008", "Data Subject Rights", "pass", "var(--success)", ""),
+        new("CTL-POPIA-009", "Retention Enforcement", "pass", "var(--success)", ""),
+        new("CTL-POPIA-010", "Breach Notification (72h)", "pass", "var(--success)", ""),
+        new("CTL-POPIA-011", "Consent Audit Trail", "pass", "var(--success)", ""),
+        new("CTL-POPIA-012", "Cross-Border Data Controls", "pass", "var(--success)", ""),
+        new("CTL-POPIA-013", "DPA Agreements", "pass", "var(--success)", ""),
+        new("CTL-POPIA-014", "Privacy by Design (DPIA)", "partial", "var(--warning)", "DPIA template approved but not yet completed for the Tax Directive (IBIR-006) feature planned for Phase 2. DPIA must be completed before implementing any new PII field."),
+        new("CTL-POPIA-015", "Special Category Data", "pass", "var(--success)", "")
+    };
+
+    // REQ-SEC-005: Risk matrix cells (5x5, row-major from top-left)
+    private List<RiskMatrixCell> _riskMatrixCells = new()
+    {
+        // Row 5 (Critical impact)
+        new("medium", "M", false, ""),
+        new("high", "H", false, ""),
+        new("critical", "C *", true, "Tenant isolation bypass (active concern)"),
+        new("critical", "C", false, ""),
+        new("critical", "C", false, ""),
+        // Row 4
+        new("low", "L", false, ""),
+        new("medium", "M", false, ""),
+        new("high", "H", false, ""),
+        new("critical", "C", false, ""),
+        new("critical", "C", false, ""),
+        // Row 3
+        new("low", "L", false, ""),
+        new("low", "L", false, ""),
+        new("medium", "M *", true, "Auth brute force (open incident)"),
+        new("high", "H", false, ""),
+        new("critical", "C", false, ""),
+        // Row 2
+        new("low", "L", false, ""),
+        new("low", "L", false, ""),
+        new("low", "L", false, ""),
+        new("medium", "M", false, ""),
+        new("high", "H", false, ""),
+        // Row 1 (Low impact)
+        new("low", "L", false, ""),
+        new("low", "L", false, ""),
+        new("low", "L", false, ""),
+        new("low", "L", false, ""),
+        new("medium", "M", false, "")
+    };
+
+    // REQ-SEC-005: Remediation tracker items
+    private List<RemediationItem> _remediationItems = new()
+    {
+        new("Add CSP nonce to Blazor Server pipeline (VLN-2026-014)", "Owner: Dev Team · Due: 2026-03-01 · In Progress · Linked PR #142", "var(--warning)", "badge-warning", "High"),
+        new("Restrict CORS policy on staging environment (VLN-2026-013)", "Owner: DevOps · Due: 2026-03-08 · Open · Jira SEC-089", "var(--warning)", "badge-warning", "Med"),
+        new("Pin Lucide CDN to commit hash in all HTML mockups (VLN-2026-011)", "Owner: Dev Team · Due: 2026-03-15 · Open · Jira SEC-091", "var(--warning)", "badge-warning", "Med"),
+        new("Complete DPIA for Tax Directive feature (CTL-POPIA-014)", "Owner: Information Officer · Due: Before Phase 2 launch · Not Started", "var(--warning)", "badge-muted", "Required"),
+        new("Add explicit allow update: if false on audit_events Firestore rule (VLN-2026-007)", "Owner: Dev Team · Resolved 2026-02-18 · PR #138 merged", "var(--success)", "badge-success", "Done"),
+        new("Update sars-eti.json seed data to v1.1 on all tenants (VLN-2026-009)", "Owner: SaasAdmin · Resolved 2026-02-19 · Applied to 148 tenants", "var(--success)", "badge-success", "Done")
+    };
+
+    // REQ-SEC-005: Certifications / standards
+    private List<CertificationEntry> _certifications = new()
+    {
+        new("POPIA (Act 4 of 2013)", "Information Officer registered · 14/15 controls passing", "var(--success)", "badge-success", "94%"),
+        new("ISO 27001:2022", "Gap analysis in progress · Target: Q4 2026", "var(--warning)", "badge-warning", "In Progress"),
+        new("SOC 2 Type II", "Readiness assessment planned · Target: Q1 2027", "var(--warning)", "badge-muted", "Planned"),
+        new("SARS eFiling Security Baseline", "EMP201, IRP5, EMP501 — all controls met", "var(--success)", "badge-success", "Met"),
+        new("SARS ISV Accreditation (Direct API)", "Phase 2 roadmap · Form INF001 not yet submitted", "var(--border-strong)", "badge-muted", "Phase 2")
+    };
+
+    // REQ-SEC-005: Data model records
+    private sealed record IncidentEntry(string Id, string Title, string Severity, string Detail, string ShortDesc);
+    private sealed record OwaspCategory(string Id, string Name, string Controls, string Status);
+    private sealed record ThreatEntry(string Title, string Meta, string Severity, string IconBg, string IconColor, string IconSvg);
+    private sealed record VulnerabilityRow(string Id, string Finding, string Severity, string Component, string Status, string Due);
+    private sealed record AuthEventEntry(string Event, string Detail, string IndicatorColor, bool HasGlow, string GlowColor, string ActionLabel, string BadgeClass, string BadgeText);
+    private sealed record InfraItem(string Key, string Value, string StatusClass);
+    private sealed record PopiaControl(string Id, string Name, string StatusClass, string DotColor, string Note);
+    private sealed record RiskMatrixCell(string Level, string Label, bool IsActive, string Tooltip);
+    private sealed record RemediationItem(string Title, string Meta, string BarColor, string BadgeClass, string BadgeText);
+    private sealed record CertificationEntry(string Name, string Detail, string DotColor, string BadgeClass, string BadgeText);
+}

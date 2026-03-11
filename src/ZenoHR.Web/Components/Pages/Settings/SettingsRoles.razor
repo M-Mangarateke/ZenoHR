@@ -1,9 +1,718 @@
-@* REQ-SEC-002, PRD-15 S9: Role Management — Director and HRManager only. *@
-@* Create/manage Manager role variants and Employee types. *@
+@* REQ-SEC-002, PRD-15 S10: Role Management — Director and HRManager only. *@
+@* TASK-112: Role creation and permission management page. *@
+@* Custom Manager variants with selectable permission tokens. *@
 @page "/settings/roles"
+@rendermode InteractiveServer
 @attribute [Authorize(Roles = "Director,HRManager")]
 @using Microsoft.AspNetCore.Authorization
 
-<PageTitle>Role Management — ZenoHR</PageTitle>
-<h1>Role Management</h1>
-<p>Create and manage Manager role variants and Employee types for Zenowethu (Pty) Ltd.</p>
+<PageTitle>Roles — Settings — ZenoHR</PageTitle>
+
+@* ── Settings tab bar ─────────────────────────────────────────────────────── *@
+<div class="settings-tabs">
+    <a href="/settings/users" class="settings-tab">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+        Users
+    </a>
+    <a href="/settings/departments" class="settings-tab">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+        </svg>
+        Departments
+    </a>
+    <a href="/settings/roles" class="settings-tab settings-tab-active">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+        Roles
+    </a>
+    <a href="/settings/company" class="settings-tab">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+        Company
+    </a>
+    <a href="/settings/security" class="settings-tab">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+        Security
+    </a>
+</div>
+
+@* ── Split-panel layout ──────────────────────────────────────────────────── *@
+<div class="roles-layout">
+
+    @* ── Left: Role List Panel ── *@
+    <div class="card roles-list-panel" style="padding:0;overflow:hidden;">
+        <div class="roles-list-header">
+            <span class="card-title">Roles <span class="text-muted font-mono" style="font-size:12px;font-weight:500;">@FilteredRoles.Count</span></span>
+            <button class="btn btn-primary btn-sm" @onclick="OpenCreateModal">
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="12" x2="12" y1="5" y2="19" />
+                    <line x1="5" x2="19" y1="12" y2="12" />
+                </svg>
+                Create Role
+            </button>
+        </div>
+
+        @* ── Search ── *@
+        <div style="padding: 8px 12px 0 12px;">
+            <div class="search-wrapper" style="max-width:100%;">
+                <svg class="search-icon-inline" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.35-4.35" />
+                </svg>
+                <input type="text" placeholder="Search roles..." class="form-input search-input"
+                       @bind="_searchTerm" @bind:event="oninput" />
+            </div>
+        </div>
+
+        <div class="roles-list-scroll">
+            @foreach (var role in FilteredRoles)
+            {
+                <div class="role-card @(role.Id == _selectedRoleId ? "active" : "")"
+                     @onclick="() => SelectRole(role.Id)">
+                    <div class="role-icon @GetRoleBadgeClass(role.BaseRole)">@role.Initials</div>
+                    <div class="role-card-info">
+                        <div class="role-card-name">@role.Name</div>
+                        <div class="role-card-meta">
+                            <span class="badge badge-nodot @GetBadgeStyleClass(role.BaseRole)" style="font-size:10px;padding:2px 7px;">@role.BaseRole</span>
+                            &nbsp;&middot; @role.ScopeLabel
+                        </div>
+                    </div>
+                    <div class="role-user-count">@role.UserCount</div>
+                </div>
+            }
+        </div>
+    </div>
+
+    @* ── Right: Role Detail Panel ── *@
+    <div class="role-detail-panel">
+        @if (SelectedRole is not null)
+        {
+            @* ── Role Header Card ── *@
+            <div class="card" style="padding: var(--space-5) var(--space-6);">
+                <div class="flex items-center justify-between mb-5">
+                    <div class="flex items-center gap-4">
+                        <div class="role-icon @GetRoleBadgeClass(SelectedRole.BaseRole)"
+                             style="width:52px;height:52px;border-radius:14px;font-size:18px;">@SelectedRole.Initials</div>
+                        <div>
+                            <div style="font-size:20px;font-weight:700;color:var(--text-primary);letter-spacing:-0.4px;">
+                                @SelectedRole.Name
+                            </div>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="badge badge-nodot @GetBadgeStyleClass(SelectedRole.BaseRole)" style="font-size:11px;">@SelectedRole.BaseRole</span>
+                                @if (SelectedRole.IsSystem)
+                                {
+                                    <span class="text-muted" style="font-size:11px;">System base type &middot; read-only</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted" style="font-size:11px;">Custom role &middot; editable</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    @if (!SelectedRole.IsSystem)
+                    {
+                        <div class="flex gap-3">
+                            <button class="btn btn-danger btn-sm" style="opacity:0.85;" @onclick="() => ConfirmDeleteRole(SelectedRole)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="3 6 5 6 21 6" />
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                                </svg>
+                                Delete Role
+                            </button>
+                            <button class="btn btn-primary btn-sm" @onclick="() => OpenEditModal(SelectedRole)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                                </svg>
+                                Edit Role
+                            </button>
+                        </div>
+                    }
+                </div>
+
+                @* ── Description ── *@
+                @if (!string.IsNullOrWhiteSpace(SelectedRole.Description))
+                {
+                    <p class="text-muted" style="font-size:13px;margin-top:var(--space-2);">@SelectedRole.Description</p>
+                }
+
+                @* ── Department Scope (for Manager base type) ── *@
+                @if (SelectedRole.BaseRole == "Manager" && !string.IsNullOrWhiteSpace(SelectedRole.Department))
+                {
+                    <div style="margin-top:var(--space-4);">
+                        <div class="section-label">Department Scope</div>
+                        <div class="dept-scope-row">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                 stroke="var(--brand-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10" />
+                                <path d="M12 16v-4" />
+                                <path d="M12 8h.01" />
+                            </svg>
+                            <span style="font-size:12px;color:var(--brand-primary);">
+                                Scoped to <strong>@SelectedRole.Department</strong> department employees only.
+                            </span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            @* ── Permissions Card (for Manager base type) ── *@
+            @if (SelectedRole.BaseRole == "Manager")
+            {
+                <div class="card">
+                    <div class="card-header" style="margin-bottom:var(--space-4);">
+                        <span class="card-title">Permissions</span>
+                        <span class="badge badge-muted badge-nodot">Manager scope only</span>
+                    </div>
+                    <div class="permission-list">
+                        @foreach (var perm in _permissionTokens)
+                        {
+                            var isGranted = SelectedRole.Permissions.Contains(perm.Token);
+                            <div class="permission-row">
+                                <div class="permission-info">
+                                    <div class="permission-name">@perm.Token</div>
+                                    <div class="permission-desc">@perm.Description</div>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked="@isGranted" disabled />
+                                    <span class="toggle-track"></span>
+                                </label>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            @* ── Assigned Users Card ── *@
+            <div class="card">
+                <div class="card-header" style="margin-bottom:var(--space-4);">
+                    <span class="card-title">Assigned Users</span>
+                    <span class="badge badge-muted badge-nodot font-mono">@SelectedRole.UserCount users</span>
+                </div>
+                @foreach (var user in SelectedRole.AssignedUsers)
+                {
+                    <div class="assigned-user-row">
+                        <div class="avatar" style="background:@user.AvatarBg;color:@user.AvatarColor;width:32px;height:32px;font-size:12px;">@user.Initials</div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-size:13px;font-weight:600;color:var(--text-primary);">@user.Name</div>
+                            <div style="font-size:11.5px;color:var(--text-secondary);">@user.Email</div>
+                        </div>
+                    </div>
+                }
+                @if (SelectedRole.AssignedUsers.Count == 0)
+                {
+                    <div class="text-muted" style="font-size:13px;padding:var(--space-3) 0;">No users assigned to this role.</div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="card" style="padding:var(--space-8);text-align:center;">
+                <div class="text-muted" style="font-size:14px;">Select a role from the list to view details.</div>
+            </div>
+        }
+    </div>
+</div>
+
+@* ── Create/Edit Role Modal ─────────────────────────────────────────────── *@
+@if (_showModal)
+{
+    <div class="modal-backdrop" @onclick="CloseModal">
+        <div class="modal-card" @onclick:stopPropagation>
+            <div class="modal-header">
+                <h3 class="modal-title">@(_isEditing ? "Edit Custom Role" : "Create Custom Role")</h3>
+                <button class="icon-btn" @onclick="CloseModal" title="Close">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" x2="6" y1="6" y2="18" />
+                        <line x1="6" x2="18" y1="6" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Role Name</label>
+                    <input type="text" class="form-input" placeholder="e.g. Finance Manager"
+                           @bind="_modalName" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <input type="text" class="form-input" placeholder="Brief description of this role..."
+                           @bind="_modalDescription" />
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Base Role</label>
+                    <div class="dept-scope-row" style="margin-top:0;margin-bottom:var(--space-3);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                             stroke="var(--brand-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="M12 16v-4" />
+                            <path d="M12 8h.01" />
+                        </svg>
+                        <span style="font-size:12px;color:var(--brand-primary);">
+                            Custom roles can only extend the <strong>Manager</strong> base type.
+                        </span>
+                    </div>
+                    <span class="badge badge-nodot" style="background:var(--brand-accent-subtle);color:var(--brand-accent);font-size:12px;">Manager</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Department</label>
+                    <select class="form-select" @bind="_modalDepartment">
+                        <option value="">Select department...</option>
+                        <option value="Engineering">Engineering</option>
+                        <option value="Operations">Operations</option>
+                        <option value="Finance">Finance</option>
+                        <option value="Human Resources">Human Resources</option>
+                        <option value="Sales">Sales</option>
+                        <option value="Legal">Legal</option>
+                        <option value="Logistics">Logistics</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Permission Tokens</label>
+                    <div class="permission-list">
+                        @foreach (var perm in _permissionTokens)
+                        {
+                            var token = perm.Token;
+                            var isChecked = _modalPermissions.Contains(token);
+                            <div class="permission-row">
+                                <div class="permission-info">
+                                    <div class="permission-name">@perm.Token</div>
+                                    <div class="permission-desc">@perm.Description</div>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" checked="@isChecked"
+                                           @onchange="(e) => ToggleModalPermission(token, (bool)(e.Value ?? false))" />
+                                    <span class="toggle-track"></span>
+                                </label>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost btn-sm" @onclick="CloseModal">Cancel</button>
+                <button class="btn btn-primary btn-sm" @onclick="SaveRole" disabled="@string.IsNullOrWhiteSpace(_modalName)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    @(_isEditing ? "Save Changes" : "Create Role")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@* ── Delete Confirmation Modal ──────────────────────────────────────────── *@
+@if (_showDeleteConfirm)
+{
+    <div class="modal-backdrop" @onclick="() => _showDeleteConfirm = false">
+        <div class="modal-card" style="max-width:420px;" @onclick:stopPropagation>
+            <div class="modal-header">
+                <h3 class="modal-title">Delete Role</h3>
+                <button class="icon-btn" @onclick="() => _showDeleteConfirm = false" title="Close">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" x2="6" y1="6" y2="18" />
+                        <line x1="6" x2="18" y1="6" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:13.5px;color:var(--text-primary);">
+                    Are you sure you want to delete <strong>@_deleteTarget?.Name</strong>?
+                    This action cannot be undone.
+                </p>
+                @if (_deleteTarget?.UserCount > 0)
+                {
+                    <div class="dept-scope-row" style="background:var(--danger-subtle);border-color:rgba(220,38,38,0.15);margin-top:var(--space-3);">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                             stroke="var(--danger)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                            <line x1="12" x2="12" y1="9" y2="13" />
+                            <line x1="12" x2="12.01" y1="17" y2="17" />
+                        </svg>
+                        <span style="font-size:12px;color:var(--danger);">
+                            @_deleteTarget.UserCount user(s) are assigned to this role and will need reassignment.
+                        </span>
+                    </div>
+                }
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost btn-sm" @onclick="() => _showDeleteConfirm = false">Cancel</button>
+                <button class="btn btn-danger btn-sm" @onclick="DeleteRole">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                    </svg>
+                    Delete Role
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    /* ── Settings tab bar (shared across all settings pages) ── */
+    .settings-tabs { display: flex; gap: 2px; background: var(--bg-page); border: 1px solid var(--border); border-radius: var(--radius-lg, 12px); padding: 4px; width: fit-content; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .settings-tab { display: flex; align-items: center; gap: 0.5rem; padding: 8px 18px; border-radius: var(--radius-md, 8px); font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; transition: all 0.15s; border: none; background: transparent; text-decoration: none; white-space: nowrap; }
+    .settings-tab:hover { color: var(--text-primary); background: var(--bg-card); }
+    .settings-tab-active { background: var(--bg-card); color: var(--brand-primary); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+    /* ── Split-panel layout ── */
+    .roles-layout { display: flex; gap: var(--card-gap, 1.25rem); align-items: flex-start; min-height: calc(100vh - 64px - 28px - 62px - 16px); }
+    .roles-list-panel { width: 30%; flex-shrink: 0; display: flex; flex-direction: column; gap: 0; max-height: calc(100vh - 64px - 28px - 62px - 16px); overflow: hidden; }
+    .roles-list-header { display: flex; align-items: center; justify-content: space-between; padding: var(--space-4, 16px) var(--space-5, 20px); border-bottom: 1px solid var(--border-default, #e2e8f0); flex-shrink: 0; }
+    .roles-list-scroll { flex: 1; overflow-y: auto; padding: var(--space-3, 12px); }
+
+    /* ── Role cards ── */
+    .role-card { display: flex; align-items: center; gap: var(--space-3, 12px); padding: 12px 14px; border-radius: var(--radius-lg, 12px); cursor: pointer; transition: all 0.15s; border: 1.5px solid transparent; margin-bottom: 4px; background: var(--bg-surface, #fff); }
+    .role-card:hover { background: var(--bg-surface-hover, #f8fafc); border-color: var(--border-default, #e2e8f0); }
+    .role-card.active { background: var(--brand-primary-subtle, #e8f0f8); border-color: var(--brand-primary, #1d4777); }
+
+    .role-icon { width: 38px; height: 38px; border-radius: var(--radius-md, 8px); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 15px; font-weight: 700; }
+    .role-card-info { flex: 1; min-width: 0; }
+    .role-card-name { font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .role-card-meta { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .role-user-count { font-size: 11px; font-weight: 700; color: var(--text-muted); font-family: var(--font-mono, 'JetBrains Mono', monospace); flex-shrink: 0; }
+
+    /* ── Right detail panel ── */
+    .role-detail-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--card-gap, 1.25rem); }
+
+    /* ── Role badge colors ── */
+    .role-badge-director { background: #f0f4ff; color: #3730a3; }
+    .role-badge-hrmanager { background: var(--brand-primary-subtle, #e8f0f8); color: var(--brand-primary, #1d4777); }
+    .role-badge-manager { background: var(--brand-accent-subtle, #fdf3e0); color: var(--brand-accent, #d4890e); }
+    .role-badge-employee { background: var(--success-subtle, #dcfce7); color: var(--success, #16a34a); }
+    .role-badge-saasadmin { background: var(--danger-subtle, #fef2f2); color: var(--danger, #dc2626); }
+
+    .badge-style-director { background: #f0f4ff; color: #3730a3; }
+    .badge-style-hrmanager { background: var(--brand-primary-subtle, rgba(29,71,119,0.08)); color: var(--brand-primary); }
+    .badge-style-manager { background: var(--brand-accent-subtle, rgba(212,137,14,0.1)); color: var(--brand-accent, #d4890e); }
+    .badge-style-employee { background: var(--success-subtle, rgba(22,163,74,0.08)); color: var(--success, #16a34a); }
+    .badge-style-saasadmin { background: var(--danger-subtle, rgba(220,38,38,0.08)); color: var(--danger, #dc2626); }
+
+    /* ── Permission toggles ── */
+    .permission-list { display: flex; flex-direction: column; gap: 0; }
+    .permission-row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border-subtle, #f1f5f9); gap: var(--space-4, 16px); }
+    .permission-row:last-child { border-bottom: none; }
+    .permission-info { flex: 1; min-width: 0; }
+    .permission-name { font-size: 12px; font-weight: 500; color: var(--text-primary); font-family: var(--font-mono, 'JetBrains Mono', monospace); }
+    .permission-desc { font-size: 11.5px; color: var(--text-secondary); margin-top: 2px; }
+
+    /* ── Toggle switch ── */
+    .toggle-switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; display: inline-block; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-track { position: absolute; inset: 0; border-radius: 9999px; background: var(--border-strong, #cbd5e1); cursor: pointer; transition: background 0.15s; }
+    .toggle-track::after { content: ''; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: white; transition: transform 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+    .toggle-switch input:checked + .toggle-track { background: var(--brand-primary, #1d4777); }
+    .toggle-switch input:checked + .toggle-track::after { transform: translateX(18px); }
+
+    /* ── Assigned users ── */
+    .assigned-user-row { display: flex; align-items: center; gap: var(--space-3, 12px); padding: 10px 0; border-bottom: 1px solid var(--border-subtle, #f1f5f9); }
+    .assigned-user-row:last-child { border-bottom: none; }
+    .avatar { width: 32px; height: 32px; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; color: white; flex-shrink: 0; }
+
+    /* ── Section label ── */
+    .section-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-muted); margin-bottom: var(--space-4, 16px); }
+    .dept-scope-row { display: flex; align-items: center; gap: var(--space-3, 12px); padding: 10px 14px; background: var(--brand-primary-subtle, #e8f0f8); border-radius: var(--radius-md, 8px); border: 1px solid rgba(29,71,119,0.15); margin-top: var(--space-4, 16px); }
+
+    /* ── Search ── */
+    .search-wrapper { position: relative; flex: none; max-width: 300px; }
+    .search-icon-inline { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none; }
+    .search-input { padding-left: 36px; height: 36px; border-radius: 9999px; }
+
+    /* ── Form elements ── */
+    .form-group { margin-bottom: var(--space-4, 16px); }
+    .form-label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .form-select { height: 40px; background: var(--bg-input, #fff); border: 1.5px solid var(--border-default, #e2e8f0); border-radius: var(--radius-sm, 6px); padding: 0 var(--space-3, 12px); font-size: 13.5px; color: var(--text-primary); outline: none; transition: all 0.15s; width: 100%; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px; }
+    .form-select:focus { border-color: var(--border-focus, #1d4777); box-shadow: var(--shadow-focus, 0 0 0 3px rgba(29,71,119,0.12)); }
+
+    /* ── Modal ── */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: var(--space-4, 16px); }
+    .modal-card { background: var(--bg-surface, #fff); border-radius: var(--radius-lg, 12px); width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: var(--space-5, 20px) var(--space-6, 24px); border-bottom: 1px solid var(--border-default, #e2e8f0); }
+    .modal-title { font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0; }
+    .modal-body { padding: var(--space-5, 20px) var(--space-6, 24px); }
+    .modal-footer { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3, 12px); padding: var(--space-4, 16px) var(--space-6, 24px); border-top: 1px solid var(--border-default, #e2e8f0); }
+
+    /* ── Dark mode overrides ── */
+    [data-theme="dark"] .role-card.active { background: rgba(29,71,119,0.18); border-color: rgba(74,143,212,0.4); }
+    [data-theme="dark"] .role-badge-director { background: rgba(55,48,163,0.2); color: #a5b4fc; }
+    [data-theme="dark"] .role-badge-hrmanager { background: rgba(29,71,119,0.25); color: #93c5fd; }
+    [data-theme="dark"] .role-badge-manager { background: rgba(212,137,14,0.2); color: #fbbf24; }
+    [data-theme="dark"] .role-badge-employee { background: rgba(22,163,74,0.15); color: #4ade80; }
+    [data-theme="dark"] .role-badge-saasadmin { background: rgba(220,38,38,0.15); color: #f87171; }
+    [data-theme="dark"] .dept-scope-row { background: rgba(29,71,119,0.12); border-color: rgba(74,143,212,0.2); }
+
+    /* ── Mobile ── */
+    @@media (max-width: 640px) {
+        .settings-tabs { overflow-x: auto; width: 100%; }
+        .settings-tab { padding: 8px 14px; font-size: 12px; }
+        .roles-layout { flex-direction: column; min-height: auto; }
+        .roles-list-panel { width: 100%; max-height: 280px; }
+        .roles-list-scroll { max-height: 200px; }
+        .role-detail-panel { width: 100%; }
+        .permission-row { flex-wrap: wrap; gap: 8px; }
+        .dept-scope-row { flex-direction: column; align-items: flex-start; }
+        .modal-card { max-width: 100%; margin: 0 var(--space-3, 12px); }
+    }
+</style>
+
+@code {
+    // REQ-SEC-002: Role management — create, edit, delete custom Manager variants
+    // PRD-15: RBAC — 5 system roles, dynamic custom roles with 6 permission tokens
+
+    private string _searchTerm = string.Empty;
+    private string _selectedRoleId = "director";
+
+    // Modal state
+    private bool _showModal;
+    private bool _isEditing;
+    private string _editingRoleId = string.Empty;
+    private string _modalName = string.Empty;
+    private string _modalDescription = string.Empty;
+    private string _modalDepartment = string.Empty;
+    private HashSet<string> _modalPermissions = [];
+
+    // Delete confirmation
+    private bool _showDeleteConfirm;
+    private RoleEntry? _deleteTarget;
+
+    // REQ-SEC-002: 6 permission tokens for Manager-variant custom roles
+    private static readonly List<PermissionToken> _permissionTokens =
+    [
+        new("leave.team.view",        "View leave requests submitted by team members"),
+        new("leave.team.approve",     "Approve or reject leave requests for team members"),
+        new("timesheet.team.view",    "View timesheets submitted by team members"),
+        new("timesheet.team.approve", "Approve or reject team timesheets"),
+        new("employee.team.view",     "View employee profiles within assigned department"),
+        new("reports.team.view",      "Access team-scoped reports and summaries"),
+    ];
+
+    // REQ-SEC-002: 5 immutable system roles + sample custom roles
+    private readonly List<RoleEntry> _roles =
+    [
+        new("director", "Executive Director", "Director", true, "ED", null,
+            "Full tenant access. Can create roles, departments, manage users.",
+            [], 2,
+            [
+                new("JM", "James Mathebula", "james@zenowethu.co.za", "#3730a3", "#f0f4ff"),
+                new("CE", "Carol Ellis", "carol@zenowethu.co.za", "#3730a3", "#f0f4ff"),
+            ]),
+        new("hrmanager", "HR Manager", "HRManager", true, "HM", null,
+            "Identical to Director. Day-to-day HR operations.",
+            [], 3,
+            [
+                new("SN", "Sarah Nkosi", "sarah@zenowethu.co.za", "#1d4777", "#e8f0f8"),
+                new("NZ", "Nandi Zulu", "nandi@zenowethu.co.za", "#d4890e", "#fdf3e0"),
+                new("PM", "Priya Moodley", "priya.m@zenowethu.co.za", "#1d4777", "#e8f0f8"),
+            ]),
+        new("engmgr", "Engineering Manager", "Manager", false, "EM", "Engineering",
+            "Manager scoped to Engineering department.",
+            ["leave.team.view", "leave.team.approve", "timesheet.team.view", "employee.team.view"], 1,
+            [
+                new("LD", "Lerato Dlamini", "lerato@zenowethu.co.za", "#d4890e", "#fdf3e0"),
+            ]),
+        new("opsmgr", "Operations Manager", "Manager", false, "OM", "Operations",
+            "Manager scoped to Operations department.",
+            ["leave.team.view", "leave.team.approve", "timesheet.team.view", "timesheet.team.approve", "employee.team.view"], 2,
+            [
+                new("TM", "Thabo Molefe", "thabo@zenowethu.co.za", "#d4890e", "#fdf3e0"),
+                new("KS", "Kagiso Sithole", "kagiso@zenowethu.co.za", "#d4890e", "#fdf3e0"),
+            ]),
+        new("employee", "Standard Employee", "Employee", true, "SE", null,
+            "Self-service only. Own profile, payslips, leave requests.",
+            [], 234,
+            [
+                new("PN", "Priya Naidoo", "priya@zenowethu.co.za", "#16a34a", "#dcfce7"),
+                new("AV", "Andre van Wyk", "andre@zenowethu.co.za", "#16a34a", "#dcfce7"),
+            ]),
+        new("saasadmin", "Platform Admin", "SaasAdmin", true, "PA", null,
+            "Platform-wide operations. Cannot read tenant data.",
+            [], 1,
+            [
+                new("SA", "System Admin", "admin@zenohr.co.za", "#dc2626", "#fef2f2"),
+            ]),
+    ];
+
+    private RoleEntry? SelectedRole => _roles.FirstOrDefault(r => r.Id == _selectedRoleId);
+
+    private List<RoleEntry> FilteredRoles => _roles
+        .Where(r => string.IsNullOrEmpty(_searchTerm)
+            || r.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase)
+            || r.BaseRole.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))
+        .ToList();
+
+    private void SelectRole(string roleId) => _selectedRoleId = roleId;
+
+    private static string GetRoleBadgeClass(string baseRole) => baseRole.ToLowerInvariant() switch
+    {
+        "director"   => "role-badge-director",
+        "hrmanager"  => "role-badge-hrmanager",
+        "manager"    => "role-badge-manager",
+        "employee"   => "role-badge-employee",
+        "saasadmin"  => "role-badge-saasadmin",
+        _            => "role-badge-manager",
+    };
+
+    private static string GetBadgeStyleClass(string baseRole) => baseRole.ToLowerInvariant() switch
+    {
+        "director"   => "badge-style-director",
+        "hrmanager"  => "badge-style-hrmanager",
+        "manager"    => "badge-style-manager",
+        "employee"   => "badge-style-employee",
+        "saasadmin"  => "badge-style-saasadmin",
+        _            => "badge-style-manager",
+    };
+
+    // REQ-SEC-002: Open modal to create a new custom Manager-variant role
+    private void OpenCreateModal()
+    {
+        _isEditing = false;
+        _editingRoleId = string.Empty;
+        _modalName = string.Empty;
+        _modalDescription = string.Empty;
+        _modalDepartment = string.Empty;
+        _modalPermissions = ["leave.team.view", "leave.team.approve", "employee.team.view"];
+        _showModal = true;
+    }
+
+    // REQ-SEC-002: Open modal to edit an existing custom role
+    private void OpenEditModal(RoleEntry role)
+    {
+        if (role.IsSystem) return;
+        _isEditing = true;
+        _editingRoleId = role.Id;
+        _modalName = role.Name;
+        _modalDescription = role.Description;
+        _modalDepartment = role.Department ?? string.Empty;
+        _modalPermissions = [.. role.Permissions];
+        _showModal = true;
+    }
+
+    private void CloseModal() => _showModal = false;
+
+    private void ToggleModalPermission(string token, bool isChecked)
+    {
+        if (isChecked)
+            _modalPermissions.Add(token);
+        else
+            _modalPermissions.Remove(token);
+    }
+
+    // REQ-SEC-002: Save (create or update) a custom role
+    private void SaveRole()
+    {
+        if (string.IsNullOrWhiteSpace(_modalName)) return;
+
+        var initials = string.Concat(
+            _modalName.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Take(2)
+                .Select(w => char.ToUpperInvariant(w[0])));
+
+        if (_isEditing)
+        {
+            var existing = _roles.FirstOrDefault(r => r.Id == _editingRoleId);
+            if (existing is not null && !existing.IsSystem)
+            {
+                var index = _roles.IndexOf(existing);
+                _roles[index] = existing with
+                {
+                    Name = _modalName,
+                    Description = _modalDescription,
+                    Department = string.IsNullOrWhiteSpace(_modalDepartment) ? null : _modalDepartment,
+                    Initials = initials,
+                    Permissions = [.. _modalPermissions],
+                };
+            }
+        }
+        else
+        {
+            var id = _modalName.ToLowerInvariant().Replace(" ", "-") + "-" + Guid.NewGuid().ToString("N")[..6];
+            _roles.Add(new RoleEntry(
+                id, _modalName, "Manager", false, initials,
+                string.IsNullOrWhiteSpace(_modalDepartment) ? null : _modalDepartment,
+                _modalDescription, [.. _modalPermissions], 0, []));
+            _selectedRoleId = id;
+        }
+
+        _showModal = false;
+    }
+
+    // REQ-SEC-002: Cannot delete system roles
+    private void ConfirmDeleteRole(RoleEntry role)
+    {
+        if (role.IsSystem) return;
+        _deleteTarget = role;
+        _showDeleteConfirm = true;
+    }
+
+    private void DeleteRole()
+    {
+        if (_deleteTarget is not null && !_deleteTarget.IsSystem)
+        {
+            _roles.Remove(_deleteTarget);
+            if (_selectedRoleId == _deleteTarget.Id)
+            {
+                _selectedRoleId = _roles.FirstOrDefault()?.Id ?? string.Empty;
+            }
+        }
+        _deleteTarget = null;
+        _showDeleteConfirm = false;
+    }
+
+    // REQ-SEC-002: Role entry — system roles are immutable
+    private sealed record RoleEntry(
+        string Id,
+        string Name,
+        string BaseRole,
+        bool IsSystem,
+        string Initials,
+        string? Department,
+        string Description,
+        List<string> Permissions,
+        int UserCount,
+        List<AssignedUser> AssignedUsers)
+    {
+        public string ScopeLabel => BaseRole switch
+        {
+            "SaasAdmin" => "System-wide",
+            "Employee"  => "Self-service only",
+            "Manager" when !string.IsNullOrWhiteSpace(Department) => Department!,
+            _ => "All departments",
+        };
+    }
+
+    private sealed record AssignedUser(
+        string Initials,
+        string Name,
+        string Email,
+        string AvatarColor,
+        string AvatarBg);
+
+    private sealed record PermissionToken(string Token, string Description);
+}

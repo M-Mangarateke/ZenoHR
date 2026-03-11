@@ -1,0 +1,73 @@
+@* REQ-OPS-008: Dark/light mode toggle button — sun/moon icon swap with smooth transition. *@
+@* Uses ThemeService (scoped) to persist preference and zenohr.js interop for DOM updates. *@
+
+@rendermode InteractiveServer
+@implements IDisposable
+@inject ZenoHR.Web.Services.ThemeService ThemeService
+
+<button class="theme-toggle-btn"
+        @onclick="ToggleTheme"
+        title="@(_isDark ? "Switch to light mode" : "Switch to dark mode")"
+        aria-label="@(_isDark ? "Switch to light mode" : "Switch to dark mode")">
+    @if (_isDark)
+    {
+        @* Sun icon — shown in dark mode, clicking switches to light *@
+        <svg class="theme-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2"></path>
+            <path d="M12 20v2"></path>
+            <path d="m4.93 4.93 1.41 1.41"></path>
+            <path d="m17.66 17.66 1.41 1.41"></path>
+            <path d="M2 12h2"></path>
+            <path d="M20 12h2"></path>
+            <path d="m6.34 17.66-1.41 1.41"></path>
+            <path d="m19.07 4.93-1.41 1.41"></path>
+        </svg>
+    }
+    else
+    {
+        @* Moon icon — shown in light mode, clicking switches to dark *@
+        <svg class="theme-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+        </svg>
+    }
+</button>
+
+@code {
+    // REQ-OPS-008: Theme toggle state management
+    private bool _isDark;
+
+    protected override void OnInitialized()
+    {
+        ThemeService.OnThemeChanged += HandleThemeChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await ThemeService.InitializeAsync();
+            _isDark = ThemeService.IsDarkMode;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleTheme()
+    {
+        await ThemeService.ToggleThemeAsync();
+        _isDark = ThemeService.IsDarkMode;
+    }
+
+    private void HandleThemeChanged()
+    {
+        _isDark = ThemeService.IsDarkMode;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        ThemeService.OnThemeChanged -= HandleThemeChanged;
+    }
+}

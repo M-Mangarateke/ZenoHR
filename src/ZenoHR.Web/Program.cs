@@ -13,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using ZenoHR.Infrastructure.Auth;
 using ZenoHR.Infrastructure.Extensions;
 using ZenoHR.Web.Components;
+using ZenoHR.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -95,6 +96,10 @@ builder.Services.AddAuthorization(options =>
 
 // ── Firestore + Infrastructure services ──────────────────────────────────────
 builder.Services.AddZenoHrFirestore(builder.Configuration);
+
+// ── Theme Service (REQ-OPS-008) ───────────────────────────────────────────────
+// Scoped: each Blazor Server circuit gets its own ThemeService instance.
+builder.Services.AddScoped<ThemeService>();
 
 // ── Blazor Razor Components ───────────────────────────────────────────────────
 builder.Services.AddRazorComponents()
