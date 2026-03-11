@@ -58,6 +58,7 @@ public enum ZenoHrErrorCode
     ComplianceCheckFailed = 5004,
     InvalidBreachStatusTransition = 5005,
     BreachNotInRequiredStatus = 5006,
+    EFilingSubmissionFailed = 5010,
 
     // ── 6xxx — Audit ─────────────────────────────────────────────────────────
     HashChainBroken = 6000,

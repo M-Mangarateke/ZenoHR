@@ -56,6 +56,9 @@ builder.Services.AddZenoHrRateLimiting(); // VUL-007
 // Background services — nightly analytics, EMP201 reminders, ETI expiry alerts (REQ-OPS-003)
 builder.Services.AddZenoHrBackgroundServices();
 
+// REQ-OPS-003: Custom business metrics (ZenoHrMetrics) + health checks (TASK-151)
+builder.Services.AddZenoHrObservability(builder.Configuration);
+
 // ── App pipeline ─────────────────────────────────────────────────────────────
 var app = builder.Build();
 
@@ -74,17 +77,10 @@ app.UseAuthorization();          // 8th: enforce policies (TASK-025)
 app.UseRateLimiter();            // 9th: rate limiting (REQ-SEC-003)
 
 // Health check endpoints — anonymous, no auth, no rate limit required
-// REQ-OPS-007: Liveness + readiness probes for Azure Container Apps (TASK-148).
+// REQ-OPS-007: Liveness + readiness probes for Azure Container Apps (TASK-148/TASK-151).
 // /health      → liveness  (is the process alive? returns 200 if so)
-// /health/ready → readiness (is the app ready to serve traffic? same check for now;
-//                            extend to verify Firestore connectivity when startup probe is added)
-app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "ZenoHR.Api" }))
-   .WithName("HealthCheck")
-   .AllowAnonymous();
-
-app.MapGet("/health/ready", () => Results.Ok(new { status = "ready", service = "ZenoHR.Api" }))
-   .WithName("ReadinessCheck")
-   .AllowAnonymous();
+// /health/ready → readiness (checks Firestore connectivity via FirestoreHealthCheck)
+app.MapZenoHrHealthChecks();
 
 // ── Module API endpoints (TASK-067, TASK-070, TASK-071, TASK-086) ─────────────
 app.MapEmployeeEndpoints();   // GET/POST/PUT /api/employees

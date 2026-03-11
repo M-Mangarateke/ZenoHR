@@ -1,14 +1,19 @@
+// REQ-OPS-003: OpenTelemetry observability + health checks for ZenoHR.
 // REQ-OPS-005: Structured telemetry via OpenTelemetry SDK — traces, metrics, and logs.
 // REQ-OPS-006: Azure Monitor (Application Insights) integration for production observability.
+// REQ-OPS-007: Health check endpoints for Azure Container Apps liveness/readiness probes.
 // TC-OPS-004: Health endpoint and telemetry pipeline verified in integration tests.
 
 using Azure.Monitor.OpenTelemetry.AspNetCore;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using OpenTelemetry.Trace;
+using ZenoHR.Api.Observability.HealthChecks;
 
 namespace ZenoHR.Api.Observability;
 
 /// <summary>
-/// Registers OpenTelemetry tracing, metrics, and Azure Monitor export for the ZenoHR API host.
+/// Registers OpenTelemetry tracing, metrics, Azure Monitor export, health checks,
+/// and custom business metrics for the ZenoHR API host.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -47,6 +52,7 @@ public static class ObservabilityExtensions
     /// Adds OpenTelemetry tracing + metrics + Azure Monitor export to the API host.
     /// Call this from <c>Program.cs</c> before <c>builder.Build()</c>.
     /// </summary>
+    // REQ-OPS-005, REQ-OPS-006: Telemetry pipeline with Azure Monitor exporter.
     public static WebApplicationBuilder AddZenoHrTelemetry(this WebApplicationBuilder builder)
     {
         // JSON console formatter in non-Development environments.
@@ -79,5 +85,55 @@ public static class ObservabilityExtensions
                 metrics.AddMeter(MeterName));
 
         return builder;
+    }
+
+    /// <summary>
+    /// Registers custom business metrics (<see cref="ZenoHrMetrics"/>) and health checks
+    /// (liveness + Firestore readiness) for the ZenoHR API host.
+    /// Call this from <c>Program.cs</c> before <c>builder.Build()</c>.
+    /// </summary>
+    // REQ-OPS-003: Custom metrics + health check registration.
+    // REQ-OPS-007: Health checks for Azure Container Apps probes.
+    public static IServiceCollection AddZenoHrObservability(
+        this IServiceCollection services, IConfiguration configuration)
+    {
+        // REQ-OPS-003: Register custom business metrics as a singleton.
+        // ZenoHrMetrics uses IMeterFactory (provided by OTel SDK) to create instruments.
+        services.AddSingleton<ZenoHrMetrics>();
+
+        // REQ-OPS-007: Health checks — liveness (default) + readiness (Firestore connectivity).
+        services.AddHealthChecks()
+            .AddCheck<FirestoreHealthCheck>(
+                name: "firestore",
+                failureStatus: Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy,
+                tags: ["ready"]);
+
+        return services;
+    }
+
+    /// <summary>
+    /// Maps health check endpoints for Azure Container Apps probes.
+    /// <list type="bullet">
+    ///   <item><c>/health</c> — liveness probe (is the process alive?)</item>
+    ///   <item><c>/health/ready</c> — readiness probe (can the app serve traffic? checks Firestore)</item>
+    /// </list>
+    /// </summary>
+    // REQ-OPS-007: Liveness + readiness probes for Azure Container Apps (TASK-148).
+    public static WebApplication MapZenoHrHealthChecks(this WebApplication app)
+    {
+        // /health — liveness: returns 200 if the process is alive.
+        // Excludes all tagged checks — just confirms the host is running.
+        app.MapHealthChecks("/health", new HealthCheckOptions
+        {
+            Predicate = _ => false // No dependency checks — pure liveness
+        }).AllowAnonymous();
+
+        // /health/ready — readiness: runs checks tagged "ready" (Firestore connectivity).
+        app.MapHealthChecks("/health/ready", new HealthCheckOptions
+        {
+            Predicate = check => check.Tags.Contains("ready")
+        }).AllowAnonymous();
+
+        return app;
     }
 }
