@@ -12,6 +12,7 @@ using ZenoHR.Infrastructure.Services.Filing;
 using ZenoHR.Infrastructure.Services.Filing.Emp201;
 using ZenoHR.Infrastructure.Services.Filing.Emp501;
 using ZenoHR.Infrastructure.Services.Payslip;
+using ZenoHR.Module.Compliance.Services.EFiling;
 
 namespace ZenoHR.Infrastructure.Extensions;
 
@@ -87,6 +88,10 @@ public static class FirestoreExtensions
         // REQ-COMP-001, CTL-SARS-006: ComplianceSubmission repository + filing workflow (TASK-091)
         services.AddSingleton<ComplianceSubmissionRepository>();
         services.AddSingleton<FilingWorkflowService>();
+
+        // CTL-SARS-010: eFiling client (stub) + EMP201 submission service (TASK-131)
+        services.AddSingleton<IEFilingClient, StubEFilingClient>();
+        services.AddSingleton<Emp201SubmissionService>();
 
         // REQ-SEC-002, REQ-SEC-003: RBAC — user role assignments repository
         // Note: ZenoHrClaimsTransformation (IClaimsTransformation) is registered in

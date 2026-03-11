@@ -88,6 +88,7 @@ app.MapLeaveEndpoints();      // GET/POST/PUT /api/leave/requests, /api/leave/ba
 app.MapClockEndpoints();      // POST /api/clock/in|out, GET /api/clock/today|team
 app.MapPayrollEndpoints();    // GET/POST/PUT /api/payroll/runs, /api/payroll/adjustments
 app.MapComplianceEndpoints(); // REQ-COMP-001: GET/POST /api/compliance/submissions, emp201, emp501
+app.MapEFilingEndpoints();    // CTL-SARS-010: POST /api/efiling/emp201/submit, GET status/history (TASK-131)
 app.MapStatutoryEndpoints();  // CTL-SARS-001: GET/PUT /api/settings/statutory
 
 app.Run();
