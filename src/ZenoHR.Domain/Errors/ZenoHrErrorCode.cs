@@ -40,6 +40,9 @@ public enum ZenoHrErrorCode
     PayrollRunInWrongState = 3006,
     PayrollResultNotFound = 3007,
     PayrollAdjustmentNotFound = 3008,
+    TaxDirectiveValidationFailed = 3009,
+    TaxDirectiveInvalidStatusTransition = 3010,
+    TaxDirectiveNotFound = 3011,
 
     // ── 4xxx — Leave ─────────────────────────────────────────────────────────
     LeaveRequestNotFound = 4000,

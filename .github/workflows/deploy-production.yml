@@ -1,0 +1,247 @@
+# REQ-OPS-009: Production deployment workflow — manual dispatch with full build+test gate.
+# This workflow provides a manual, auditable production deployment path.
+# For automated deploys on push to main, see deploy.yml.
+# Concurrency group prevents parallel deployments to production.
+
+name: Deploy to Production (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Container image tag to deploy (e.g., sha-abc1234). Leave empty to build from HEAD.'
+        required: false
+        type: string
+      skip_tests:
+        description: 'Skip test execution (emergency hotfix only)'
+        required: false
+        type: boolean
+        default: false
+      reason:
+        description: 'Deployment reason (required for audit trail)'
+        required: true
+        type: string
+
+# REQ-OPS-009: Prevent parallel production deployments
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/zenohr
+  AZURE_CONTAINER_APP: zenohr-prod-app
+  AZURE_RESOURCE_GROUP: zenohr-prod-rg
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+  BUILD_CONFIGURATION: Release
+
+jobs:
+
+  # ── Gate: Build & Test ───────────────────────────────────────────────────────
+  # REQ-OPS-009: All tests must pass before production deployment.
+  build-and-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_tests }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET (exact version from global.json)
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore ZenoHR.slnx
+
+      - name: Build
+        run: dotnet build ZenoHR.slnx --configuration ${{ env.BUILD_CONFIGURATION }} --no-restore --no-incremental
+
+      - name: Run unit tests
+        run: |
+          dotnet test ZenoHR.slnx \
+            --configuration ${{ env.BUILD_CONFIGURATION }} \
+            --no-build \
+            --filter "FullyQualifiedName!~ZenoHR.Integration" \
+            --logger "trx;LogFileName=unit-tests.trx"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: '**/unit-tests.trx'
+
+  # ── Docker Build & Push ────────────────────────────────────────────────────
+  # REQ-OPS-009: Build container image and push to GHCR.
+  docker-build:
+    name: Docker Build & Push
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: ${{ always() && (needs.build-and-test.result == 'success' || inputs.skip_tests) }}
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    outputs:
+      image_tag: ${{ steps.resolve-tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: resolve-tag
+        run: |
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            echo "tag=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+            echo "Using provided tag: ${{ inputs.image_tag }}"
+          else
+            TAG="sha-$(git rev-parse --short HEAD)"
+            echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+            echo "Building new image with tag: ${TAG}"
+          fi
+
+      - name: Set up Docker Buildx
+        if: ${{ !inputs.image_tag }}
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        if: ${{ !inputs.image_tag }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve-tag.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
+
+      # REQ-SEC-010: Container vulnerability scan before deployment
+      - name: Run Trivy vulnerability scan
+        if: ${{ !inputs.image_tag }}
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve-tag.outputs.tag }}'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'production-deploy-scan'
+
+  # ── Deploy to Azure Container Apps ──────────────────────────────────────────
+  # REQ-OPS-009: Deploy to southafricanorth (POPIA data residency).
+  deploy:
+    name: Deploy to Production
+    needs: docker-build
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ steps.get-url.outputs.app_url }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # OIDC-based Azure login — no stored credentials (REQ-SEC-001)
+      - name: Log in to Azure (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy container image
+        id: deploy
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.docker-build.outputs.image_tag }}"
+          echo "Deploying image: ${IMAGE}"
+          echo "Reason: ${{ inputs.reason }}"
+          az containerapp update \
+            --name ${{ env.AZURE_CONTAINER_APP }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --image "${IMAGE}" \
+            --output table
+
+      - name: Get Container App URL
+        id: get-url
+        run: |
+          URL=$(az containerapp show \
+            --name ${{ env.AZURE_CONTAINER_APP }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query "properties.configuration.ingress.fqdn" \
+            --output tsv)
+          echo "app_url=https://${URL}" >> "$GITHUB_OUTPUT"
+          echo "Deployed to: https://${URL}"
+
+      # REQ-OPS-007: Post-deployment health verification
+      - name: Post-deployment health check (liveness)
+        run: |
+          APP_URL="${{ steps.get-url.outputs.app_url }}"
+          echo "Running liveness probe against ${APP_URL}/health ..."
+          for i in 1 2 3 4 5; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${APP_URL}/health" || echo "000")
+            echo "Attempt ${i}: HTTP ${STATUS}"
+            if [ "${STATUS}" = "200" ]; then
+              echo "Liveness check PASSED."
+              break
+            fi
+            if [ "${i}" = "5" ]; then
+              echo "::error::Liveness check FAILED after 5 attempts."
+              exit 1
+            fi
+            sleep 10
+          done
+
+      - name: Post-deployment readiness check
+        run: |
+          APP_URL="${{ steps.get-url.outputs.app_url }}"
+          echo "Running readiness probe against ${APP_URL}/health/ready ..."
+          for i in 1 2 3 4 5; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${APP_URL}/health/ready" || echo "000")
+            echo "Attempt ${i}: HTTP ${STATUS}"
+            if [ "${STATUS}" = "200" ]; then
+              echo "Readiness check PASSED."
+              break
+            fi
+            if [ "${i}" = "5" ]; then
+              echo "::error::Readiness check FAILED after 5 attempts — Firestore may be unreachable."
+              exit 1
+            fi
+            sleep 10
+          done
+
+      - name: Deployment summary
+        run: |
+          echo "## Production Deployment Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Image**: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.docker-build.outputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **URL**: ${{ steps.get-url.outputs.app_url }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Reason**: ${{ inputs.reason }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Triggered by**: ${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Commit**: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
