@@ -1,0 +1,95 @@
+# REQ-OPS-005: Code coverage enforcement — 90% domain line coverage, 85% branch coverage.
+# TASK-150: Dedicated coverage gate workflow for ZenoHR CI pipeline.
+# Runs on every PR to master and on push to master.
+
+name: Coverage Gate
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+
+env:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
+
+jobs:
+  coverage:
+    name: Coverage Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.NUGET_PACKAGES }}
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/Directory.Build.props') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore ZenoHR.slnx
+
+      - name: Build
+        run: dotnet build ZenoHR.slnx --configuration Release --no-restore
+
+      - name: Run tests with coverage
+        run: |
+          dotnet test ZenoHR.slnx \
+            --configuration Release \
+            --no-build \
+            --collect:"XPlat Code Coverage" \
+            --settings coverlet.runsettings \
+            --results-directory ./coverage
+
+      - name: Install ReportGenerator
+        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+
+      - name: Generate coverage report
+        run: |
+          reportgenerator \
+            -reports:./coverage/**/coverage.cobertura.xml \
+            -targetdir:./coverage/report \
+            -reporttypes:"Html;Badges;TextSummary"
+
+      - name: Check coverage thresholds
+        # REQ-OPS-005: Enforce 90% line coverage and 85% branch coverage.
+        # Currently warnings-only until baseline is established; will switch to hard fail.
+        run: |
+          SUMMARY=$(cat ./coverage/report/Summary.txt)
+          echo "$SUMMARY"
+
+          # Extract line coverage percentage
+          LINE_COV=$(echo "$SUMMARY" | grep "Line coverage" | grep -oP '[\d.]+%' | head -1 | tr -d '%')
+          BRANCH_COV=$(echo "$SUMMARY" | grep "Branch coverage" | grep -oP '[\d.]+%' | head -1 | tr -d '%')
+
+          echo "Line coverage: ${LINE_COV}%"
+          echo "Branch coverage: ${BRANCH_COV}%"
+
+          # Thresholds (warnings only for now — will enforce after baseline established)
+          if (( $(echo "$LINE_COV < 90" | bc -l) )); then
+            echo "::warning::Line coverage ${LINE_COV}% is below 90% target (REQ-OPS-005)"
+          else
+            echo "Line coverage gate PASSED (${LINE_COV}% >= 90%)"
+          fi
+
+          if (( $(echo "$BRANCH_COV < 85" | bc -l) )); then
+            echo "::warning::Branch coverage ${BRANCH_COV}% is below 85% target (REQ-OPS-005)"
+          else
+            echo "Branch coverage gate PASSED (${BRANCH_COV}% >= 85%)"
+          fi
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: ./coverage/report/
+          retention-days: 30

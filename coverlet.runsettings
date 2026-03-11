@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  REQ-OPS-005: Code coverage collection settings for the Coverage Gate workflow.
+
+  Targets: ZenoHR.Domain, ZenoHR.Module.*, ZenoHR.Infrastructure assemblies.
+  Excludes: Test assemblies, Blazor Server UI (ZenoHR.Web), API host (ZenoHR.Api).
+  Format: Cobertura XML — consumed by ReportGenerator for HTML + TextSummary reports.
+-->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Include>[ZenoHR.Domain]*,[ZenoHR.Module.*]*,[ZenoHR.Infrastructure]*</Include>
+          <Exclude>[*.Tests]*,[ZenoHR.Web]*,[ZenoHR.Api]*</Exclude>
+          <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
+          <SingleHit>false</SingleHit>
+          <UseSourceLink>true</UseSourceLink>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

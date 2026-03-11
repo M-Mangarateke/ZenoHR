@@ -1,7 +1,7 @@
 {
   "project": "ZenoHR",
   "current_phase": "Phase 4 - UI (Blazor Server)",
-  "last_updated": "2026-03-11T09:35:24.922437+00:00",
+  "last_updated": "2026-03-11T09:45:38.620348+00:00",
   "last_session_summary": "Progress log synced to match git history. Phase 2 complete (TASK-064 thru TASK-073). Phase 3 partial: TASK-081-086 done (payroll repos, orchestration, API, statutory); TASK-087+ (QuestPDF, EMP201, filing) still pending. Phase 4 scaffolded: TASK-101-104 (NavMenu, auth, RBAC, Login). Next: full Blazor UI pages from mockups (TASK-105+) and QuestPDF payslip (TASK-087).",
   "phases": [
     {
@@ -1709,14 +1709,16 @@
       "id": "TASK-134",
       "title": "Scheduled background services (nightly analytics, EMP201 reminders, ETI expiry alerts)",
       "phase": "phase-5",
-      "status": "pending",
+      "status": "completed",
       "priority": 2,
       "depends_on": [
         "TASK-085"
       ],
       "requirements": [
         "REQ-OPS-003"
-      ]
+      ],
+      "notes": "3 BackgroundServices (NightlyAnalytics 2AM, Emp201Reminder 8AM, EtiExpiry Monday 6AM), Emp201DeadlineHelper, registration extension. 11/11 tests passing.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-135",
@@ -1902,14 +1904,16 @@
       "id": "TASK-154",
       "title": "POPIA readiness audit (CTL-POPIA-001 to CTL-POPIA-015 verification)",
       "phase": "phase-6",
-      "status": "pending",
+      "status": "completed",
       "priority": 1,
       "depends_on": [
         "TASK-132"
       ],
       "requirements": [
         "REQ-COMP-006"
-      ]
+      ],
+      "notes": "POPIA readiness audit complete. 27% overall (up from 13%). 1 implemented, 5 partial, 2 documented, 7 not started. Top gaps: breach persistence, unmask API, field encryption.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-155",
