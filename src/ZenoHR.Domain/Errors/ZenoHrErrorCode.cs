@@ -62,6 +62,11 @@ public enum ZenoHrErrorCode
     InvalidBreachStatusTransition = 5005,
     BreachNotInRequiredStatus = 5006,
     EFilingSubmissionFailed = 5010,
+    InvalidAccessReviewStatusTransition = 5011,
+    InvalidIncidentStatusTransition = 5012,
+    NoAnomalyDetected = 5013,
+    InvalidBreakGlassStatusTransition = 5014,
+    InvalidSarStatusTransition = 5015,
 
     // ── 6xxx — Audit ─────────────────────────────────────────────────────────
     HashChainBroken = 6000,

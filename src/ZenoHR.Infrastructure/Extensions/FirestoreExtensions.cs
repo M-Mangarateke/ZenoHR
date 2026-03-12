@@ -93,6 +93,9 @@ public static class FirestoreExtensions
         services.AddSingleton<IEFilingClient, StubEFilingClient>();
         services.AddSingleton<Emp201SubmissionService>();
 
+        // CTL-POPIA-002, VUL-020: Unmask audit service — records purpose code for PII access
+        services.AddSingleton<ZenoHR.Module.Compliance.Services.UnmaskAuditService>();
+
         // REQ-SEC-002, REQ-SEC-003: RBAC — user role assignments repository
         // Note: ZenoHrClaimsTransformation (IClaimsTransformation) is registered in
         // ZenoHR.Api via AddZenoHrFirebaseAuth() since it depends on ASP.NET Core types.

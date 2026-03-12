@@ -17,6 +17,7 @@ public static class BackgroundServiceRegistration
         services.AddHostedService<Emp201ReminderService>();
         services.AddHostedService<EtiExpiryAlertService>();
         services.AddHostedService<DataArchivalService>(); // CTL-POPIA-009, CTL-POPIA-015
+        services.AddHostedService<MonthlyAccessReviewService>(); // CTL-POPIA-007
         return services;
     }
 }

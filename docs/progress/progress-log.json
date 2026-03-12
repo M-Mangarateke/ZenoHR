@@ -1,7 +1,7 @@
 {
   "project": "ZenoHR",
   "current_phase": "Phase 4 - UI (Blazor Server)",
-  "last_updated": "2026-03-11T11:23:57.397104+00:00",
+  "last_updated": "2026-03-11T12:04:20.456176+00:00",
   "last_session_summary": "Progress log synced to match git history. Phase 2 complete (TASK-064 thru TASK-073). Phase 3 partial: TASK-081-086 done (payroll repos, orchestration, API, statutory); TASK-087+ (QuestPDF, EMP201, filing) still pending. Phase 4 scaffolded: TASK-101-104 (NavMenu, auth, RBAC, Login). Next: full Blazor UI pages from mockups (TASK-105+) and QuestPDF payslip (TASK-087).",
   "phases": [
     {
@@ -1501,14 +1501,16 @@
       "id": "TASK-112",
       "title": "Role management page (09-role-management.html)",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 3,
       "depends_on": [
         "TASK-103"
       ],
       "requirements": [
         "REQ-SEC-002"
-      ]
+      ],
+      "notes": "Role management page: split-panel layout, 5 system roles (read-only), custom Manager variants with 6 permission tokens, create/edit/delete modals, search/filter.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-113",
@@ -1544,27 +1546,31 @@
       "id": "TASK-115",
       "title": "Company analytics page (12-analytics.html)",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 3,
       "depends_on": [
         "TASK-105"
       ],
       "requirements": [
         "REQ-OPS-006"
-      ]
+      ],
+      "notes": "Company analytics: headcount trends, payroll costs, salary bands, leave heatmap, compliance scores, SVG charts, date/dept filters. Director/HRMgr full, Manager team-filtered.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-116",
       "title": "My analytics page (13-my-analytics.html)",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 3,
       "depends_on": [
         "TASK-105"
       ],
       "requirements": [
         "REQ-OPS-006"
-      ]
+      ],
+      "notes": "My analytics: earnings/tax/leave/attendance summary, IRP5 preview with SARS codes, SVG leave rings, tax year selector. All tenant users.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-117",
@@ -1585,14 +1591,16 @@
       "id": "TASK-118",
       "title": "Security ops page (15-security-ops.html â€” SaasAdmin only)",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 3,
       "depends_on": [
         "TASK-103"
       ],
       "requirements": [
         "REQ-SEC-005"
-      ]
+      ],
+      "notes": "Security ops: OWASP Top 10 grid, vulnerability tracker (28 findings), POPIA 15 controls, auth anomaly log, risk matrix, pen test status. SaasAdmin only.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-119",
@@ -1614,53 +1622,61 @@
       "id": "TASK-120",
       "title": "Dark/light mode toggle (CSS custom property swap, ThemeService)",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 3,
       "depends_on": [
         "TASK-101"
       ],
       "requirements": [
         "REQ-OPS-008"
-      ]
+      ],
+      "notes": "Dark/light mode: ThemeService (localStorage), ThemeToggle (sun/moon icons), theme-dark.css, flash prevention script. Scoped DI.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-121",
       "title": "Mobile responsive: bottom nav (â‰¤640px, 5 items per role)",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 3,
       "depends_on": [
         "TASK-101"
       ],
       "requirements": [
         "REQ-OPS-007"
-      ]
+      ],
+      "notes": "Mobile bottom nav: MobileBottomNav + MobileNavItem components, role-specific 5-item nav (Employee/Manager/HRMgr/SaasAdmin), safe area insets, 640px breakpoint.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-122",
       "title": "Mobile responsive: icon-only drawer nav (641â€“1024px)",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 3,
       "depends_on": [
         "TASK-121"
       ],
       "requirements": [
         "REQ-OPS-007"
-      ]
+      ],
+      "notes": "Tablet icon-only drawer: tablet-nav.css, 641-1024px breakpoint, 64px collapsed sidebar, hover expand to 260px, CSS tooltips via data-nav-label.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-123",
       "title": "Mobile responsive: table â†’ card list transformation (â‰¤640px)",
       "phase": "phase-4",
-      "status": "pending",
+      "status": "completed",
       "priority": 3,
       "depends_on": [
         "TASK-121"
       ],
       "requirements": [
         "REQ-OPS-007"
-      ]
+      ],
+      "notes": "Responsive tables: responsive-tables.css, data-label card transformation at 640px, ResponsiveTable wrapper component, print media revert.",
+      "completed_at": "2026-03-11"
     }
   ],
   "phase5_tasks": [
@@ -1745,7 +1761,7 @@
       "id": "TASK-136",
       "title": "Data archival background job (5-year retention from termination_date)",
       "phase": "phase-5",
-      "status": "pending",
+      "status": "completed",
       "priority": 3,
       "depends_on": [
         "TASK-064"
@@ -1754,7 +1770,8 @@
         "CTL-POPIA-009",
         "CTL-BCEA-004"
       ],
-      "notes": "Retention rule: active employees â€” records retained indefinitely while employed; terminated employees â€” retain for 5 years from termination_date (SARS Tax Administration Act s29 + BCEA s31 + POPIA s14). Retention clock starts from termination_date NOT from record creation date. After 5 years from termination_date: payslips, payroll_results, leave_requests, audit_events move to archived status (read-only, not deleted). After 7 years from termination_date: records may be purged only with formal legal sign-off per CTL-POPIA-006. Background service: nightly job queries employees with status=terminated AND termination_date <= (today - 5 years). Sets archived=true, archived_at=now on affected documents. Does NOT delete â€” POPIA requires formal erasure process. Legal hold override: employees with open disputes have hold extended until case_closed_at. Firestore field to add: archived_at (timestamp, null = active). UI: Compliance screen shows 'X records pending archival this month' banner. Admins can view archived records with reason log."
+      "notes": "Data archival: ArchivalPolicy (5-year retention, BCEA 3-year minimum), ArchivalRecord/Report records, DataArchivalService (3AM SAST nightly), 12 tests passing.",
+      "completed_at": "2026-03-11"
     },
     {
       "id": "TASK-137",
