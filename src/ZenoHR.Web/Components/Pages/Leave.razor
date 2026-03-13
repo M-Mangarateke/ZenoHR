@@ -542,13 +542,19 @@
                     <label>Reason / Note</label>
                     <textarea @bind="_newReason" placeholder="Optional: reason for leave…"></textarea>
                 </div>
+                @if (!string.IsNullOrEmpty(_formError))
+                {
+                    <div role="alert" style="font-size:.82rem;color:var(--danger, #c0392b);font-weight:600;margin-bottom:8px;padding:8px 12px;background:var(--danger-subtle, #fdecea);border-radius:8px;">
+                        @_formError
+                    </div>
+                }
                 <div style="display:flex;gap:8px;">
                     <button class="btn btn-primary btn-sm" @onclick="SubmitLeaveRequest">Submit Request</button>
                     <button class="btn btn-ghost btn-sm" @onclick="() => _showRequestForm = false">Cancel</button>
                 </div>
                 @if (!string.IsNullOrEmpty(_formMessage))
                 {
-                    <p style="font-size:.8rem;color:var(--success);margin:8px 0 0;font-weight:600;">@_formMessage</p>
+                    <p style="font-size:.8rem;color:var(--success);margin:8px 0 0;font-weight:600;" role="status">@_formMessage</p>
                 }
             </div>
         }
@@ -568,8 +574,8 @@
                             <div class="legend-item"><div class="legend-dot" style="background:var(--text-secondary);"></div>Unpaid</div>
                         </div>
                         <div class="cal-nav">
-                            <button class="cal-nav-btn" @onclick="PrevMonth" title="Previous month">&#8249;</button>
-                            <button class="cal-nav-btn" @onclick="NextMonth" title="Next month">&#8250;</button>
+                            <button class="cal-nav-btn" @onclick="PrevMonth" title="Previous month" aria-label="Previous month">&#8249;</button>
+                            <button class="cal-nav-btn" @onclick="NextMonth" title="Next month" aria-label="Next month">&#8250;</button>
                         </div>
                     </div>
                 </div>
@@ -664,8 +670,8 @@
                             </div>
                             <div class="request-days">@req.Days d</div>
                             <div class="request-actions">
-                                <button class="btn-approve" @onclick="() => ApproveRequest(req.RequestId)" title="Approve">✓</button>
-                                <button class="btn-reject" @onclick="() => RejectRequest(req.RequestId)" title="Reject">✗</button>
+                                <button class="btn-approve" @onclick="() => ApproveRequest(req.RequestId)" title="Approve" aria-label="Approve leave request for @req.EmployeeName">✓</button>
+                                <button class="btn-reject" @onclick="() => RejectRequest(req.RequestId)" title="Reject" aria-label="Reject leave request for @req.EmployeeName">✗</button>
                             </div>
                         </div>
                     }
@@ -1074,12 +1080,16 @@
     private DateTime _newEndDate = DateTime.Today;
     private string _newReason = "";
     private string _formMessage = "";
+    private string _formError = "";
 
     private void SubmitLeaveRequest()
     {
+        _formError = "";
+        _formMessage = "";
+
         if (string.IsNullOrWhiteSpace(_newEmployee) || string.IsNullOrWhiteSpace(_newLeaveType))
         {
-            _formMessage = "Please select an employee and leave type.";
+            _formError = "Please select an employee and leave type.";
             return;
         }
 
@@ -1088,7 +1098,7 @@
 
         var start = DateOnly.FromDateTime(_newStartDate);
         var end = DateOnly.FromDateTime(_newEndDate);
-        if (end < start) { _formMessage = "End date cannot be before start date."; return; }
+        if (end < start) { _formError = "End date cannot be before start date."; return; }
 
         var days = (int)(end.DayNumber - start.DayNumber) + 1;
         var newId = $"LVE-2026-{_requests.Count + 100:D4}";

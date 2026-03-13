@@ -378,8 +378,8 @@
         <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">Weekly time entries and BCEA compliance tracking</p>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
-        <button class="btn btn-outline" style="font-size:.85rem;">
-            <i data-lucide="download" style="width:15px;height:15px;"></i> Export
+        <button class="btn btn-outline" style="font-size:.85rem;" aria-label="Export timesheets">
+            <i data-lucide="download" style="width:15px;height:15px;" aria-hidden="true"></i> Export
         </button>
     </div>
 </div>
@@ -410,12 +410,12 @@
 
 <!-- Week navigation -->
 <div class="week-nav">
-    <button @onclick="PrevWeek" title="Previous week">
-        <i data-lucide="chevron-left" style="width:14px;height:14px;"></i>
+    <button @onclick="PrevWeek" title="Previous week" aria-label="Previous week">
+        <i data-lucide="chevron-left" style="width:14px;height:14px;" aria-hidden="true"></i>
     </button>
     <span class="week-label">Week of @_weekStart.ToString("d MMM yyyy")</span>
-    <button @onclick="NextWeek" title="Next week">
-        <i data-lucide="chevron-right" style="width:14px;height:14px;"></i>
+    <button @onclick="NextWeek" title="Next week" aria-label="Next week">
+        <i data-lucide="chevron-right" style="width:14px;height:14px;" aria-hidden="true"></i>
     </button>
 </div>
 
@@ -544,14 +544,14 @@
                         <td class="status-cell">
                             @if (empViolation)
                             {
-                                <button class="btn btn-ghost btn-sm" style="padding:3px 6px;color:var(--brand-accent);" title="BCEA violation — resolve before approving">
-                                    <i data-lucide="flag" style="width:12px;height:12px;"></i>
+                                <button class="btn btn-ghost btn-sm" style="padding:3px 6px;color:var(--brand-accent);" title="BCEA violation — resolve before approving" aria-label="BCEA violation flag for @emp.Name">
+                                    <i data-lucide="flag" style="width:12px;height:12px;" aria-hidden="true"></i>
                                 </button>
                             }
                             else
                             {
-                                <button class="btn btn-ghost btn-sm" style="padding:3px 6px;opacity:.4;" title="No concern" disabled>
-                                    <i data-lucide="flag" style="width:12px;height:12px;"></i>
+                                <button class="btn btn-ghost btn-sm" style="padding:3px 6px;opacity:.4;" title="No concern" disabled aria-label="No violations for @emp.Name">
+                                    <i data-lucide="flag" style="width:12px;height:12px;" aria-hidden="true"></i>
                                 </button>
                             }
                         </td>
@@ -571,11 +571,11 @@
             <span style="color:#e74c3c;margin-left:8px;">· @ViolationCount BCEA violation(s) must be resolved first</span>
         }
     </div>
-    <button class="btn btn-outline btn-sm" style="font-size:.85rem;">
-        <i data-lucide="check-square" style="width:15px;height:15px;"></i> Select All Pending
+    <button class="btn btn-outline btn-sm" style="font-size:.85rem;" aria-label="Select all pending timesheets">
+        <i data-lucide="check-square" style="width:15px;height:15px;" aria-hidden="true"></i> Select All Pending
     </button>
-    <button class="btn btn-primary" style="font-size:.85rem;" disabled="@(!CanApproveAll)">
-        <i data-lucide="check" style="width:15px;height:15px;"></i>
+    <button class="btn btn-primary" style="font-size:.85rem;" disabled="@(!CanApproveAll)" aria-label="Approve selected timesheets">
+        <i data-lucide="check" style="width:15px;height:15px;" aria-hidden="true"></i>
         Approve Selected (@_selectedIds.Count)
     </button>
 </div>

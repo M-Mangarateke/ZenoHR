@@ -349,7 +349,7 @@
 @* REQ-COMP-001: Fail-state alert banner *@
 @if (_controls.Any(c => c.Status == "Fail"))
 {
-    <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 18px;margin-bottom:20px;background:#fdecea;border:1px solid rgba(192,57,43,.25);border-radius:12px;color:#c0392b;">
+    <div role="alert" style="display:flex;align-items:flex-start;gap:12px;padding:14px 18px;margin-bottom:20px;background:#fdecea;border:1px solid rgba(192,57,43,.25);border-radius:12px;color:#c0392b;">
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
              stroke="currentColor" stroke-width="1.8" style="flex-shrink:0;margin-top:1px;">
             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
@@ -378,9 +378,9 @@
             SARS · BCEA · POPIA | Tax year 2025/2026
         </p>
     </div>
-    <button class="btn btn-outline" style="font-size:.85rem;">
+    <button class="btn btn-outline" style="font-size:.85rem;" aria-label="Export compliance report">
         <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
-             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" x2="12" y1="15" y2="3" />

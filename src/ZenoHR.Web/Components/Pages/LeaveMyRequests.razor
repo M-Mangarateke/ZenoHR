@@ -274,12 +274,18 @@
             <label>Reason / Notes</label>
             <textarea @bind="_newReason" placeholder="Optional: provide reason or any relevant notes…"></textarea>
         </div>
+        @if (_formIsError && !string.IsNullOrEmpty(_formMsg))
+        {
+            <div role="alert" style="font-size:.82rem;color:var(--danger, #c0392b);font-weight:600;margin-bottom:8px;padding:8px 12px;background:var(--danger-subtle, #fdecea);border-radius:8px;">
+                @_formMsg
+            </div>
+        }
         <div class="form-submit-row">
             <button class="btn btn-primary btn-sm" @onclick="SubmitRequest">Submit Request</button>
             <button class="btn btn-ghost btn-sm" @onclick="CancelForm">Cancel</button>
-            @if (!string.IsNullOrEmpty(_formMsg))
+            @if (!_formIsError && !string.IsNullOrEmpty(_formMsg))
             {
-                <span class="@(_formIsError ? "form-msg-error" : "form-msg-success")">@_formMsg</span>
+                <span class="form-msg-success" role="status">@_formMsg</span>
             }
         </div>
     </div>

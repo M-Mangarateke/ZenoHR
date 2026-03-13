@@ -5,6 +5,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using ZenoHR.Api.Auth;
+using ZenoHR.Api.Pagination;
+using ZenoHR.Api.Validation;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Module.Leave.Aggregates;
 
@@ -35,9 +37,10 @@ public static class LeaveEndpoints
         // ── Requests ──────────────────────────────────────────────────────────
 
         // GET /api/leave/requests — own (Employee) or team/all (Manager/Director/HRManager)
+        // VUL-027: Paginated — accepts skip/take query params (default 50, max 200).
         group.MapGet("/requests", ListRequestsAsync)
             .WithName("ListLeaveRequests")
-            .Produces<IReadOnlyList<LeaveRequestDto>>(200);
+            .Produces<PaginatedResponse<LeaveRequestDto>>(200);
 
         // GET /api/leave/requests/{id}
         group.MapGet("/requests/{id}", GetRequestByIdAsync)
@@ -46,8 +49,10 @@ public static class LeaveEndpoints
             .Produces(404);
 
         // POST /api/leave/requests — submit new leave request
+        // VUL-027: FluentValidation applied via WithValidation filter.
         group.MapPost("/requests", SubmitRequestAsync)
             .WithName("SubmitLeaveRequest")
+            .WithValidation<SubmitLeaveRequestDto>()
             .Produces<LeaveRequestDto>(201)
             .Produces<ProblemDetails>(400);
 
@@ -103,8 +108,11 @@ public static class LeaveEndpoints
         return Results.Ok(balances.Select(ToBalanceDto));
     }
 
+    // VUL-027: Paginated list — accepts skip/take query params (default 50, max 200).
     private static async Task<IResult> ListRequestsAsync(
         string? employeeId,
+        int? skip,
+        int? take,
         ClaimsPrincipal user,
         LeaveRequestRepository repo,
         CancellationToken ct)
@@ -134,7 +142,8 @@ public static class LeaveEndpoints
             requests = await repo.ListByEmployeeAsync(tenantId, ownEmpId, ct);
         }
 
-        return Results.Ok(requests.Select(ToRequestDto));
+        var dtos = requests.Select(ToRequestDto).ToList().AsReadOnly();
+        return Results.Ok(PaginationDefaults.Apply(dtos, skip, take));
     }
 
     private static async Task<IResult> GetRequestByIdAsync(

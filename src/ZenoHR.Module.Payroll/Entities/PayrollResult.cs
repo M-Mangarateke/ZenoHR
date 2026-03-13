@@ -26,8 +26,13 @@ public sealed class PayrollResult
 
     // ── Gross components ──────────────────────────────────────────────────────
 
+    /// <summary>Monthly base salary from the employment contract (REQ-HR-003).</summary>
     public MoneyZAR BasicSalary { get; }
+
+    /// <summary>Overtime pay for the period, calculated per BCEA overtime rules.</summary>
     public MoneyZAR OvertimePay { get; }
+
+    /// <summary>Total allowances (travel, housing, etc.) for the period.</summary>
     public MoneyZAR Allowances { get; }
 
     /// <summary>Gross pay = BasicSalary + OvertimePay + Allowances.</summary>
@@ -49,9 +54,16 @@ public sealed class PayrollResult
 
     // ── Voluntary deductions ──────────────────────────────────────────────────
 
+    /// <summary>Employee pension/retirement fund deduction.</summary>
     public MoneyZAR PensionEmployee { get; }
+
+    /// <summary>Employer pension/retirement fund contribution.</summary>
     public MoneyZAR PensionEmployer { get; }
+
+    /// <summary>Employee medical aid deduction.</summary>
     public MoneyZAR MedicalEmployee { get; }
+
+    /// <summary>Employer medical aid contribution.</summary>
     public MoneyZAR MedicalEmployer { get; }
 
     // ── ETI ───────────────────────────────────────────────────────────────────
@@ -64,7 +76,10 @@ public sealed class PayrollResult
 
     // ── Other line items ──────────────────────────────────────────────────────
 
+    /// <summary>Additional deductions beyond statutory and voluntary (e.g., garnishee orders).</summary>
     public IReadOnlyList<OtherLineItem> OtherDeductions { get; }
+
+    /// <summary>Additional additions beyond gross pay (e.g., reimbursements).</summary>
     public IReadOnlyList<OtherLineItem> OtherAdditions { get; }
 
     // ── Totals (verified by invariant check) ──────────────────────────────────
@@ -83,14 +98,24 @@ public sealed class PayrollResult
 
     // ── Hours ─────────────────────────────────────────────────────────────────
 
+    /// <summary>Ordinary hours worked in the period (BCEA standard hours).</summary>
     public decimal HoursOrdinary { get; }
+
+    /// <summary>Overtime hours worked in the period.</summary>
     public decimal HoursOvertime { get; }
 
     // ── Metadata ──────────────────────────────────────────────────────────────
 
+    /// <summary>Version of the SARS tax table used for this calculation (e.g., "SARS_PAYE_2026").</summary>
     public string TaxTableVersion { get; }
+
+    /// <summary>Compliance check flags applied during calculation (e.g., "CTL-SARS-001:PASS").</summary>
     public IReadOnlyList<string> ComplianceFlags { get; }
+
+    /// <summary>UTC timestamp when this calculation was performed.</summary>
     public DateTimeOffset CalculationTimestamp { get; }
+
+    /// <summary>Schema version for Firestore document compatibility.</summary>
     public string SchemaVersion { get; } = "1.0";
 
     // ── Constructor (private — use factory) ───────────────────────────────────

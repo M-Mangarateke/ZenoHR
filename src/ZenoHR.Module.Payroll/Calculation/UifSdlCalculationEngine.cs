@@ -62,6 +62,10 @@ public static class UifSdlCalculationEngine
         return (cappedPay * rules.UifEmployeeRate).RoundToCent();
     }
 
+    /// <summary>
+    /// Calculates the employer's weekly UIF contribution by pro-rating the monthly ceiling.
+    /// PRD-16 Section 8: weekly ceiling = monthly ceiling x 12/52.
+    /// </summary>
     public static MoneyZAR CalculateUifEmployerWeekly(MoneyZAR grossWeeklyPay, SarsUifSdlRuleSet rules)
     {
         ArgumentNullException.ThrowIfNull(rules);

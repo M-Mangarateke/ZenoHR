@@ -333,6 +333,21 @@
                             </tr>
                         </thead>
                         <tbody>
+                            @if (!_lines.Any())
+                            {
+                                <tr>
+                                    <td colspan="9" style="text-align:center;padding:var(--space-8);color:var(--text-muted);">
+                                        <div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-3);">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none"
+                                                stroke="currentColor" stroke-width="1.5" style="opacity:0.4;" aria-hidden="true">
+                                                <rect width="20" height="14" x="2" y="5" rx="2" />
+                                                <line x1="2" x2="22" y1="10" y2="10" />
+                                            </svg>
+                                            <span style="font-size:14px;">No employee results in this pay run</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
                             @foreach (var line in _lines)
                             {
                                 <tr>
@@ -356,8 +371,9 @@
                                         <button class="btn btn-ghost btn-sm"
                                                 @onclick="() => DownloadPayslip(line)"
                                                 title="Download PDF payslip"
+                                                aria-label="Download payslip for @line.Name"
                                                 style="padding:4px 8px;">
-                                            <i data-lucide="download" style="width:14px;height:14px;"></i>
+                                            <i data-lucide="download" style="width:14px;height:14px;" aria-hidden="true"></i>
                                         </button>
                                     </td>
                                 </tr>
@@ -413,8 +429,9 @@
                         </button>
                         @if (_selectedRun.Status == "Draft")
                         {
-                            <button class="btn btn-accent">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <button class="btn btn-accent" @onclick="ConfirmFinalize"
+                                    aria-label="Finalize and lock payroll run @_selectedRun.Period">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
                                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                                 </svg>
                                 Finalize &amp; Lock
@@ -501,6 +518,18 @@
         "Failed"     => "badge-danger",
         _            => "badge-secondary"
     };
+
+    // REQ-HR-003: Confirmation dialog for destructive payroll finalization action
+    private async Task ConfirmFinalize()
+    {
+        if (_selectedRun is null || _selectedRun.Status != "Draft") return;
+        var confirmed = await JS.InvokeAsync<bool>("confirm",
+            $"Are you sure you want to finalize {_selectedRun.Period}? Once finalized, no changes are permitted. Corrections must be submitted as adjustments.");
+        if (confirmed)
+        {
+            // TODO: wire to PayrollService.FinalizeRunAsync(tenantId, _selectedRun.RunId) — CTL-SARS-005
+        }
+    }
 
     // REQ-HR-004, CTL-SARS-005: Payslip download trigger — toast notification
     // PDF wiring to real Firestore data is deferred to Phase 5 (TASK-087).

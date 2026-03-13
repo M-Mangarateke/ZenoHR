@@ -47,6 +47,13 @@ public sealed partial class PayrollOrchestrationService
         PayrollResultRepository resultRepo,
         ILogger<PayrollOrchestrationService> logger)
     {
+        ArgumentNullException.ThrowIfNull(ruleSetRepo);
+        ArgumentNullException.ThrowIfNull(employeeRepo);
+        ArgumentNullException.ThrowIfNull(contractRepo);
+        ArgumentNullException.ThrowIfNull(benefitRepo);
+        ArgumentNullException.ThrowIfNull(runRepo);
+        ArgumentNullException.ThrowIfNull(resultRepo);
+        ArgumentNullException.ThrowIfNull(logger);
         _ruleSetRepo = ruleSetRepo;
         _employeeRepo = employeeRepo;
         _contractRepo = contractRepo;

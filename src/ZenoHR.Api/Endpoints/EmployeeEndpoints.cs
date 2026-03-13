@@ -7,6 +7,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using ZenoHR.Api.Auth;
 using ZenoHR.Api.DTOs;
+using ZenoHR.Api.Pagination;
+using ZenoHR.Api.Validation;
 using ZenoHR.Domain.Common;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Module.Employee.Aggregates;
@@ -28,9 +30,10 @@ public static class EmployeeEndpoints
             .WithTags("Employees");
 
         // GET /api/employees — list all (Director/HRManager) or own dept (Manager)
+        // VUL-027: Paginated — accepts skip/take query params (default 50, max 200).
         group.MapGet("/", ListEmployeesAsync)
             .WithName("ListEmployees")
-            .Produces<IReadOnlyList<EmployeeSummaryDto>>(200);
+            .Produces<PaginatedResponse<EmployeeSummaryDto>>(200);
 
         // GET /api/employees/{id} — get by ID (own record always allowed; others need role)
         group.MapGet("/{id}", GetEmployeeByIdAsync)
@@ -39,9 +42,11 @@ public static class EmployeeEndpoints
             .Produces(404);
 
         // POST /api/employees — create new employee (Director/HRManager only)
+        // VUL-027: FluentValidation applied via WithValidation filter.
         group.MapPost("/", CreateEmployeeAsync)
             .WithName("CreateEmployee")
             .RequireAuthorization(policy => policy.RequireRole("Director", "HRManager"))
+            .WithValidation<CreateEmployeeRequest>()
             .Produces<EmployeeDetailDto>(201)
             .Produces<ProblemDetails>(400);
 
@@ -66,7 +71,10 @@ public static class EmployeeEndpoints
 
     // ── Handlers ─────────────────────────────────────────────────────────────
 
+    // VUL-027: Paginated list — accepts skip/take query params (default 50, max 200).
     private static async Task<IResult> ListEmployeesAsync(
+        int? skip,
+        int? take,
         ClaimsPrincipal user,
         EmployeeRepository repo,
         CancellationToken ct)
@@ -98,7 +106,8 @@ public static class EmployeeEndpoints
             employees = own.IsSuccess ? [own.Value!] : [];
         }
 
-        return Results.Ok(employees.Select(ToSummaryDto));
+        var summaries = employees.Select(ToSummaryDto).ToList().AsReadOnly();
+        return Results.Ok(PaginationDefaults.Apply(summaries, skip, take));
     }
 
     // VUL-009: Role-filtered employee response — Director/HRManager get EmployeeFullDto,

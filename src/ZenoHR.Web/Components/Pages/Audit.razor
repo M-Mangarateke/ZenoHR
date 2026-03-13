@@ -412,8 +412,8 @@
         <p style="font-size:.875rem;color:var(--text-secondary);margin:0;">Tamper-evident hash-chained event log</p>
     </div>
     <div style="display:flex;gap:8px;align-items:center;">
-        <button class="btn btn-outline" style="font-size:.85rem;">
-            <i data-lucide="download" style="width:15px;height:15px;"></i> Export
+        <button class="btn btn-outline" style="font-size:.85rem;" aria-label="Export audit trail">
+            <i data-lucide="download" style="width:15px;height:15px;" aria-hidden="true"></i> Export
         </button>
     </div>
 </div>
@@ -508,6 +508,21 @@
                 </tr>
             </thead>
             <tbody>
+                @if (!FilteredEvents.Any())
+                {
+                    <tr>
+                        <td colspan="8" style="text-align:center;padding:var(--space-8);color:var(--text-muted);">
+                            <div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-3);">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none"
+                                    stroke="currentColor" stroke-width="1.5" style="opacity:0.4;" aria-hidden="true">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                </svg>
+                                <span style="font-size:14px;">No audit events found</span>
+                                <span style="font-size:12px;opacity:0.7;">Try adjusting your filters or search criteria</span>
+                            </div>
+                        </td>
+                    </tr>
+                }
                 @{ int rowNum = FilteredEvents.Count(); }
                 @foreach (var evt in FilteredEvents)
                 {

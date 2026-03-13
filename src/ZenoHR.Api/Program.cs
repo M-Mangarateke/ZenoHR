@@ -4,18 +4,38 @@
 // REQ-OPS-005: OpenTelemetry tracing + metrics wired here (TASK-032).
 // REQ-OPS-006: Azure Monitor export configured via AddZenoHrTelemetry() (TASK-032).
 
+using Microsoft.AspNetCore.ResponseCompression;
 using ZenoHR.Api.Auth;
 using ZenoHR.Api.BackgroundServices;
 using ZenoHR.Api.Endpoints;
 using ZenoHR.Api.Middleware;
 using ZenoHR.Api.Observability;
 using ZenoHR.Api.Security;
+using ZenoHR.Api.Validation;
 using ZenoHR.Infrastructure.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Services ─────────────────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
+
+// VUL-027: FluentValidation validators for API request DTOs (MEDIUM audit finding).
+builder.Services.AddZenoHrValidation();
+
+// VUL-027: Response compression — reduces payload size for JSON/text responses (MEDIUM audit finding).
+// REQ-OPS-001: Brotli preferred, gzip fallback. Not applied to HTTPS by default in dev.
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        ["application/json", "text/csv", "text/plain"]);
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+    options.Level = System.IO.Compression.CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+    options.Level = System.IO.Compression.CompressionLevel.Fastest);
 
 // OpenTelemetry tracing + metrics + Azure Monitor export (TASK-032)
 // Reads APPLICATIONINSIGHTS_CONNECTION_STRING from env (set in Azure Container Apps / Key Vault).
@@ -68,7 +88,9 @@ builder.Services.AddZenoHrObservability(builder.Configuration);
 // ── App pipeline ─────────────────────────────────────────────────────────────
 var app = builder.Build();
 
+app.UseResponseCompression();    // 0th: compress responses (VUL-027 — MEDIUM audit finding)
 app.UseCorrelationId();          // 1st: assigns X-Correlation-Id before everything (REQ-OPS-008)
+app.UseRequestLogging();         // 1.5th: structured request logging — method, path, status, duration (VUL-027)
 app.UseGlobalExceptionHandler(); // 2nd: outermost exception catch (REQ-OPS-008)
 app.UseZenoHrSecurityHeaders();  // 3rd: CSP, X-Frame-Options, nosniff, Referrer-Policy (REQ-SEC-003)
 if (!app.Environment.IsDevelopment())

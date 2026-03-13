@@ -41,11 +41,8 @@ public class PayrollCalculationBenchmarks
     private static readonly DateOnly StartDate2YearsAgo = new(2024, 2, 28);   // ETI Tier 1
     private static readonly DateOnly StartDate14MonthsAgo = new(2024, 12, 31); // ETI Tier 2
 
-    // BenchmarkDotNet requires [Params] fields to be public — CA1051 suppressed intentionally.
-#pragma warning disable CA1051
     [Params(100, 500)]
     public int EmployeeCount;
-#pragma warning restore CA1051
 
     [GlobalSetup]
     public void GlobalSetup()
@@ -89,11 +86,8 @@ public class PayrollCalculationBenchmarks
     /// Establishes the sequential throughput baseline.
     /// REQ-OPS-001
     /// </summary>
-    // BenchmarkDotNet uses underscore convention for method names — CA1707 suppressed.
-#pragma warning disable CA1707
     [Benchmark]
     public void BatchCalculation_Sequential()
-#pragma warning restore CA1707
     {
         var employees = EmployeeCount == 500 ? _employees500 : _employees100;
         foreach (var emp in employees)
@@ -111,11 +105,8 @@ public class PayrollCalculationBenchmarks
     /// Demonstrates throughput on multi-core hardware.
     /// REQ-OPS-001
     /// </summary>
-    // BenchmarkDotNet uses underscore convention for method names — CA1707 suppressed.
-#pragma warning disable CA1707
     [Benchmark]
     public void BatchCalculation_Parallel()
-#pragma warning restore CA1707
     {
         var employees = EmployeeCount == 500 ? _employees500 : _employees100;
 

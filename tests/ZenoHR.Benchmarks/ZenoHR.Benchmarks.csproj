@@ -7,6 +7,9 @@
     <Optimize>true</Optimize>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <RootNamespace>ZenoHR.Benchmarks</RootNamespace>
+    <!-- CA1051: BenchmarkDotNet [Params] requires public fields. -->
+    <!-- CA1707: Benchmark method names use underscores by convention. -->
+    <NoWarn>$(NoWarn);CA1051;CA1707</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />

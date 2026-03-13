@@ -1,6 +1,7 @@
 // REQ-SEC-005: Tenant isolation enforced at repository level — every read and query filters by tenant_id.
 // REQ-OPS-001: Base repository pattern — all Firestore data access flows through typed, tenant-scoped helpers.
 // REQ-OPS-005: Structured diagnostic logging for all Firestore operations (Debug) and security events (Warning).
+// REQ-OPS-007: Retry with exponential backoff for transient Firestore failures (DeadlineExceeded, Unavailable).
 
 using Google.Cloud.Firestore;
 using Microsoft.Extensions.Logging;
@@ -15,12 +16,19 @@ namespace ZenoHR.Infrastructure.Firestore;
 ///   <item>Write-once semantics — <see cref="CreateDocumentAsync"/> fails if the document already exists.</item>
 ///   <item>Typed <see cref="Result{T}"/> returns for expected business failures.</item>
 ///   <item>Structured diagnostic logging — all ops at Debug, tenant violations and conflicts at Warning.</item>
+///   <item>Transient fault retry — exponential backoff for DeadlineExceeded and Unavailable gRPC errors.</item>
 /// </list>
 /// Infrastructure exceptions (network errors, Firestore unavailable) propagate naturally
 /// and are caught by the global exception handler in Program.cs.
 /// </summary>
 public abstract partial class BaseFirestoreRepository<T> where T : class
 {
+    /// <summary>Maximum number of retry attempts for transient Firestore failures.</summary>
+    private const int MaxRetryAttempts = 3;
+
+    /// <summary>Base delay for exponential backoff (doubled on each retry).</summary>
+    private static readonly TimeSpan _baseRetryDelay = TimeSpan.FromMilliseconds(200);
+
     protected FirestoreDb Db { get; }
     private readonly ILogger _logger;
 
@@ -33,6 +41,60 @@ public abstract partial class BaseFirestoreRepository<T> where T : class
         ArgumentNullException.ThrowIfNull(logger);
         Db = db;
         _logger = logger;
+    }
+
+    // ── Transient fault retry ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Determines whether a gRPC status code represents a transient failure
+    /// that is safe to retry (DeadlineExceeded, Unavailable, ResourceExhausted, Aborted).
+    /// REQ-OPS-007.
+    /// </summary>
+    private static bool IsTransientGrpcError(Grpc.Core.StatusCode statusCode) =>
+        statusCode is Grpc.Core.StatusCode.DeadlineExceeded
+            or Grpc.Core.StatusCode.Unavailable
+            or Grpc.Core.StatusCode.ResourceExhausted
+            or Grpc.Core.StatusCode.Aborted;
+
+    /// <summary>
+    /// Executes a Firestore operation with retry and exponential backoff for transient failures.
+    /// Non-transient gRPC errors and non-gRPC exceptions propagate immediately.
+    /// REQ-OPS-007.
+    /// </summary>
+    protected async Task<TResult> ExecuteWithRetryAsync<TResult>(
+        Func<Task<TResult>> operation,
+        string operationName,
+        CancellationToken ct = default)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                return await operation();
+            }
+            catch (Grpc.Core.RpcException ex) when (IsTransientGrpcError(ex.StatusCode) && attempt < MaxRetryAttempts)
+            {
+                var delay = _baseRetryDelay * Math.Pow(2, attempt);
+                LogRetry(_logger, CollectionName, operationName, attempt + 1, MaxRetryAttempts, ex.StatusCode.ToString());
+                await Task.Delay(delay, ct);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Executes a void Firestore operation with retry and exponential backoff for transient failures.
+    /// REQ-OPS-007.
+    /// </summary>
+    protected async Task ExecuteWithRetryAsync(
+        Func<Task> operation,
+        string operationName,
+        CancellationToken ct = default)
+    {
+        await ExecuteWithRetryAsync(async () =>
+        {
+            await operation();
+            return true; // dummy return for generic wrapper
+        }, operationName, ct);
     }
 
     /// <summary>Firestore root collection name (e.g., "employees", "audit_events").</summary>
@@ -61,14 +123,16 @@ public abstract partial class BaseFirestoreRepository<T> where T : class
     /// <summary>
     /// Fetch a document by ID, verifying tenant isolation.
     /// Returns <see cref="NotFoundErrorCode"/> if absent or owned by a different tenant.
+    /// Retries on transient Firestore failures (DeadlineExceeded, Unavailable). REQ-OPS-007.
     /// </summary>
     protected async Task<Result<T>> GetByIdAsync(
         string tenantId, string documentId, CancellationToken ct = default)
     {
         LogRead(_logger, CollectionName, documentId);
 
-        var docRef = Collection.Document(documentId);
-        var snapshot = await docRef.GetSnapshotAsync(ct);
+        var snapshot = await ExecuteWithRetryAsync(
+            () => Collection.Document(documentId).GetSnapshotAsync(ct),
+            nameof(GetByIdAsync), ct);
 
         if (!snapshot.Exists)
         {
@@ -96,10 +160,15 @@ public abstract partial class BaseFirestoreRepository<T> where T : class
     protected Query TenantQuery(string tenantId) =>
         Collection.WhereEqualTo("tenant_id", tenantId);
 
-    /// <summary>Execute a query and hydrate all matching documents via <see cref="FromSnapshot"/>.</summary>
+    /// <summary>
+    /// Execute a query and hydrate all matching documents via <see cref="FromSnapshot"/>.
+    /// Retries on transient Firestore failures (DeadlineExceeded, Unavailable). REQ-OPS-007.
+    /// </summary>
     protected async Task<IReadOnlyList<T>> ExecuteQueryAsync(Query query, CancellationToken ct = default)
     {
-        var snapshot = await query.GetSnapshotAsync(ct);
+        var snapshot = await ExecuteWithRetryAsync(
+            () => query.GetSnapshotAsync(ct),
+            nameof(ExecuteQueryAsync), ct);
         var results = snapshot.Documents.Select(FromSnapshot).ToList();
         LogQueryExecuted(_logger, CollectionName, results.Count);
         return results;
@@ -110,12 +179,14 @@ public abstract partial class BaseFirestoreRepository<T> where T : class
     /// <summary>
     /// Create or overwrite a document (upsert).
     /// Use for mutable entities: Employee, EmploymentContract, LeaveRequest, etc.
+    /// Retries on transient Firestore failures (DeadlineExceeded, Unavailable). REQ-OPS-007.
     /// </summary>
     protected async Task<Result> SetDocumentAsync(
         string documentId, T entity, CancellationToken ct = default)
     {
-        var docRef = Collection.Document(documentId);
-        await docRef.SetAsync(ToDocument(entity), cancellationToken: ct);
+        await ExecuteWithRetryAsync(
+            () => Collection.Document(documentId).SetAsync(ToDocument(entity), cancellationToken: ct),
+            nameof(SetDocumentAsync), ct);
         LogSet(_logger, CollectionName, documentId);
         return Result.Success();
     }
@@ -124,6 +195,7 @@ public abstract partial class BaseFirestoreRepository<T> where T : class
     /// Write-once create: fails with <see cref="ZenoHrErrorCode.FirestoreWriteConflict"/>
     /// if the document already exists.
     /// Use for immutable records: AuditEvent, AccrualLedgerEntry, finalised PayrollResult.
+    /// Retries on transient Firestore failures (DeadlineExceeded, Unavailable). REQ-OPS-007.
     /// </summary>
     protected async Task<Result> CreateDocumentAsync(
         string documentId, T entity, CancellationToken ct = default)
@@ -131,7 +203,9 @@ public abstract partial class BaseFirestoreRepository<T> where T : class
         var docRef = Collection.Document(documentId);
         try
         {
-            await docRef.CreateAsync(ToDocument(entity), ct);
+            await ExecuteWithRetryAsync(
+                () => docRef.CreateAsync(ToDocument(entity), ct),
+                nameof(CreateDocumentAsync), ct);
             LogCreated(_logger, CollectionName, documentId);
             return Result.Success();
         }
@@ -168,4 +242,8 @@ public abstract partial class BaseFirestoreRepository<T> where T : class
     [LoggerMessage(EventId = 2006, Level = LogLevel.Warning,
         Message = "WriteConflict {Collection}/{DocumentId} — write-once invariant violation")]
     private static partial void LogWriteConflict(ILogger logger, string collection, string documentId);
+
+    [LoggerMessage(EventId = 2007, Level = LogLevel.Warning,
+        Message = "Retry {Collection}/{OperationName} — attempt {Attempt}/{MaxAttempts} after transient error {StatusCode}")]
+    private static partial void LogRetry(ILogger logger, string collection, string operationName, int attempt, int maxAttempts, string statusCode);
 }

@@ -125,6 +125,113 @@
         { "fieldPath": "system_role", "order": "ASCENDING" },
         { "fieldPath": "effective_from", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "leave_balances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenant_id", "order": "ASCENDING" },
+        { "fieldPath": "employee_id", "order": "ASCENDING" },
+        { "fieldPath": "leave_type", "order": "ASCENDING" },
+        { "fieldPath": "cycle_id", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "leave_balances",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenant_id", "order": "ASCENDING" },
+        { "fieldPath": "employee_id", "order": "ASCENDING" },
+        { "fieldPath": "leave_type", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "employment_contracts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenant_id", "order": "ASCENDING" },
+        { "fieldPath": "employee_id", "order": "ASCENDING" },
+        { "fieldPath": "is_active", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "employment_contracts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenant_id", "order": "ASCENDING" },
+        { "fieldPath": "employee_id", "order": "ASCENDING" },
+        { "fieldPath": "start_date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "employment_contracts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenant_id", "order": "ASCENDING" },
+        { "fieldPath": "end_date", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "leave_requests",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "tenant_id", "order": "ASCENDING" },
+        { "fieldPath": "employee_id", "order": "ASCENDING" },
+        { "fieldPath": "start_date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "payroll_runs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenant_id", "order": "ASCENDING" },
+        { "fieldPath": "period", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "payroll_adjustments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenant_id", "order": "ASCENDING" },
+        { "fieldPath": "payroll_run_id", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "payroll_adjustments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenant_id", "order": "ASCENDING" },
+        { "fieldPath": "employee_id", "order": "ASCENDING" },
+        { "fieldPath": "created_at", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "timesheet_flags",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenant_id", "order": "ASCENDING" },
+        { "fieldPath": "employee_id", "order": "ASCENDING" },
+        { "fieldPath": "flag_date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "employees",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenant_id", "order": "ASCENDING" },
+        { "fieldPath": "firebase_uid", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "employees",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenant_id", "order": "ASCENDING" },
+        { "fieldPath": "employment_status", "order": "ASCENDING" },
+        { "fieldPath": "legal_name", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

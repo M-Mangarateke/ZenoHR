@@ -5,6 +5,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using ZenoHR.Api.Auth;
+using ZenoHR.Api.Pagination;
+using ZenoHR.Api.Validation;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
 using ZenoHR.Infrastructure.Firestore;
@@ -32,9 +34,10 @@ public static class PayrollEndpoints
             .WithTags("Payroll");
 
         // GET /api/payroll/runs — list all runs (newest first)
+        // VUL-027: Paginated — accepts skip/take query params (default 50, max 200).
         group.MapGet("/runs", ListRunsAsync)
             .WithName("ListPayrollRuns")
-            .Produces<IReadOnlyList<PayrollRunSummaryDto>>(200);
+            .Produces<PaginatedResponse<PayrollRunSummaryDto>>(200);
 
         // GET /api/payroll/runs/{id} — get run detail
         group.MapGet("/runs/{id}", GetRunAsync)
@@ -43,8 +46,10 @@ public static class PayrollEndpoints
             .Produces(404);
 
         // POST /api/payroll/runs — create + calculate a new run
+        // VUL-027: FluentValidation applied via WithValidation filter.
         group.MapPost("/runs", CreateRunAsync)
             .WithName("CreatePayrollRun")
+            .WithValidation<CreatePayrollRunRequest>()
             .Produces<PayrollRunDetailDto>(201)
             .Produces<ProblemDetails>(400);
 
@@ -131,14 +136,18 @@ public static class PayrollEndpoints
 
     // ── Handlers ─────────────────────────────────────────────────────────────
 
+    // VUL-027: Paginated list — accepts skip/take query params (default 50, max 200).
     private static async Task<IResult> ListRunsAsync(
+        int? skip,
+        int? take,
         ClaimsPrincipal user,
         PayrollRunRepository repo,
         CancellationToken ct)
     {
         var tenantId = user.FindFirstValue(ZenoHrClaimNames.TenantId)!;
         var runs = await repo.ListByTenantAsync(tenantId, ct);
-        return Results.Ok(runs.Select(ToSummaryDto));
+        var summaries = runs.Select(ToSummaryDto).ToList().AsReadOnly();
+        return Results.Ok(PaginationDefaults.Apply(summaries, skip, take));
     }
 
     private static async Task<IResult> GetRunAsync(

@@ -5,6 +5,7 @@
 using System.Security.Claims;
 using System.Globalization;
 using ZenoHR.Api.Auth;
+using ZenoHR.Api.Pagination;
 using ZenoHR.Domain.Errors;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Infrastructure.Services.Filing;
@@ -30,9 +31,10 @@ public static class ComplianceEndpoints
             .WithTags("Compliance");
 
         // GET /api/compliance/submissions?period={period} — list submissions for tenant
+        // VUL-027: Paginated — accepts skip/take query params (default 50, max 200).
         group.MapGet("/submissions", ListSubmissionsAsync)
             .WithName("ListComplianceSubmissions")
-            .Produces<IReadOnlyList<ComplianceSubmissionDto>>(200);
+            .Produces<PaginatedResponse<ComplianceSubmissionDto>>(200);
 
         // GET /api/compliance/submissions/{id} — get single submission
         group.MapGet("/submissions/{id}", GetSubmissionAsync)
@@ -82,8 +84,11 @@ public static class ComplianceEndpoints
 
     // ── Handlers ─────────────────────────────────────────────────────────────
 
+    // VUL-027: Paginated list — accepts skip/take query params (default 50, max 200).
     private static async Task<IResult> ListSubmissionsAsync(
         string? period,
+        int? skip,
+        int? take,
         ClaimsPrincipal user,
         ComplianceSubmissionRepository repo,
         CancellationToken ct)
@@ -94,12 +99,14 @@ public static class ComplianceEndpoints
         {
             var byPeriod = await repo.ListByPeriodAsync(tenantId, period, ct);
             if (byPeriod.IsFailure) return Results.Problem(byPeriod.Error.Message);
-            return Results.Ok(byPeriod.Value.Select(ToDto));
+            var periodDtos = byPeriod.Value.Select(ToDto).ToList().AsReadOnly();
+            return Results.Ok(PaginationDefaults.Apply(periodDtos, skip, take));
         }
 
         var all = await repo.ListByTenantAsync(tenantId, ct: ct);
         if (all.IsFailure) return Results.Problem(all.Error.Message);
-        return Results.Ok(all.Value.Select(ToDto));
+        var allDtos = all.Value.Select(ToDto).ToList().AsReadOnly();
+        return Results.Ok(PaginationDefaults.Apply(allDtos, skip, take));
     }
 
     private static async Task<IResult> GetSubmissionAsync(

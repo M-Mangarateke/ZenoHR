@@ -8,6 +8,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
 
 using ZenoHR.Infrastructure.Auth;
@@ -136,12 +137,26 @@ builder.Services.AddCors(options =>
     });
 });
 
+// VUL-027: Response compression — reduces payload size for Blazor Server (MEDIUM audit finding).
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+    options.Level = System.IO.Compression.CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+    options.Level = System.IO.Compression.CompressionLevel.Fastest);
+
 // ── Blazor Razor Components ───────────────────────────────────────────────────
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // ── Pipeline ─────────────────────────────────────────────────────────────────
 var app = builder.Build();
+
+app.UseResponseCompression();    // VUL-027: compress responses (MEDIUM audit finding)
 
 if (!app.Environment.IsDevelopment())
 {

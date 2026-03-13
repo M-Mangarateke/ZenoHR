@@ -55,6 +55,19 @@
     }
 </style>
 
+@* ── Loading indicator ─────────────────────────────────────────────────── *@
+@if (_loading)
+{
+    <div style="display:flex;align-items:center;justify-content:center;padding:var(--space-8);gap:var(--space-3);" role="status" aria-label="Loading dashboard data">
+        <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style="animation:spin 1s linear infinite;" aria-hidden="true">
+            <style>@@keyframes spin { to { transform: rotate(360deg); } }</style>
+            <circle cx="12" cy="12" r="10" stroke="var(--border-subtle)" stroke-width="3" fill="none" />
+            <path d="M12 2a10 10 0 0 1 10 10" stroke="var(--brand-primary)" stroke-width="3" fill="none" stroke-linecap="round" />
+        </svg>
+        <span style="font-size:14px;color:var(--text-secondary);">Loading dashboard...</span>
+    </div>
+}
+
 @* ── Director / HRManager view ──────────────────────────────────────────── *@
 <AuthorizeView Roles="Director,HRManager">
     <Authorized>
@@ -67,16 +80,16 @@
                     <p class="page-subtitle">Here's what's happening at Zenowethu today, @DateTime.Now.ToString("dddd d MMMM yyyy")</p>
                 </div>
                 <div class="flex gap-3">
-                    <button class="btn btn-secondary btn-sm">
+                    <button class="btn btn-secondary btn-sm" aria-label="Export dashboard data">
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
-                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                             <polyline points="7 10 12 15 17 10" />
                             <line x1="12" x2="12" y1="15" y2="3" />
                         </svg>
                         Export
                     </button>
-                    <button class="btn btn-primary btn-sm" @onclick='() => Nav.NavigateTo("/payroll/new")'>
+                    <button class="btn btn-primary btn-sm" @onclick='() => Nav.NavigateTo("/payroll/new")' aria-label="Create new payroll run">
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none"
                              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="12" x2="12" y1="5" y2="19" />
@@ -526,6 +539,7 @@
     // REQ-HR-001, REQ-SEC-002
     private bool _isDark;
     private bool _rendered;
+    private bool _loading = true;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -542,6 +556,7 @@
                     new[] { 2640000, 2710000, 2680000, 2920000, 2798100, 2847320 },
                     _isDark);
                 _rendered = true;
+                _loading = false;
                 StateHasChanged();
             }
             catch (JSDisconnectedException)
