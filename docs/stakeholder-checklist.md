@@ -2,7 +2,7 @@
 
 **Project**: ZenoHR HR, Payroll & Compliance Platform
 **Company**: Zenowethu (Pty) Ltd
-**Last Updated**: 12 March 2026
+**Last Updated**: 13 March 2026
 
 ---
 
@@ -11,7 +11,7 @@
 Each phase below represents a major milestone in building ZenoHR. After each phase is completed, the checkboxes will be ticked and a brief summary provided. This gives you a clear view of what's been done and how far we are from going live.
 
 **Progress Bar**:
-`[████████████████░░░░] ~80% to Production`
+`[███████████████████░] ~98% to Production`
 
 ---
 
@@ -151,25 +151,53 @@ Each phase below represents a major milestone in building ZenoHR. After each pha
 
 ---
 
-## Phase 6 — Hardening, Testing & Go-Live 🔶 ~85% COMPLETE
+## Phase 6 — Hardening, Testing & Go-Live 🔶 ~92% COMPLETE
 
 *What this means: Final security hardening, performance testing, compliance verification, and production deployment.*
 
 - [x] CI/CD pipeline (automated build, test, security scan on every change)
 - [x] Firestore security rules (database-level access control)
 - [x] Role-scoped data transfer objects (API never leaks unauthorised data)
+- [x] Role-filtered employee endpoints (Full/Profile/Self DTOs per role)
 - [x] Audit log sanitisation (no sensitive data in logs)
 - [x] Architecture boundary enforcement (automated tests prevent module coupling)
 - [x] Security HTTP headers and CORS policy
 - [x] Code coverage enforcement (90% domain, 85% branch — CI gate active)
 - [x] Application monitoring setup (OpenTelemetry + Azure Monitor, 4 custom metrics, health checks)
-- [x] POPIA controls implemented (unmask audit, notice versioning, access reviews, anomaly detection, SAR workflow, correction requests, break-glass access, session timeout, field encryption)
+- [x] POPIA controls implemented (all 15/15: unmask audit, notice versioning, access reviews, anomaly detection, SAR workflow, correction requests, break-glass access, session timeout, field encryption, breach notification, lawful basis registry, data quality checks, data retention enforcement, incident response, data processor registry)
 - [x] User Acceptance Testing with pilot tenant (25 UAT tests: payroll, leave, compliance, tenant isolation)
 - [x] Azure Container Apps deployment (Bicep IaC, SA North, health probes, CORS, Trivy scan)
+- [x] Azure VNet with 3-subnet architecture + NSG security rules
+- [x] Key rotation policy (180-day Azure Key Vault rotation)
+- [x] Data retention enforcement (BCEA 3yr, POPIA 5yr, Audit 7yr)
+- [x] Interactive product tours (role-specific onboarding, mandatory on first use with skip option)
 - [ ] SARS ISV accreditation submission (deferred — not applying year one)
 - [ ] Final POPIA readiness sign-off (15/15 controls implemented, formal audit pending)
 
-**Summary**: Production infrastructure is deployed on Azure SA North. All POPIA controls are implemented with 228+ security tests. UAT complete. Only formal POPIA sign-off and SARS accreditation remain (both deferred to year two).
+**Summary**: Production infrastructure is deployed on Azure SA North. All 15 POPIA controls are fully implemented with 330+ security tests. All 28 vulnerability findings addressed. UAT complete. Interactive product tours guide users through the system. Only formal POPIA sign-off and SARS accreditation remain (both deferred to year two).
+
+---
+
+## Phase 7 — Documentation & Go-Live Readiness ✅ COMPLETE
+
+*What this means: Comprehensive documentation for all audiences — developers, stakeholders, auditors — plus deployment strategy and go-live planning.*
+
+- [x] Deployment strategy document (10 sections: architecture, environments, CI/CD, rollback, monitoring)
+- [x] Go-live checklist (60+ steps across 6 phases: pre-deployment through post-launch)
+- [x] Developer getting-started guide (setup, prerequisites, local development)
+- [x] Architecture guide (modular monolith, bounded contexts, data flow)
+- [x] Coding conventions reference (C# style, error handling, testing patterns)
+- [x] API reference (44 endpoints across 7 modules, request/response examples)
+- [x] Security architecture documentation (encryption, auth, POPIA controls, audit trail)
+- [x] Troubleshooting guide (common issues, debugging, Firestore emulator)
+- [x] Executive summary for stakeholders (business value, ROI, compliance status)
+- [x] POPIA compliance report (15 controls, evidence mapping, audit readiness)
+- [x] User guide (role-based walkthroughs: HR Manager, Director, Manager, Employee)
+- [x] FAQ (40+ questions covering technical and non-technical concerns)
+- [x] Audit preparation guide (what auditors need, evidence packs, compliance evidence)
+- [x] Stakeholder progress checklist (this document — updated throughout project)
+
+**Summary**: All documentation complete. Developers have 6 comprehensive guides. Stakeholders have an executive summary, user guide, FAQ, and audit preparation guide. POPIA compliance report ready for Information Regulator review.
 
 ---
 
@@ -183,14 +211,17 @@ Each phase below represents a major milestone in building ZenoHR. After each pha
 | Phase 3 — Compliance & Audit | ✅ Complete | 20/20 tasks |
 | Phase 4 — User Interface | ✅ Complete | 23/23 tasks |
 | Phase 5 — Integration & Notifications | ✅ Complete | 8/8 tasks |
-| Phase 6 — Hardening & Go-Live | 🔶 Almost done | 11/13 tasks |
+| Phase 6 — Hardening & Go-Live | 🔶 Almost done | 16/18 tasks |
+| Phase 7 — Documentation & Readiness | ✅ Complete | 14/14 tasks |
 
-**Overall: 120 of 122 tasks complete (98%)**
+**Overall: 139 of 141 tasks complete (98.6%)**
 
-### What's Left Before Go-Live (Key Milestones)
+### What's Left Before Go-Live (2 Items — Both External)
 
-1. **POPIA formal sign-off** — all 15 controls are implemented and tested; formal audit to confirm compliance
+1. **POPIA formal sign-off** — all 15 controls are implemented and tested; formal audit with Information Regulator to confirm compliance
 2. **SARS ISV accreditation** — deferred to year two (manual filing works as interim solution)
+
+*Both remaining items are external dependencies — no further development work required.*
 
 ### External Dependencies (Outside Our Control)
 
@@ -199,16 +230,29 @@ Each phase below represents a major milestone in building ZenoHR. After each pha
 | SARS ISV Accreditation | Deferred to year two | Manual SARS filing in the interim. Will apply once application proves viable. |
 | POPIA Formal Audit | Pending | All 15 controls implemented. Formal sign-off with Information Regulator outstanding. |
 
-### Security & Compliance Summary (Added 12 March 2026)
+### Security & Compliance Summary (Updated 13 March 2026)
 
 | Area | Status | Detail |
 |------|--------|--------|
-| POPIA Controls | 15/15 implemented | Unmask audit, notice versioning, access reviews, anomaly detection, SAR, corrections, break-glass, session timeout, field encryption, breach notification |
-| Vulnerability Remediation | 6 Sev-1 closed | HTTP headers, CORS, MFA, incident response, breach register, break-glass |
-| Test Coverage | 228+ security tests | Across 10 POPIA/security services |
-| Infrastructure | Azure SA North | POPIA data residency compliant, Bicep IaC, Trivy scans |
+| POPIA Controls | 15/15 implemented | Lawful basis, data quality, unmask audit, notice versioning, access reviews, anomaly detection, SAR, corrections, break-glass, session timeout, field encryption, breach notification, incident response, data processor registry, data retention |
+| Vulnerability Remediation | 28/28 addressed | All Sev-1 through Sev-3 findings closed or mitigated |
+| Test Coverage | 330+ security tests | Across 15+ POPIA/security services |
+| Infrastructure | Azure SA North | POPIA data residency compliant, Bicep IaC, VNet + NSGs, Trivy scans |
 | Encryption | AES-256 field-level | Envelope encryption for PII (national ID, tax ref, bank account) |
 | Audit Trail | Hash-chained (SHA-256) | Tamper-evident, immutable, per-tenant |
+| Key Management | Azure Key Vault | 180-day rotation policy, envelope encryption |
+| Data Retention | Automated enforcement | BCEA 3yr, POPIA 5yr, Audit 7yr — auto-archive + auto-purge |
+| Onboarding | Interactive product tours | Role-specific, mandatory on first login, 7-day checklist persistence |
+
+### Documentation Inventory
+
+| Audience | Documents | Location |
+|----------|-----------|----------|
+| **Developers** | Getting Started, Architecture Guide, Coding Conventions, API Reference (44 endpoints), Security Architecture, Troubleshooting | `docs/developer/` |
+| **Stakeholders** | Executive Summary, User Guide, FAQ (40+ Q&A), POPIA Compliance Report, Audit Preparation Guide | `docs/stakeholder/` |
+| **Operations** | Deployment Strategy, Go-Live Checklist (60+ steps), Vulnerability Register, POPIA Control Status | `docs/deployment/`, `docs/security/` |
+| **Design** | 16 UI Mockups, Design Tokens, Brand Guidelines, Mobile Guidelines | `docs/design/` |
+| **Requirements** | 17 PRD Documents, Firestore Schema, Monetary Precision Spec | `docs/prd/`, `docs/schemas/` |
 
 ---
 
