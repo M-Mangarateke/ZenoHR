@@ -1,0 +1,512 @@
+/* REQ-OPS-001: Product tour overlay, tooltip, and onboarding checklist styles.
+   Brand-aware, dark-mode compatible, responsive, accessible. */
+
+/* ── Body lock when tour active ─────────────────────────────────────────────── */
+body.zenohr-tour-active {
+    overflow: hidden;
+}
+
+/* ── Overlay ────────────────────────────────────────────────────────────────── */
+.zenohr-tour-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: rgba(0, 0, 0, 0.6);
+    transition: clip-path 300ms ease;
+}
+
+[data-theme="dark"] .zenohr-tour-overlay {
+    background: rgba(0, 0, 0, 0.75);
+}
+
+/* ── Highlighted target element ─────────────────────────────────────────────── */
+.zenohr-tour-highlight {
+    position: relative;
+    z-index: 9999;
+    box-shadow: 0 0 0 4px rgba(29, 71, 119, 0.5), 0 0 20px rgba(29, 71, 119, 0.25);
+    border-radius: 8px;
+    animation: zenohr-tour-pulse 2s ease-in-out infinite;
+}
+
+[data-theme="dark"] .zenohr-tour-highlight {
+    box-shadow: 0 0 0 4px rgba(74, 143, 212, 0.5), 0 0 20px rgba(74, 143, 212, 0.25);
+}
+
+@keyframes zenohr-tour-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 4px rgba(29, 71, 119, 0.5), 0 0 20px rgba(29, 71, 119, 0.25);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(29, 71, 119, 0.3), 0 0 30px rgba(29, 71, 119, 0.15);
+    }
+}
+
+[data-theme="dark"] .zenohr-tour-highlight {
+    animation-name: zenohr-tour-pulse-dark;
+}
+
+@keyframes zenohr-tour-pulse-dark {
+    0%, 100% {
+        box-shadow: 0 0 0 4px rgba(74, 143, 212, 0.5), 0 0 20px rgba(74, 143, 212, 0.25);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(74, 143, 212, 0.3), 0 0 30px rgba(74, 143, 212, 0.15);
+    }
+}
+
+/* ── Tooltip ────────────────────────────────────────────────────────────────── */
+.zenohr-tour-tooltip {
+    position: fixed;
+    z-index: 10000;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px 24px 16px;
+    min-width: 280px;
+    max-width: 400px;
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.06), 0 4px 6px rgba(0, 0, 0, 0.04);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    transition: top 300ms ease, left 300ms ease, opacity 200ms ease;
+}
+
+[data-theme="dark"] .zenohr-tour-tooltip {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.4), 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* ── Tooltip arrow ──────────────────────────────────────────────────────────── */
+.zenohr-tour-tooltip::before {
+    content: '';
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    transform: rotate(45deg);
+}
+
+[data-theme="dark"] .zenohr-tour-tooltip::before {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.zenohr-tour-tooltip[data-position="bottom"]::before {
+    top: -7px;
+    left: 50%;
+    margin-left: -6px;
+    border-right: none;
+    border-bottom: none;
+}
+
+.zenohr-tour-tooltip[data-position="top"]::before {
+    bottom: -7px;
+    left: 50%;
+    margin-left: -6px;
+    border-left: none;
+    border-top: none;
+}
+
+.zenohr-tour-tooltip[data-position="right"]::before {
+    left: -7px;
+    top: 50%;
+    margin-top: -6px;
+    border-top: none;
+    border-right: none;
+}
+
+.zenohr-tour-tooltip[data-position="left"]::before {
+    right: -7px;
+    top: 50%;
+    margin-top: -6px;
+    border-bottom: none;
+    border-left: none;
+}
+
+/* ── Step counter pill ──────────────────────────────────────────────────────── */
+.zenohr-tour-counter {
+    display: inline-block;
+    padding: 3px 10px;
+    background: #e8f0f8;
+    color: #1d4777;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 9999px;
+    margin-bottom: 12px;
+    letter-spacing: 0.02em;
+}
+
+[data-theme="dark"] .zenohr-tour-counter {
+    background: #1a2d44;
+    color: #4a8fd4;
+}
+
+/* ── Title ──────────────────────────────────────────────────────────────────── */
+.zenohr-tour-title {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
+    color: #0f172a;
+}
+
+[data-theme="dark"] .zenohr-tour-title {
+    color: #f1f5f9;
+}
+
+/* ── Description ────────────────────────────────────────────────────────────── */
+.zenohr-tour-desc {
+    margin: 0 0 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #64748b;
+}
+
+[data-theme="dark"] .zenohr-tour-desc {
+    color: #94a3b8;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────────── */
+.zenohr-tour-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.zenohr-tour-nav-group {
+    display: flex;
+    gap: 8px;
+}
+
+.zenohr-tour-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 150ms ease, color 150ms ease;
+    min-height: 36px;
+    line-height: 1;
+}
+
+.zenohr-tour-btn:focus-visible {
+    outline: 2px solid #1d4777;
+    outline-offset: 2px;
+}
+
+[data-theme="dark"] .zenohr-tour-btn:focus-visible {
+    outline-color: #4a8fd4;
+}
+
+.zenohr-tour-btn--skip {
+    background: transparent;
+    color: #94a3b8;
+}
+
+.zenohr-tour-btn--skip:hover {
+    color: #64748b;
+    background: #f8fafc;
+}
+
+[data-theme="dark"] .zenohr-tour-btn--skip:hover {
+    color: #cbd5e1;
+    background: #162033;
+}
+
+.zenohr-tour-btn--prev {
+    background: #f1f5f9;
+    color: #334155;
+}
+
+.zenohr-tour-btn--prev:hover {
+    background: #e2e8f0;
+}
+
+[data-theme="dark"] .zenohr-tour-btn--prev {
+    background: #334155;
+    color: #e2e8f0;
+}
+
+[data-theme="dark"] .zenohr-tour-btn--prev:hover {
+    background: #475569;
+}
+
+.zenohr-tour-btn--next {
+    background: #1d4777;
+    color: #ffffff;
+}
+
+.zenohr-tour-btn--next:hover {
+    background: #163a61;
+}
+
+[data-theme="dark"] .zenohr-tour-btn--next {
+    background: #4a8fd4;
+    color: #ffffff;
+}
+
+[data-theme="dark"] .zenohr-tour-btn--next:hover {
+    background: #5da0e2;
+}
+
+/* ── Progress dots ──────────────────────────────────────────────────────────── */
+.zenohr-tour-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding-top: 4px;
+}
+
+.zenohr-tour-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: #e2e8f0;
+    transition: background 200ms ease, transform 200ms ease;
+}
+
+[data-theme="dark"] .zenohr-tour-dot {
+    background: #334155;
+}
+
+.zenohr-tour-dot.active {
+    background: #1d4777;
+    transform: scale(1.25);
+}
+
+[data-theme="dark"] .zenohr-tour-dot.active {
+    background: #4a8fd4;
+}
+
+.zenohr-tour-dot.completed {
+    background: #d4890e;
+}
+
+[data-theme="dark"] .zenohr-tour-dot.completed {
+    background: #f0a832;
+}
+
+/* ── Onboarding Checklist Widget ────────────────────────────────────────────── */
+.zenohr-checklist {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9000;
+    width: 320px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.06), 0 4px 6px rgba(0, 0, 0, 0.04);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    overflow: hidden;
+    transition: transform 300ms ease, opacity 300ms ease;
+}
+
+[data-theme="dark"] .zenohr-checklist {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.4), 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.zenohr-checklist--collapsed {
+    width: auto;
+    cursor: pointer;
+}
+
+.zenohr-checklist-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: #1d4777;
+    color: #ffffff;
+}
+
+[data-theme="dark"] .zenohr-checklist-header {
+    background: #162d4a;
+}
+
+.zenohr-checklist-header h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.zenohr-checklist-header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.zenohr-checklist-header button {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px;
+    border-radius: 4px;
+    transition: color 150ms ease;
+}
+
+.zenohr-checklist-header button:hover {
+    color: #ffffff;
+}
+
+.zenohr-checklist-body {
+    padding: 12px 16px 16px;
+}
+
+.zenohr-checklist-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    transition: opacity 150ms ease;
+}
+
+[data-theme="dark"] .zenohr-checklist-item {
+    border-bottom-color: #1e293b;
+}
+
+.zenohr-checklist-item:last-child {
+    border-bottom: none;
+}
+
+.zenohr-checklist-item.checked {
+    opacity: 0.5;
+}
+
+.zenohr-checklist-checkbox {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 2px solid #cbd5e1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 150ms ease, border-color 150ms ease;
+    margin-top: 1px;
+}
+
+[data-theme="dark"] .zenohr-checklist-checkbox {
+    border-color: #475569;
+}
+
+.zenohr-checklist-item.checked .zenohr-checklist-checkbox {
+    background: #1d4777;
+    border-color: #1d4777;
+}
+
+[data-theme="dark"] .zenohr-checklist-item.checked .zenohr-checklist-checkbox {
+    background: #4a8fd4;
+    border-color: #4a8fd4;
+}
+
+.zenohr-checklist-checkbox::after {
+    content: '';
+    display: none;
+    width: 5px;
+    height: 9px;
+    border: solid #ffffff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    margin-top: -2px;
+}
+
+.zenohr-checklist-item.checked .zenohr-checklist-checkbox::after {
+    display: block;
+}
+
+.zenohr-checklist-label {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #334155;
+}
+
+[data-theme="dark"] .zenohr-checklist-label {
+    color: #e2e8f0;
+}
+
+.zenohr-checklist-item.checked .zenohr-checklist-label {
+    text-decoration: line-through;
+    color: #94a3b8;
+}
+
+.zenohr-checklist-progress {
+    margin: 8px 16px 12px;
+    height: 4px;
+    background: #e2e8f0;
+    border-radius: 9999px;
+    overflow: hidden;
+}
+
+[data-theme="dark"] .zenohr-checklist-progress {
+    background: #334155;
+}
+
+.zenohr-checklist-progress-bar {
+    height: 100%;
+    background: #d4890e;
+    border-radius: 9999px;
+    transition: width 300ms ease;
+}
+
+[data-theme="dark"] .zenohr-checklist-progress-bar {
+    background: #f0a832;
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .zenohr-tour-tooltip {
+        min-width: 240px;
+        max-width: calc(100vw - 32px);
+        padding: 16px 18px 12px;
+    }
+
+    .zenohr-tour-tooltip::before {
+        display: none;
+    }
+
+    .zenohr-tour-title {
+        font-size: 15px;
+    }
+
+    .zenohr-tour-desc {
+        font-size: 13px;
+    }
+
+    .zenohr-checklist {
+        bottom: 72px; /* Above mobile bottom nav */
+        right: 12px;
+        left: 12px;
+        width: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .zenohr-tour-buttons {
+        flex-direction: column-reverse;
+        gap: 6px;
+    }
+
+    .zenohr-tour-btn--skip {
+        width: 100%;
+        text-align: center;
+    }
+
+    .zenohr-tour-nav-group {
+        width: 100%;
+    }
+
+    .zenohr-tour-nav-group .zenohr-tour-btn {
+        flex: 1;
+    }
+}

@@ -101,6 +101,10 @@ builder.Services.AddZenoHrFirestore(builder.Configuration);
 // Scoped: each Blazor Server circuit gets its own ThemeService instance.
 builder.Services.AddScoped<ThemeService>();
 
+// ── Tour Service (REQ-OPS-001) ────────────────────────────────────────────────
+// Scoped: manages product tour state and role-specific onboarding steps per circuit.
+builder.Services.AddScoped<TourService>();
+
 // ── Blazor Razor Components ───────────────────────────────────────────────────
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

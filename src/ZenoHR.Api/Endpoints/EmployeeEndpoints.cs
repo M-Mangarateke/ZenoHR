@@ -1,10 +1,12 @@
 // REQ-HR-001, REQ-SEC-002, REQ-SEC-005: Employee API endpoints.
 // TASK-067: GET list, GET by ID, POST (create), PUT (update profile).
+// VUL-009: GET /{id} returns role-filtered DTO via EmployeeDtoMapper.
 // All endpoints require authentication. Role access enforced per RBAC spec (PRD-15).
 
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using ZenoHR.Api.Auth;
+using ZenoHR.Api.DTOs;
 using ZenoHR.Domain.Common;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Module.Employee.Aggregates;
@@ -98,6 +100,8 @@ public static class EmployeeEndpoints
         return Results.Ok(employees.Select(ToSummaryDto));
     }
 
+    // VUL-009: Role-filtered employee response — Director/HRManager get EmployeeFullDto,
+    // Manager gets EmployeeProfileDto (no salary/tax/banking), Employee gets EmployeeSelfDto (own only).
     private static async Task<IResult> GetEmployeeByIdAsync(
         string id,
         ClaimsPrincipal user,
@@ -113,10 +117,16 @@ public static class EmployeeEndpoints
         var ownEmpId = user.FindFirstValue(ZenoHrClaimNames.EmployeeId);
         var systemRole = user.FindFirstValue(ZenoHrClaimNames.SystemRoleJwt) ?? "";
 
+        // VUL-009: Employee can only access their own record — 403 for any other employee.
         if (id != ownEmpId && systemRole is not ("Director" or "HRManager" or "Manager"))
             return Results.Forbid();
 
-        return Results.Ok(ToDetailDto(result.Value!));
+        // VUL-009: Return role-appropriate DTO shape via EmployeeDtoMapper.
+        // Director/HRManager → EmployeeFullDto (masked PII, all fields).
+        // Manager → EmployeeProfileDto (no salary, tax, banking, national ID).
+        // Employee → EmployeeSelfDto (minimal own-record view).
+        var roleDto = EmployeeDtoMapper.ToRoleDto(result.Value!, systemRole);
+        return Results.Ok(roleDto);
     }
 
     private static async Task<IResult> CreateEmployeeAsync(

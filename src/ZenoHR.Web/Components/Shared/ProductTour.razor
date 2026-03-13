@@ -1,0 +1,214 @@
+@* REQ-OPS-001: Interactive product tour — role-specific guided onboarding walkthrough. *@
+@* Activates on first login. Skippable but mandatory first appearance. *@
+@* Persists completion/skip state to localStorage per user. *@
+
+@using System.Security.Claims
+@using ZenoHR.Web.Services
+@inject TourService TourService
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+@if (_showChecklist && _checklistItems.Count > 0)
+{
+    <div class="zenohr-checklist" role="complementary" aria-label="Onboarding checklist">
+        <div class="zenohr-checklist-header">
+            <h4>Getting Started</h4>
+            <div class="zenohr-checklist-header-actions">
+                <button @onclick="DismissChecklist" title="Dismiss checklist" aria-label="Dismiss checklist">
+                    &times;
+                </button>
+            </div>
+        </div>
+        <div class="zenohr-checklist-progress">
+            <div class="zenohr-checklist-progress-bar" style="width: @(_completedCount * 100 / _checklistItems.Count)%"></div>
+        </div>
+        <div class="zenohr-checklist-body">
+            @foreach (var item in _checklistItems)
+            {
+                var isChecked = _checkedItems.ContainsKey(item.Id) && _checkedItems[item.Id];
+                <div class="zenohr-checklist-item @(isChecked ? "checked" : "")"
+                     @onclick="() => ToggleChecklistItem(item.Id)"
+                     role="checkbox"
+                     aria-checked="@isChecked.ToString().ToLowerInvariant()"
+                     aria-label="@item.Label"
+                     tabindex="0"
+                     @onkeydown="(e) => OnChecklistKeyDown(e, item.Id)">
+                    <span class="zenohr-checklist-checkbox"></span>
+                    <span class="zenohr-checklist-label">@item.Label</span>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    // REQ-OPS-001: Product tour lifecycle — check state, start tour, persist completion.
+
+    [CascadingParameter]
+    private Task<AuthenticationState>? AuthState { get; set; }
+
+    private string _userId = string.Empty;
+    private string _systemRole = string.Empty;
+    private string _tourId = string.Empty;
+    private bool _tourStarted;
+    private bool _disposed;
+
+    // Checklist state
+    private bool _showChecklist;
+    private IReadOnlyList<ChecklistItem> _checklistItems = Array.Empty<ChecklistItem>();
+    private Dictionary<string, bool> _checkedItems = new();
+    private int _completedCount;
+
+    private DotNetObjectReference<ProductTour>? _dotNetRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _tourStarted) return;
+
+        if (AuthState is null) return;
+
+        var authState = await AuthState;
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated != true) return;
+
+        _userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        _systemRole = user.FindFirstValue(ClaimTypes.Role) ?? "Employee";
+
+        if (string.IsNullOrEmpty(_userId)) return;
+
+        _tourId = TourService.GetTourId(_systemRole);
+        _tourStarted = true;
+
+        // Check if tour should be shown
+        var shouldShow = await TourService.ShouldShowTourAsync(_userId, _tourId);
+
+        if (shouldShow)
+        {
+            // Register event listener for tour completion/skip
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await RegisterTourEventsAsync();
+
+            // Start tour after a brief delay to let the page render
+            await Task.Delay(1000);
+            var steps = TourService.GetTourSteps(_systemRole);
+            await TourService.StartTourAsync(steps);
+        }
+        else
+        {
+            // Tour already done — check if checklist should be shown
+            await InitializeChecklistAsync();
+        }
+    }
+
+    private async Task RegisterTourEventsAsync()
+    {
+        try
+        {
+            if (_dotNetRef is null) return;
+            await JS.InvokeVoidAsync("eval", @"
+                (function(ref) {
+                    document.addEventListener('tour:completed', function onTourComplete() {
+                        document.removeEventListener('tour:completed', onTourComplete);
+                        ref.invokeMethodAsync('OnTourEvent', 'completed');
+                    });
+                    document.addEventListener('tour:skipped', function onTourSkip() {
+                        document.removeEventListener('tour:skipped', onTourSkip);
+                        ref.invokeMethodAsync('OnTourEvent', 'skipped');
+                    });
+                })(arguments[0]);
+            ", _dotNetRef);
+        }
+        catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { }
+    }
+
+    /// <summary>
+    /// Called from JS when the tour is completed or skipped.
+    /// Marks tour done in localStorage and initializes the onboarding checklist.
+    /// </summary>
+    [JSInvokable("OnTourEvent")]
+    public async Task OnTourEvent(string eventType)
+    {
+        var status = eventType == "skipped" ? "skipped" : "completed";
+        await TourService.MarkTourCompletedAsync(_userId, _tourId, status);
+        await InitializeChecklistAsync();
+        StateHasChanged();
+    }
+
+    private async Task InitializeChecklistAsync()
+    {
+        _checklistItems = TourService.GetChecklistItems(_systemRole);
+        if (_checklistItems.Count == 0) return;
+
+        // Check if checklist was already dismissed or expired
+        var state = await TourService.GetChecklistStateAsync(_userId, _systemRole);
+        if (state is not null && state.Dismissed)
+        {
+            _showChecklist = false;
+            return;
+        }
+
+        // Initialize checked items
+        _checkedItems = new Dictionary<string, bool>();
+        if (state?.Items is not null)
+        {
+            foreach (var kvp in state.Items)
+            {
+                _checkedItems[kvp.Key] = kvp.Value;
+            }
+        }
+
+        foreach (var item in _checklistItems)
+        {
+            _checkedItems.TryAdd(item.Id, false);
+        }
+
+        _completedCount = _checkedItems.Values.Count(v => v);
+        _showChecklist = _completedCount < _checklistItems.Count;
+
+        StateHasChanged();
+    }
+
+    private async Task ToggleChecklistItem(string itemId)
+    {
+        if (!_checkedItems.ContainsKey(itemId)) return;
+
+        _checkedItems[itemId] = !_checkedItems[itemId];
+        _completedCount = _checkedItems.Values.Count(v => v);
+
+        await TourService.SaveChecklistStateAsync(_userId, _systemRole, _checkedItems);
+
+        if (_completedCount >= _checklistItems.Count)
+        {
+            // All items checked — dismiss after brief celebration
+            await Task.Delay(800);
+            _showChecklist = false;
+            await TourService.SaveChecklistStateAsync(_userId, _systemRole, _checkedItems, dismissed: true);
+        }
+
+        StateHasChanged();
+    }
+
+    private void OnChecklistKeyDown(KeyboardEventArgs e, string itemId)
+    {
+        if (e.Key is "Enter" or " ")
+        {
+            _ = ToggleChecklistItem(itemId);
+        }
+    }
+
+    private async Task DismissChecklist()
+    {
+        _showChecklist = false;
+        await TourService.DismissChecklistAsync(_userId, _systemRole);
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_disposed) return;
+        _disposed = true;
+        _dotNetRef?.Dispose();
+    }
+}
