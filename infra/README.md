@@ -44,7 +44,7 @@ az group create \
 # First deploy — no containerAppPrincipalId yet; deploy KV standalone then update after step 3
 az deployment group create \
   --resource-group zenohr-prod-rg \
-  --template-file azure/keyvault.bicep \
+  --template-file infra/keyvault.bicep \
   --parameters \
       keyVaultName=zenohr-prod-kv \
       adminGroupObjectId=<your-aad-group-object-id>
@@ -79,7 +79,7 @@ az keyvault secret set \
 ```bash
 az deployment group create \
   --resource-group zenohr-prod-rg \
-  --template-file azure/main.bicep \
+  --template-file infra/main.bicep \
   --parameters \
       environmentName=prod \
       containerImage=ghcr.io/<org>/zenohr:latest \
@@ -99,7 +99,7 @@ PRINCIPAL_ID=$(az deployment group show \
 ```bash
 az deployment group create \
   --resource-group zenohr-prod-rg \
-  --template-file azure/keyvault.bicep \
+  --template-file infra/keyvault.bicep \
   --parameters \
       keyVaultName=zenohr-prod-kv \
       containerAppPrincipalId=$PRINCIPAL_ID \
@@ -138,8 +138,8 @@ Configure OIDC federated credentials on the Azure AD app registration for the Gi
 
 | File | Purpose |
 |------|---------|
-| `azure/main.bicep` | Log Analytics, Container Apps Environment, Container App (with auto-scaling 1–3 replicas) |
-| `azure/keyvault.bicep` | Key Vault + RBAC role assignments (Secrets User for Container App, Admin for ops team) |
+| `infra/main.bicep` | Log Analytics, Container Apps Environment, Container App (with auto-scaling 1–3 replicas) |
+| `infra/keyvault.bicep` | Key Vault + RBAC role assignments (Secrets User for Container App, Admin for ops team) |
 
 ---
 

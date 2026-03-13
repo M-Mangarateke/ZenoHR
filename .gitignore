@@ -1,27 +1,26 @@
-# .NET
-bin/
-obj/
-*.user
-*.suo
-*.userosscache
-*.sln.docstates
-*.userprefs
-.vs/
-[Dd]ebug/
-[Rr]elease/
-x64/
-x86/
-[Aa][Rr][Mm]/
-[Aa][Rr][Mm]64/
-bld/
+# ════════════════════════════════════════════════════════════════════════════════
+# ZenoHR .gitignore
+# ════════════════════════════════════════════════════════════════════════════════
+
+# ── .NET Build Output ─────────────────────────────────────────────────────────
 [Bb]in/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+[Dd]ebug/
+[Rr]elease/
+[Dd]ebugPublic/
+[Rr]eleases/
+[Aa]rtifacts/
+publish/
+bld/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
 TestResults/
-coverage/
 
-# NuGet
+# ── NuGet ─────────────────────────────────────────────────────────────────────
 *.nupkg
 *.snupkg
 **/[Pp]ackages/*
@@ -29,15 +28,18 @@ coverage/
 *.nuget.props
 *.nuget.targets
 project.lock.json
+packages.lock.json
 
-# Build results
-[Dd]ebugPublic/
-[Rr]eleases/
-[Aa]rtifacts/
-publish/
-
-# IDE
+# ── IDE / Editor ──────────────────────────────────────────────────────────────
+.vs/
 .idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.rsuser
+*.sln.iml
 *.swp
 *.swo
 *~
@@ -45,13 +47,14 @@ publish/
 .vscode/launch.json
 .vscode/tasks.json
 
-# OS
+# ── OS Files ──────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+*.lnk
 
-# Secrets and credentials
+# ── Secrets & Credentials ────────────────────────────────────────────────────
 *.pfx
 *.p12
 *.key
@@ -65,7 +68,7 @@ secrets.json
 .env.*
 !.env.example
 
-# Firebase / Firestore emulator
+# ── Firebase / Firestore Emulator ─────────────────────────────────────────────
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
@@ -73,43 +76,42 @@ ui-debug.log
 firestore_export/
 emulator-data/
 
-# Azure
+# ── Azure ─────────────────────────────────────────────────────────────────────
 .azure/
 
-# User-specific
-*.rsuser
-
-# Claude Code local settings (machine-specific, not project config)
-.claude/settings.json
-.claude/settings.local.json
-
-# Temporary build output files
-build_output.txt
-launchSettings.json
-
-# Coverage
-coverage*.xml
-coverage*.json
-*.coveragexml
-lcov.info
-
-# JetBrains Rider
-.idea/
-*.sln.iml
-
-# Windows
-*.lnk
-
-# Misc
-*.bak
-*.tmp
-*.temp
-*.log
+# ── Node.js ───────────────────────────────────────────────────────────────────
 node_modules/
 
-# uv / Python
+# ── Python / uv ───────────────────────────────────────────────────────────────
 .venv/
 __pycache__/
 *.pyc
 .uv/
 uv.lock
+
+# ── Coverage Reports ─────────────────────────────────────────────────────────
+coverage/
+coverage*.xml
+coverage*.json
+*.coveragexml
+lcov.info
+
+# ── Build Logs & Temp Output ─────────────────────────────────────────────────
+build_output*.txt
+build-log*.txt
+build-output*.txt
+*.log
+
+# ── Generated Files ──────────────────────────────────────────────────────────
+docs/generated/
+docs/stakeholder-checklist.docx
+*.docx
+
+# ── Misc Temp Files ──────────────────────────────────────────────────────────
+*.bak
+*.tmp
+*.temp
+
+# ── Claude Code (machine-specific, not project config) ───────────────────────
+.claude/settings.json
+.claude/settings.local.json
