@@ -127,9 +127,7 @@ public sealed class ComplianceSubmissionRepository : BaseFirestoreRepository<Com
             ["updated_at"] = Timestamp.GetCurrentTimestamp(),
         };
 
-#pragma warning disable CA2016 // Firestore UpdateAsync does not accept CancellationToken
-        await docRef.UpdateAsync(updates!, Precondition.None);
-#pragma warning restore CA2016
+        await docRef.UpdateAsync(updates!, precondition: Precondition.None, cancellationToken: ct);
         return Result<ComplianceSubmission>.Success(submission);
     }
 

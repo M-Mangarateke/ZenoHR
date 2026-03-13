@@ -11,10 +11,9 @@ namespace ZenoHR.Module.Payroll.Services;
 /// <summary>
 /// Domain service for SARS IRP3 tax directives — registration, validation, lifecycle management.
 /// </summary>
+[System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Instance methods for DI compatibility")]
 public sealed partial class TaxDirectiveService
 {
-    private int _sequenceCounter;
-
     // ── Directive number validation: 7–10 digits only ──────────────────────────
 
     [GeneratedRegex(@"^\d{7,10}$", RegexOptions.Compiled)]
@@ -88,9 +87,8 @@ public sealed partial class TaxDirectiveService
             return typeValidation;
 
         // Generate directive ID
-        var seq = Interlocked.Increment(ref _sequenceCounter);
         var directiveId = string.Format(CultureInfo.InvariantCulture,
-            "DIR-{0}-{1}", DateTime.UtcNow.Year, seq.ToString("D4", CultureInfo.InvariantCulture));
+            "DIR-{0}-{1}", DateTime.UtcNow.Year, Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture)[..8]);
 
         var directive = new TaxDirective
         {

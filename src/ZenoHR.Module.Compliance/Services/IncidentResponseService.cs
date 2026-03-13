@@ -16,8 +16,6 @@ namespace ZenoHR.Module.Compliance.Services;
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Instance methods for DI compatibility")]
 public sealed class IncidentResponseService
 {
-    private static int _counter;
-
     /// <summary>
     /// Classify a detected security incident — creates a new incident response record.
     /// Transitions from Detected → Classified.
@@ -41,8 +39,7 @@ public sealed class IncidentResponseService
         if (string.IsNullOrWhiteSpace(classifiedBy))
             return Result<IncidentResponse>.Failure(ZenoHrErrorCode.RequiredFieldMissing, "ClassifiedBy is required.");
 
-        var seq = Interlocked.Increment(ref _counter);
-        var incidentId = string.Format(CultureInfo.InvariantCulture, "IR-{0}-{1:D4}", timestamp.Year, seq);
+        var incidentId = string.Format(CultureInfo.InvariantCulture, "IR-{0}-{1}", timestamp.Year, Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture)[..8]);
 
         var response = new IncidentResponse
         {

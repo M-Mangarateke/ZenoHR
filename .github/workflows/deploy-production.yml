@@ -114,26 +114,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      # REQ-SEC-010: Build image locally first, scan with Trivy, THEN push.
+      # VUL-017 remediation: never push an unscanned image to the registry.
+      - name: Build Docker image (local scan target)
         if: ${{ !inputs.image_tag }}
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve-tag.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          push: false
+          load: true
+          tags: zenohr:scan
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          provenance: true
-          sbom: true
 
-      # REQ-SEC-010: Container vulnerability scan before deployment
+      # REQ-SEC-010: Container vulnerability scan BEFORE push to registry
       - name: Run Trivy vulnerability scan
         if: ${{ !inputs.image_tag }}
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve-tag.outputs.tag }}'
+          image-ref: 'zenohr:scan'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'HIGH,CRITICAL'
@@ -146,6 +145,21 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
           category: 'production-deploy-scan'
+
+      # Push to registry ONLY after Trivy scan passes (VUL-017)
+      - name: Build and push Docker image to GHCR
+        if: ${{ !inputs.image_tag }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.resolve-tag.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
 
   # ── Deploy to Azure Container Apps ──────────────────────────────────────────
   # REQ-OPS-009: Deploy to southafricanorth (POPIA data residency).

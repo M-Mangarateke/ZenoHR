@@ -15,7 +15,7 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
   NUGET_PACKAGES: ${{ github.workspace }}/.nuget/packages
   BUILD_CONFIGURATION: Release
-  FIREBASE_PROJECT_ID: zenohr-a7ccf
+  FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
 
 jobs:
 

@@ -924,6 +924,7 @@
         decimal SickDaysTotal, decimal SickDaysUsed,
         decimal FamilyResponsibilityTotal, decimal FamilyResponsibilityUsed);
 
+    // TODO: REQ-HR-002: Replace mock data with real service call — inject ILeaveService, call GetRequestsAsync(tenantId)
     // ── Mock data — Zenowethu (Pty) Ltd employees ─────────────────────────
     // REQ-HR-002: all 5 BCEA leave types
     private readonly List<LeaveRequest> _requests = new()
@@ -945,6 +946,7 @@
             DateTimeOffset.Parse("2026-02-19T08:00:00+02:00")),
     };
 
+    // TODO: REQ-HR-002: Replace mock balances with real service call — inject ILeaveService, call GetBalancesAsync(tenantId)
     // CTL-BCEA-001: Annual leave min 21 days; CTL-BCEA-003: Sick leave 30d/3yr cycle
     private readonly List<LeaveBalance> _balances = new()
     {

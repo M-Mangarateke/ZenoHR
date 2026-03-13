@@ -454,6 +454,7 @@
         decimal Paye, decimal Uif, decimal NetPay, string Status
     );
 
+    // TODO: REQ-HR-003: Replace mock data with real service call — inject IPayrollService, call GetRunsAsync(tenantId)
     private readonly List<PayrollRunSummary> _runs = new()
     {
         new("RUN-2026-02", "February 2026", "Finalized", 8, 412000m, 328450m, 62400m, 8240m, new DateOnly(2026, 2, 25)),
@@ -463,6 +464,7 @@
         new("RUN-2026-03", "March 2026",    "Draft",     8, 415000m, 330200m, 63000m, 8300m, new DateOnly(2026, 3, 25)),
     };
 
+    // TODO: REQ-HR-004: Replace mock data with real service call — inject IPayrollService, call GetRunLineItemsAsync(runId)
     private readonly List<PayrollLineItem> _lines = new()
     {
         new("EMP-0001", "Sarah Nkosi",          "SN", "var(--brand-primary-subtle)", 45000m, 0m,    45000m, 8325m,  450m, 36225m, "Processed"),
@@ -522,7 +524,14 @@
     {
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("zenohr.initLucide");
+            try
+            {
+                await JS.InvokeVoidAsync("zenohr.initLucide");
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit disconnected — safe to ignore during prerender/disconnect.
+            }
         }
     }
 }

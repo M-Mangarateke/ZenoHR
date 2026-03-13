@@ -34,8 +34,8 @@ var resourcePrefix = 'zenohr-${environmentName}'
 // ── Log Analytics Workspace ────────────────────────────────────────────────
 // Required by Container Apps Environment for structured log ingestion.
 // REQ-OPS-005: Centralised observability — logs flow to Azure Monitor via OTel.
-// POPIA: retentionInDays=90 satisfies POPIA audit log retention (minimum 3 years needs archival
-//        policy on top — extend via Diagnostic Settings → Storage Account in prod).
+// POPIA: retentionInDays=1095 (3 years) satisfies POPIA audit log retention requirements.
+// POPIA Act §14 mandates retention of processing records for a minimum of 3 years.
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: '${resourcePrefix}-logs'
   location: location
@@ -43,7 +43,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
     sku: {
       name: 'PerGB2018'
     }
-    retentionInDays: 90
+    retentionInDays: 1095
     features: {
       enableLogAccessUsingOnlyResourcePermissions: true
     }

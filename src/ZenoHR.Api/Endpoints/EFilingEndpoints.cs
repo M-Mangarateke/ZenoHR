@@ -20,6 +20,7 @@ public static class EFilingEndpoints
     {
         var group = app.MapGroup("/api/efiling")
             .RequireAuthorization(p => p.RequireRole("Director", "HRManager"))
+            .RequireRateLimiting("general-api")   // REQ-SEC-003: closes VUL-007
             .WithTags("EFiling");
 
         // POST /api/efiling/emp201/submit — submit EMP201 to SARS eFiling

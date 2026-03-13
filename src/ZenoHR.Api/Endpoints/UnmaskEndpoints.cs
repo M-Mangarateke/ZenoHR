@@ -27,7 +27,7 @@ public static class UnmaskEndpoints
         // REQ-SEC-002: Director and HRManager only — no Manager or Employee access.
         app.MapPost("/api/employees/{employeeId}/unmask", UnmaskFieldAsync)
             .RequireAuthorization(policy => policy.RequireRole("Director", "HRManager"))
-            .RequireRateLimiting("api")   // REQ-SEC-003: closes VUL-007
+            .RequireRateLimiting("general-api")   // REQ-SEC-003: closes VUL-007
             .WithTags("Employees")
             .WithName("UnmaskEmployeeField")
             .Produces<UnmaskResponse>(200)

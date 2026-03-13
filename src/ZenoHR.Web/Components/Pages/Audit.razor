@@ -620,6 +620,7 @@
         bool ChainValid = true
     );
 
+    // TODO: REQ-COMP-004: Replace mock data with real service call — inject IAuditService, call GetEventsAsync(tenantId, filters)
     // Mock data — REQ-COMP-004, CTL-SEC-008
     private readonly List<AuditEvent> _events = new()
     {
@@ -762,8 +763,15 @@
     {
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("zenohr.initTheme");
-            await JS.InvokeVoidAsync("zenohr.initLucide");
+            try
+            {
+                await JS.InvokeVoidAsync("zenohr.initTheme");
+                await JS.InvokeVoidAsync("zenohr.initLucide");
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit disconnected — safe to ignore during prerender/disconnect.
+            }
         }
     }
 }

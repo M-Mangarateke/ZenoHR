@@ -431,7 +431,7 @@ public sealed class UatComplianceWorkflowTests : IntegrationTestBase
 
     /// <summary>
     /// TC-UAT-COMP-006: Validates SARS tax reference numbers for Zenowethu employees.
-    /// Valid: 10 digits starting with 0, 1, 2, or 3. Invalid: wrong length, non-digit, wrong prefix.
+    /// Valid: 10 digits starting with 0, 1, 2, 3, or 9. Invalid: wrong length, non-digit, wrong prefix.
     /// REQ-OPS-001, CTL-SARS-006
     /// </summary>
     [Theory]
@@ -439,8 +439,8 @@ public sealed class UatComplianceWorkflowTests : IntegrationTestBase
     [InlineData("1234567890", true)]   // Valid: starts with 1
     [InlineData("2345678901", true)]   // Valid: starts with 2
     [InlineData("3456789012", true)]   // Valid: starts with 3
+    [InlineData("9123456789", true)]   // Valid: starts with 9 (SARS temporary tax ref)
     [InlineData("4567890123", false)]  // Invalid: starts with 4
-    [InlineData("9123456789", false)]  // Invalid: starts with 9
     [InlineData("012345678", false)]   // Invalid: only 9 digits
     [InlineData("01234567890", false)] // Invalid: 11 digits
     [InlineData("012345678A", false)]  // Invalid: contains letter

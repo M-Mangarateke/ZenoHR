@@ -15,8 +15,6 @@ namespace ZenoHR.Module.Compliance.Services;
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Instance methods for DI compatibility")]
 public sealed class SubjectAccessRequestService
 {
-    private static int _counter;
-
     /// <summary>Submit a new Subject Access Request (POPIA §23).</summary>
     // CTL-POPIA-009
     public Result<SubjectAccessRequest> SubmitRequest(
@@ -34,8 +32,8 @@ public sealed class SubjectAccessRequestService
         if (string.IsNullOrWhiteSpace(requestedBy))
             return Result<SubjectAccessRequest>.Failure(ZenoHrErrorCode.RequiredFieldMissing, "RequestedBy is required.");
 
-        var seq = Interlocked.Increment(ref _counter);
-        var requestId = string.Format(CultureInfo.InvariantCulture, "SAR-{0}-{1:D4}", requestedAt.Year, seq);
+        // Tenant-safe ID: GUID avoids cross-tenant collision from static counters
+        var requestId = string.Format(CultureInfo.InvariantCulture, "SAR-{0}-{1}", requestedAt.Year, Guid.NewGuid().ToString("N")[..8]);
         var deadlineDate = DateOnly.FromDateTime(requestedAt.UtcDateTime).AddDays(30);
 
         var request = new SubjectAccessRequest

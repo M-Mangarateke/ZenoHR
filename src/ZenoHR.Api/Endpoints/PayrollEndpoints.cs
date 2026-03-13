@@ -28,7 +28,7 @@ public static class PayrollEndpoints
     {
         var group = app.MapGroup("/api/payroll")
             .RequireAuthorization(p => p.RequireRole("Director", "HRManager"))
-            .RequireRateLimiting("payroll")  // REQ-SEC-003: strict limit — payroll runs are heavy (closes VUL-007)
+            .RequireRateLimiting("payroll-ops")  // REQ-SEC-003: strict limit — payroll runs are heavy (closes VUL-007)
             .WithTags("Payroll");
 
         // GET /api/payroll/runs — list all runs (newest first)
@@ -266,12 +266,15 @@ public static class PayrollEndpoints
         return Results.Ok(ToResultDto(result.Value!));
     }
 
+    // REQ-SEC-002: Payslip JSON access — self-access guarantee + Manager department scoping.
+    // VUL-009: Manager can only view payslips for employees in their managed departments.
     private static async Task<IResult> GetPayslipAsync(
         string runId,
         string employeeId,
         ClaimsPrincipal user,
         PayrollRunRepository runRepo,
         PayrollResultRepository resultRepo,
+        EmployeeRepository employeeRepo,
         CancellationToken ct)
     {
         var tenantId = user.FindFirstValue(ZenoHrClaimNames.TenantId)!;
@@ -279,9 +282,24 @@ public static class PayrollEndpoints
         var systemRole = user.FindFirstValue(ZenoHrClaimNames.SystemRoleJwt) ?? "";
 
         // Self-access guarantee: employee can always view own payslip
-        if (employeeId != ownEmpId
-            && systemRole is not ("Director" or "HRManager" or "Manager"))
-            return Results.Forbid();
+        if (employeeId != ownEmpId)
+        {
+            if (systemRole is "Director" or "HRManager")
+            {
+                // Full tenant access — allowed
+            }
+            else if (systemRole == "Manager")
+            {
+                // REQ-SEC-002: Manager must only see payslips for employees in their department(s)
+                var deptScopeResult = await EnforceDepartmentScopeAsync(
+                    user, tenantId, employeeId, employeeRepo, ct);
+                if (deptScopeResult is not null) return deptScopeResult;
+            }
+            else
+            {
+                return Results.Forbid();
+            }
+        }
 
         var runResult = await runRepo.GetByRunIdAsync(tenantId, runId, ct);
         if (runResult.IsFailure) return Results.NotFound(runResult.Error!.Message);
@@ -294,13 +312,15 @@ public static class PayrollEndpoints
 
     // REQ-HR-004, CTL-SARS-005: PDF payslip download endpoint.
     // REQ-SEC-002: Director/HRManager can download any employee payslip;
-    //              Employee and Manager can only download own payslip (self-access guarantee).
+    //              Manager can download payslips for employees in their department(s);
+    //              Employee can only download own payslip (self-access guarantee).
     private static async Task<IResult> GetPayslipPdfAsync(
         string runId,
         string employeeId,
         ClaimsPrincipal user,
         PayrollRunRepository runRepo,
         PayrollResultRepository resultRepo,
+        EmployeeRepository employeeRepo,
         IPayslipPdfGenerator pdfGenerator,
         CancellationToken ct)
     {
@@ -309,9 +329,24 @@ public static class PayrollEndpoints
         var systemRole = user.FindFirstValue(ZenoHrClaimNames.SystemRoleJwt) ?? "";
 
         // REQ-SEC-002: self-access guarantee — employee can always download own payslip
-        if (employeeId != ownEmpId
-            && systemRole is not ("Director" or "HRManager"))
-            return Results.Forbid();
+        if (employeeId != ownEmpId)
+        {
+            if (systemRole is "Director" or "HRManager")
+            {
+                // Full tenant access — allowed
+            }
+            else if (systemRole == "Manager")
+            {
+                // REQ-SEC-002: Manager must only download payslips for employees in their department(s)
+                var deptScopeResult = await EnforceDepartmentScopeAsync(
+                    user, tenantId, employeeId, employeeRepo, ct);
+                if (deptScopeResult is not null) return deptScopeResult;
+            }
+            else
+            {
+                return Results.Forbid();
+            }
+        }
 
         var runResult = await runRepo.GetByRunIdAsync(tenantId, runId, ct);
         if (runResult.IsFailure) return Results.NotFound(runResult.Error!.Message);
@@ -560,6 +595,33 @@ public static class PayrollEndpoints
             GeneratedByUserId = actorId,
             GeneratedAt = DateTimeOffset.UtcNow,
         };
+    }
+
+    // ── Shared helpers ─────────────────────────────────────────────────────
+
+    // REQ-SEC-002: Validates that a Manager user has department scope over the target employee.
+    // Returns null if access is allowed, or a Forbid/NotFound result if denied.
+    private static async Task<IResult?> EnforceDepartmentScopeAsync(
+        ClaimsPrincipal user,
+        string tenantId,
+        string targetEmployeeId,
+        EmployeeRepository employeeRepo,
+        CancellationToken ct)
+    {
+        var managerDeptIds = user.FindAll(ZenoHrClaimNames.DeptId)
+            .Select(c => c.Value)
+            .ToHashSet(StringComparer.Ordinal);
+
+        if (managerDeptIds.Count == 0)
+            return Results.Forbid();
+
+        var targetEmp = await employeeRepo.GetByEmployeeIdAsync(tenantId, targetEmployeeId, ct);
+        if (targetEmp.IsFailure) return Results.NotFound(targetEmp.Error!.Message);
+
+        if (!managerDeptIds.Contains(targetEmp.Value!.DepartmentId))
+            return Results.Forbid();
+
+        return null; // Access allowed
     }
 
     // ── DTOs ─────────────────────────────────────────────────────────────────

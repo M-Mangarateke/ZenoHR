@@ -531,16 +531,23 @@
     {
         if (firstRender)
         {
-            var theme = await JS.InvokeAsync<string>("zenohr.initTheme");
-            _isDark = theme == "dark";
-            await JS.InvokeVoidAsync("zenohr.initLucide");
-            await JS.InvokeVoidAsync("zenohr.renderPayrollChart",
-                "payrollChart",
-                new[] { "Sep", "Oct", "Nov", "Dec", "Jan", "Feb" },
-                new[] { 2640000, 2710000, 2680000, 2920000, 2798100, 2847320 },
-                _isDark);
-            _rendered = true;
-            StateHasChanged();
+            try
+            {
+                var theme = await JS.InvokeAsync<string>("zenohr.initTheme");
+                _isDark = theme == "dark";
+                await JS.InvokeVoidAsync("zenohr.initLucide");
+                await JS.InvokeVoidAsync("zenohr.renderPayrollChart",
+                    "payrollChart",
+                    new[] { "Sep", "Oct", "Nov", "Dec", "Jan", "Feb" },
+                    new[] { 2640000, 2710000, 2680000, 2920000, 2798100, 2847320 },
+                    _isDark);
+                _rendered = true;
+                StateHasChanged();
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit disconnected — safe to ignore during prerender/disconnect.
+            }
         }
     }
 }

@@ -40,11 +40,29 @@
     {
         if (firstRender)
         {
-            // Initialise Firebase Auth UI via JS interop.
-            // The JS module handles email/password and Google sign-in,
-            // then calls window.zenoHrExchangeToken(idToken) which POSTs to /auth/exchange.
-            var returnUrl = string.IsNullOrWhiteSpace(ReturnUrl) ? "/dashboard" : ReturnUrl;
-            await JS.InvokeVoidAsync("zenoHrInitLogin", returnUrl);
+            try
+            {
+                // Initialise Firebase Auth UI via JS interop.
+                // The JS module handles email/password and Google sign-in,
+                // then calls window.zenoHrExchangeToken(idToken) which POSTs to /auth/exchange.
+                // REQ-SEC-003: Validate ReturnUrl is local to prevent open redirect attacks.
+                var returnUrl = "/dashboard";
+                if (!string.IsNullOrWhiteSpace(ReturnUrl))
+                {
+                    // Accept only relative paths starting with '/' that don't have protocol-relative '//'
+                    var decoded = Uri.UnescapeDataString(ReturnUrl);
+                    if (decoded.StartsWith('/') && !decoded.StartsWith("//", StringComparison.Ordinal)
+                        && !decoded.Contains("://", StringComparison.Ordinal))
+                    {
+                        returnUrl = decoded;
+                    }
+                }
+                await JS.InvokeVoidAsync("zenoHrInitLogin", returnUrl);
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit disconnected — safe to ignore during prerender/disconnect.
+            }
         }
     }
 }

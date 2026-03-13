@@ -105,6 +105,37 @@ builder.Services.AddScoped<ThemeService>();
 // Scoped: manages product tour state and role-specific onboarding steps per circuit.
 builder.Services.AddScoped<TourService>();
 
+// ── CORS (REQ-SEC-007, VUL-002) ──────────────────────────────────────────────
+// Blazor Server is same-origin, but explicit CORS prevents accidental cross-origin abuse.
+// Production origins configured via Cors:AllowedOrigins; dev falls back to localhost.
+var rawWebOrigins = builder.Configuration["Cors:AllowedOrigins"] ?? string.Empty;
+var webAllowedOrigins = rawWebOrigins
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ZenoHrWebPolicy", policy =>
+    {
+        if (webAllowedOrigins.Length == 0)
+        {
+            policy.WithOrigins(
+                    "https://localhost:5002",
+                    "http://localhost:5002",
+                    "https://localhost:7002")
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
+        else
+        {
+            policy.WithOrigins(webAllowedOrigins)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
+    });
+});
+
 // ── Blazor Razor Components ───────────────────────────────────────────────────
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -143,6 +174,7 @@ app.Use(async (context, next) =>
 
 app.UseStaticFiles();
 app.UseRouting();
+app.UseCors("ZenoHrWebPolicy");  // REQ-SEC-007: CORS before auth (VUL-002)
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();

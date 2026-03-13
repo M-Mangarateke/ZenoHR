@@ -1,5 +1,5 @@
 // TC-COMP-TAXREF: Tax reference number validation tests.
-// CTL-SARS-006: SARS income tax reference format — 10 digits, starts with 0/1/2/3.
+// CTL-SARS-006: SARS income tax reference format — 10 digits, starts with 0/1/2/3/9.
 
 using FluentAssertions;
 using ZenoHR.Module.Compliance.Services;
@@ -8,10 +8,10 @@ namespace ZenoHR.Module.Compliance.Tests;
 
 /// <summary>
 /// Tests for <see cref="TaxReferenceValidator"/> covering:
-/// - Valid references (starts with 0, 1, 2, 3)
+/// - Valid references (starts with 0, 1, 2, 3, 9)
 /// - Null/empty input
 /// - Length violations (too short, too long)
-/// - Invalid first digit (4–9)
+/// - Invalid first digit (4–8)
 /// - Non-digit characters
 /// </summary>
 public sealed class TaxReferenceValidatorTests
@@ -107,7 +107,7 @@ public sealed class TaxReferenceValidatorTests
         var result = TaxReferenceValidator.Validate("4123456789");
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Message.Should().Contain("start with 0, 1, 2, or 3");
+        result.Error.Message.Should().Contain("start with 0, 1, 2, 3, or 9");
     }
 
     // ── TC-COMP-TAXREF-009: Non-digit characters → failure ──────────────────
@@ -119,7 +119,7 @@ public sealed class TaxReferenceValidatorTests
         var result = TaxReferenceValidator.Validate("012345678A");
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Message.Should().Contain("exactly 10 digits");
+        result.Error.Message.Should().Contain("only digits");
     }
 
     // ── TC-COMP-TAXREF-010: Starts with 1 → success ─────────────────────────
@@ -142,5 +142,18 @@ public sealed class TaxReferenceValidatorTests
         var result = TaxReferenceValidator.Validate("2345678901");
 
         result.IsSuccess.Should().BeTrue();
+    }
+
+    // ── TC-COMP-TAXREF-012: Starts with 9 → success (SARS temporary ref) ──
+
+    [Fact]
+    public void Validate_StartsWithNine_ReturnsSuccess()
+    {
+        // TC-COMP-TAXREF-012: First digit 9 is valid — SARS temporary tax references.
+        // Must be consistent with DataQualityCheckService.ValidateTaxReference.
+        var result = TaxReferenceValidator.Validate("9123456789");
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().Be("9123456789");
     }
 }

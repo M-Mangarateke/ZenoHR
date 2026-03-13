@@ -4,7 +4,11 @@
 @page "/payroll/my-payslips"
 @attribute [Authorize(Roles = "Director,HRManager,Manager,Employee")]
 @using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using ZenoHR.Infrastructure.Auth
 @inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthStateProvider
 
 <PageTitle>My Payslips — ZenoHR</PageTitle>
 
@@ -159,8 +163,8 @@ else
         string Status
     );
 
-    // REQ-SEC-002: In production this comes from the authenticated Firebase UID → employee lookup
-    private const string _currentEmployeeId = "EMP-0001";
+    // REQ-SEC-002: Resolved from authenticated user's employee_id claim at page load.
+    private string _currentEmployeeId = "";
 
     private readonly List<MyPayslip> _payslips = new()
     {
@@ -173,11 +177,25 @@ else
 
     private static string FormatZar(decimal amount) => $"R {amount:N2}";
 
+    protected override async Task OnInitializedAsync()
+    {
+        // REQ-SEC-002: Resolve the authenticated user's employee ID from claims — never hardcode.
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _currentEmployeeId = authState.User.FindFirstValue(ZenoHrClaimNames.EmployeeId) ?? "";
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("zenohr.initLucide");
+            try
+            {
+                await JS.InvokeVoidAsync("zenohr.initLucide");
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit disconnected — safe to ignore during prerender/disconnect.
+            }
         }
     }
 }

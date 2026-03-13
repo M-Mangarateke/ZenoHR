@@ -18,8 +18,13 @@
     <link rel="stylesheet" href="css/theme-dark.css" />
     <link rel="stylesheet" href="css/tablet-nav.css" />
     <link rel="stylesheet" href="css/product-tour.css" />
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- REQ-SEC-003: CDN scripts pinned to exact versions with SRI integrity hashes (closes VUL-001, VLN-2026-011) -->
+    <script src="https://unpkg.com/lucide@0.263.1/dist/umd/lucide.js"
+            integrity="sha384-cmdVzp/LNswnLRGK6j6+cMUsn7jTxO+fX9W5jw6A+4iaSvhkiSdj8/B9nJyBgtKQ"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+            integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g"
+            crossorigin="anonymous"></script>
     <HeadOutlet />
 </head>
 

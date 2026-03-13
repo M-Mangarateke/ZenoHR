@@ -600,6 +600,7 @@
     private static bool HasViolation(decimal[] hours) =>
         hours.Any(h => h > DailyMaxThreshold) || hours.Sum() > 51.0m;
 
+    // TODO: REQ-HR-005: Replace mock data with real service call — inject ITimesheetService, call GetWeeklyTimesheetsAsync(tenantId, weekStart)
     // Mock data — REQ-HR-005
     private readonly List<TimesheetEmployee> _employees = new()
     {
@@ -661,8 +662,15 @@
     {
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("zenohr.initTheme");
-            await JS.InvokeVoidAsync("zenohr.initLucide");
+            try
+            {
+                await JS.InvokeVoidAsync("zenohr.initTheme");
+                await JS.InvokeVoidAsync("zenohr.initLucide");
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit disconnected — safe to ignore during prerender/disconnect.
+            }
         }
     }
 }

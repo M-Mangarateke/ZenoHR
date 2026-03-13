@@ -15,9 +15,6 @@ namespace ZenoHR.Module.Compliance.Services;
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Instance methods for DI compatibility")]
 public sealed partial class NoticeService
 {
-    private static int _noticeCounter;
-    private static int _ackCounter;
-
     /// <summary>
     /// Regex for validating semantic version strings (major.minor.patch).
     /// </summary>
@@ -51,8 +48,8 @@ public sealed partial class NoticeService
         if (string.IsNullOrWhiteSpace(createdBy))
             return Result<DataProcessingNotice>.Failure(ZenoHrErrorCode.RequiredFieldMissing, "CreatedBy is required.");
 
-        var seq = Interlocked.Increment(ref _noticeCounter);
-        var noticeId = string.Format(CultureInfo.InvariantCulture, "NTC-{0:D6}", seq);
+        // Tenant-safe ID: GUID avoids cross-tenant collision from static counters
+        var noticeId = string.Format(CultureInfo.InvariantCulture, "NTC-{0}", Guid.NewGuid().ToString("N")[..8]);
         var now = DateTimeOffset.UtcNow;
 
         var notice = new DataProcessingNotice
@@ -93,8 +90,8 @@ public sealed partial class NoticeService
         if (string.IsNullOrWhiteSpace(noticeVersion))
             return Result<NoticeAcknowledgment>.Failure(ZenoHrErrorCode.RequiredFieldMissing, "NoticeVersion is required.");
 
-        var seq = Interlocked.Increment(ref _ackCounter);
-        var ackId = string.Format(CultureInfo.InvariantCulture, "ACK-{0:D6}", seq);
+        // Tenant-safe ID: GUID avoids cross-tenant collision from static counters
+        var ackId = string.Format(CultureInfo.InvariantCulture, "ACK-{0}", Guid.NewGuid().ToString("N")[..8]);
 
         var ack = new NoticeAcknowledgment
         {

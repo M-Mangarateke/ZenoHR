@@ -14,8 +14,6 @@ namespace ZenoHR.Module.Compliance.Services;
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Instance methods for DI compatibility")]
 public sealed class LawfulBasisService
 {
-    private static int _purposeCounter;
-
     /// <summary>
     /// Register a new processing purpose. Validates all required fields and lawful basis.
     /// </summary>
@@ -42,8 +40,8 @@ public sealed class LawfulBasisService
         if (string.IsNullOrWhiteSpace(createdBy))
             return Result<ProcessingPurpose>.Failure(ZenoHrErrorCode.RequiredFieldMissing, "CreatedBy is required.");
 
-        var seq = Interlocked.Increment(ref _purposeCounter);
-        var purposeId = string.Format(CultureInfo.InvariantCulture, "PUR-{0:D6}", seq);
+        // Tenant-safe ID: GUID avoids cross-tenant collision from static counters
+        var purposeId = string.Format(CultureInfo.InvariantCulture, "PUR-{0}", Guid.NewGuid().ToString("N")[..8]);
 
         var purpose = new ProcessingPurpose
         {

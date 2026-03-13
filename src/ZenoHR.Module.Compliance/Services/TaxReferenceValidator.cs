@@ -7,15 +7,17 @@ namespace ZenoHR.Module.Compliance.Services;
 
 /// <summary>
 /// Validates SARS income tax reference numbers.
-/// CTL-SARS-006: Valid format is 10 digits starting with 0, 1, 2, or 3.
+/// CTL-SARS-006: Valid format is 10 digits starting with 0, 1, 2, 3, or 9.
+/// Prefix 9 covers SARS temporary tax reference numbers.
+/// Must stay consistent with <c>DataQualityCheckService.ValidateTaxReference</c> in the Payroll module.
 /// </summary>
 public static class TaxReferenceValidator
 {
-    private static readonly char[] ValidFirstDigits = ['0', '1', '2', '3'];
+    private static readonly char[] ValidFirstDigits = ['0', '1', '2', '3', '9'];
 
     /// <summary>
     /// Validates a SARS income tax reference number.
-    /// CTL-SARS-006: Must be exactly 10 digits, starting with 0, 1, 2, or 3.
+    /// CTL-SARS-006: Must be exactly 10 digits, starting with 0, 1, 2, 3, or 9.
     /// </summary>
     /// <param name="taxReference">The tax reference number to validate.</param>
     /// <returns>Success with the validated tax reference, or a failure with the validation error.</returns>
@@ -39,14 +41,14 @@ public static class TaxReferenceValidator
         {
             return Result<string>.Failure(
                 ZenoHrErrorCode.InvalidFormat,
-                "Tax reference must be exactly 10 digits.");
+                "Tax reference must contain only digits.");
         }
 
         if (!ValidFirstDigits.Contains(taxReference[0]))
         {
             return Result<string>.Failure(
                 ZenoHrErrorCode.InvalidFormat,
-                "Tax reference must start with 0, 1, 2, or 3.");
+                $"Tax reference must start with 0, 1, 2, 3, or 9. Got '{taxReference[0]}'.");
         }
 
         return Result<string>.Success(taxReference);

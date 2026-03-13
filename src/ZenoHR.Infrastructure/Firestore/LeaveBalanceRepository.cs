@@ -17,7 +17,7 @@ namespace ZenoHR.Infrastructure.Firestore;
 /// which are flushed atomically after the balance write.
 /// CTL-BCEA-003: Balance cannot go negative without policy exception.
 /// </summary>
-public sealed class LeaveBalanceRepository : BaseFirestoreRepository<LeaveBalance>
+public sealed partial class LeaveBalanceRepository : BaseFirestoreRepository<LeaveBalance>
 {
     public LeaveBalanceRepository(FirestoreDb db, ILogger<LeaveBalanceRepository> logger) : base(db, logger) { }
 
@@ -112,34 +112,53 @@ public sealed class LeaveBalanceRepository : BaseFirestoreRepository<LeaveBalanc
 
     /// <summary>
     /// Saves the balance document and appends all pending <see cref="AccrualLedgerEntry"/> records
-    /// to the <c>accrual_ledger</c> subcollection.
+    /// to the <c>accrual_ledger</c> subcollection atomically using a Firestore transaction.
+    /// Prevents race conditions on concurrent leave balance updates.
     /// Pending ledger entries are write-once (append-only). CTL-BCEA-003.
     /// </summary>
     public async Task<Result> SaveWithLedgerEntriesAsync(
         LeaveBalance balance, CancellationToken ct = default)
     {
-        // 1. Upsert the balance document
-        var saveResult = await SetDocumentAsync(balance.BalanceId, balance, ct);
-        if (saveResult.IsFailure) return saveResult;
-
-        // 2. Append pending ledger entries (write-once) to the subcollection
         var pendingEntries = balance.PopPendingEntries();
-        foreach (var entry in pendingEntries)
+        var balanceDoc = ToDocument(balance);
+        var balanceRef = Collection.Document(balance.BalanceId);
+
+        try
         {
-            var entryDoc = BuildLedgerEntryDocument(entry);
-            var ledgerRef = Collection
-                .Document(balance.BalanceId)
-                .Collection("accrual_ledger")
-                .Document(entry.LedgerEntryId);
-            try
+            await Db.RunTransactionAsync(async transaction =>
             {
-                await ledgerRef.CreateAsync(entryDoc, ct);
-            }
-            catch (Grpc.Core.RpcException ex) when (ex.StatusCode == Grpc.Core.StatusCode.AlreadyExists)
-            {
-                return Result.Failure(ZenoHrErrorCode.FirestoreWriteConflict,
-                    $"Ledger entry '{entry.LedgerEntryId}' already exists — append-only invariant violated.");
-            }
+                // 1. Upsert the balance document within the transaction
+                transaction.Set(balanceRef, balanceDoc);
+
+                // 2. Append pending ledger entries (write-once) within the same transaction
+                foreach (var entry in pendingEntries)
+                {
+                    var entryDoc = BuildLedgerEntryDocument(entry);
+                    var ledgerRef = balanceRef
+                        .Collection("accrual_ledger")
+                        .Document(entry.LedgerEntryId);
+
+                    // Read to check existence within transaction (Create is not available on Transaction)
+                    var existingSnap = await transaction.GetSnapshotAsync(ledgerRef, ct);
+                    if (existingSnap.Exists)
+                    {
+                        throw new InvalidOperationException(
+                            $"Ledger entry '{entry.LedgerEntryId}' already exists — append-only invariant violated.");
+                    }
+
+                    transaction.Set(ledgerRef, entryDoc);
+                }
+            }, cancellationToken: ct);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("append-only invariant"))
+        {
+            return Result.Failure(ZenoHrErrorCode.FirestoreWriteConflict, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            LogTransactionFailed(Logger, balance.BalanceId, ex);
+            return Result.Failure(ZenoHrErrorCode.FirestoreWriteConflict,
+                $"Atomic write failed for balance '{balance.BalanceId}': {ex.Message}");
         }
 
         return Result.Success();
@@ -240,4 +259,10 @@ public sealed class LeaveBalanceRepository : BaseFirestoreRepository<LeaveBalanc
         "parental" => LeaveType.Parental,
         _ => LeaveType.Unknown,
     };
+
+    // ── Diagnostic logging ────────────────────────────────────────────────────
+
+    [LoggerMessage(EventId = 2010, Level = LogLevel.Error,
+        Message = "Firestore transaction failed for leave balance {BalanceId}")]
+    private static partial void LogTransactionFailed(ILogger logger, string balanceId, Exception ex);
 }

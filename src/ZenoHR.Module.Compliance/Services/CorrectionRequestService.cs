@@ -15,8 +15,6 @@ namespace ZenoHR.Module.Compliance.Services;
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Instance methods for DI compatibility")]
 public sealed class CorrectionRequestService
 {
-    private static int _counter;
-
     /// <summary>Submit a new correction request from a data subject.</summary>
     // CTL-POPIA-010
     public Result<CorrectionRequest> SubmitCorrection(
@@ -47,8 +45,7 @@ public sealed class CorrectionRequestService
         if (string.Equals(currentValue, proposedValue, StringComparison.Ordinal))
             return Result<CorrectionRequest>.Failure(ZenoHrErrorCode.ValidationFailed, "ProposedValue must differ from CurrentValue.");
 
-        var seq = Interlocked.Increment(ref _counter);
-        var requestId = string.Format(CultureInfo.InvariantCulture, "COR-{0}-{1:D4}", requestedAt.Year, seq);
+        var requestId = string.Format(CultureInfo.InvariantCulture, "COR-{0}-{1}", requestedAt.Year, Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture)[..8]);
 
         var request = new CorrectionRequest
         {

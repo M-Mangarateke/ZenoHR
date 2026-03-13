@@ -3,7 +3,6 @@
 // and manages approval/rejection lifecycle.
 
 using System.Globalization;
-using System.Threading;
 using ZenoHR.Domain.Errors;
 using ZenoHR.Module.Compliance.Models;
 
@@ -19,8 +18,6 @@ public sealed class AccessReviewService
 {
     private static readonly string[] ElevatedRoles = ["Director", "HRManager", "SaasAdmin"];
     private static readonly TimeSpan StaleLoginThreshold = TimeSpan.FromDays(90);
-
-    private static int _counter;
 
     /// <summary>
     /// Generate an access review for the given tenant and period.
@@ -42,8 +39,7 @@ public sealed class AccessReviewService
         var now = DateTimeOffset.UtcNow;
         var findings = DetectFindings(assignments, now);
 
-        var seq = Interlocked.Increment(ref _counter);
-        var reviewId = string.Format(CultureInfo.InvariantCulture, "AR-{0}-{1:D4}", period, seq);
+        var reviewId = string.Format(CultureInfo.InvariantCulture, "AR-{0}-{1}", period, Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture)[..8]);
 
         var record = new AccessReviewRecord
         {

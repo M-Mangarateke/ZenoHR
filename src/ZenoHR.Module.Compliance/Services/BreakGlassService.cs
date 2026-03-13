@@ -16,8 +16,6 @@ namespace ZenoHR.Module.Compliance.Services;
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Instance methods for DI compatibility")]
 public sealed class BreakGlassService
 {
-    private static int _counter;
-
     /// <summary>Create a new break-glass emergency access request.</summary>
     public Result<BreakGlassRequest> RequestAccess(
         string tenantId,
@@ -38,8 +36,7 @@ public sealed class BreakGlassService
         if (urgency == BreakGlassUrgency.Unknown)
             return Result<BreakGlassRequest>.Failure(ZenoHrErrorCode.ValidationFailed, "Urgency must be specified (not Unknown).");
 
-        var seq = Interlocked.Increment(ref _counter);
-        var requestId = string.Format(CultureInfo.InvariantCulture, "BG-{0}-{1:D4}", requestedAt.Year, seq);
+        var requestId = string.Format(CultureInfo.InvariantCulture, "BG-{0}-{1}", requestedAt.Year, Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture)[..8]);
 
         var request = new BreakGlassRequest
         {

@@ -19,7 +19,6 @@ public sealed partial class StubEFilingClient : IEFilingClient
 {
     private readonly ILogger<StubEFilingClient> _logger;
     private readonly ConcurrentDictionary<string, EFilingSubmissionResult> _submissions = new();
-    private int _counter;
 
     public StubEFilingClient(ILogger<StubEFilingClient> logger)
     {
@@ -49,12 +48,12 @@ public sealed partial class StubEFilingClient : IEFilingClient
 
         ct.ThrowIfCancellationRequested();
 
-        var seq = Interlocked.Increment(ref _counter);
+        // Tenant-safe ID: GUID avoids cross-tenant collision from static counters
         var submissionId = string.Format(
             CultureInfo.InvariantCulture,
-            "STUB-{0:yyyyMMddHHmmss}-{1:D5}",
+            "STUB-{0:yyyyMMddHHmmss}-{1}",
             DateTimeOffset.UtcNow,
-            seq);
+            Guid.NewGuid().ToString("N")[..8]);
 
         var result = new EFilingSubmissionResult(
             SubmissionId: submissionId,

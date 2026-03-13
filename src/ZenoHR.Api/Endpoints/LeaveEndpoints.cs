@@ -22,7 +22,7 @@ public static class LeaveEndpoints
     {
         var group = app.MapGroup("/api/leave")
             .RequireAuthorization()
-            .RequireRateLimiting("api")   // REQ-SEC-003: closes VUL-007
+            .RequireRateLimiting("general-api")   // REQ-SEC-003: closes VUL-007
             .WithTags("Leave");
 
         // ── Balances ──────────────────────────────────────────────────────────

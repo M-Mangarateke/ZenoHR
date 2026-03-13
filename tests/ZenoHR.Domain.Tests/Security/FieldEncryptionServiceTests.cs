@@ -287,7 +287,7 @@ public sealed class FieldEncryptionServiceTests
         decrypted.Should().Be(text);
     }
 
-    // TC-SEC-040-015: InMemory decrypt with wrong key fails
+    // TC-SEC-040-015: InMemory decrypt with wrong key fails (HMAC verification)
     [Fact]
     public void InMemory_DecryptWithWrongKey_Throws()
     {
@@ -301,7 +301,29 @@ public sealed class FieldEncryptionServiceTests
 
         // Assert
         act.Should().Throw<CryptographicException>(
-            because: "decryption with wrong key must fail even in dev/test service");
+            because: "decryption with wrong key must fail HMAC verification in dev/test service");
+    }
+
+    // TC-SEC-040-017: InMemory service detects tampered ciphertext via HMAC
+    [Fact]
+    public void InMemory_TamperedCiphertext_ThrowsCryptographicException()
+    {
+        // Arrange
+        var sut = CreateInMemoryService();
+        var encrypted = sut.Encrypt("sensitive-national-id");
+
+        // Tamper with the Base64 payload (flip a byte in the ciphertext portion).
+        var base64Part = encrypted.Substring(EncryptionConstants.Prefix.Length);
+        var rawBytes = Convert.FromBase64String(base64Part);
+        rawBytes[EncryptionConstants.IvSizeBytes + 1] ^= 0xFF; // Flip a byte in ciphertext.
+        var tampered = EncryptionConstants.Prefix + Convert.ToBase64String(rawBytes);
+
+        // Act
+        var act = () => sut.Decrypt(tampered);
+
+        // Assert
+        act.Should().Throw<CryptographicException>(
+            because: "tampered ciphertext must fail HMAC verification in dev/test service");
     }
 
     // TC-SEC-040-016: Constants have expected values

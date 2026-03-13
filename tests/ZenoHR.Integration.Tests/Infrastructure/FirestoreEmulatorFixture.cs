@@ -17,11 +17,25 @@ namespace ZenoHR.Integration.Tests.Infrastructure;
 /// </summary>
 public sealed class FirestoreEmulatorFixture : IAsyncLifetime
 {
-    // Use the real project ID — the emulator accepts it but doesn't connect to GCP
-    public const string EmulatorProjectId = "zenohr-a7ccf";
-    public const string EmulatorHost = "localhost:8080";
-    public const string AuthEmulatorHost = "localhost:9099";
-    private const string EmulatorClearUrl =
+    // REQ-OPS-003: Configurable emulator settings via environment variables to avoid port conflicts.
+    // Defaults match firebase.json but can be overridden in CI or local dev environments.
+    private const string DefaultFirestorePort = "8080";
+    private const string DefaultAuthPort = "9099";
+    private const string DefaultProjectId = "zenohr-a7ccf";
+
+    /// <summary>Firestore emulator project ID — configurable via FIREBASE_PROJECT_ID env var.</summary>
+    public static string EmulatorProjectId { get; } =
+        Environment.GetEnvironmentVariable("FIREBASE_PROJECT_ID") ?? DefaultProjectId;
+
+    /// <summary>Firestore emulator host:port — configurable via FIRESTORE_EMULATOR_HOST env var.</summary>
+    public static string EmulatorHost { get; } =
+        Environment.GetEnvironmentVariable("FIRESTORE_EMULATOR_HOST") ?? $"localhost:{DefaultFirestorePort}";
+
+    /// <summary>Firebase Auth emulator host:port — configurable via FIREBASE_AUTH_EMULATOR_HOST env var.</summary>
+    public static string AuthEmulatorHost { get; } =
+        Environment.GetEnvironmentVariable("FIREBASE_AUTH_EMULATOR_HOST") ?? $"localhost:{DefaultAuthPort}";
+
+    private static string EmulatorClearUrl =>
         $"http://{EmulatorHost}/emulator/v1/projects/{EmulatorProjectId}/databases/(default)/documents";
 
     private static readonly HttpClient _httpClient = new();

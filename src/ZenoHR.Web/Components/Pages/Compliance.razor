@@ -736,6 +736,7 @@
 </div>
 
 @code {
+    // TODO: REQ-COMP-001: Replace mock scores with real service call — inject IComplianceService, call GetScoresAsync(tenantId)
     // REQ-COMP-001: Compliance scores (mock display-only — not real calculations)
     // Scores will be replaced with Firestore-backed ComplianceService calls in future phases
     private int _sarsScore = 92;
@@ -746,6 +747,7 @@
     private static string ScoreDashArray(int score) =>
         $"{score / 100.0 * 283:F1}";
 
+    // TODO: REQ-COMP-002: Replace mock filings with real service call — inject IComplianceService, call GetFilingsAsync(tenantId)
     // REQ-COMP-002, CTL-SARS-002: EMP201 filing schedule (last 6 months)
     private record FilingEntry(string Period, string Type, string DueDate, string Status);
     private readonly List<FilingEntry> _filings = new()
@@ -799,8 +801,15 @@
     {
         if (firstRender)
         {
-            await JS.InvokeVoidAsync("zenohr.initTheme");
-            await JS.InvokeVoidAsync("zenohr.initLucide");
+            try
+            {
+                await JS.InvokeVoidAsync("zenohr.initTheme");
+                await JS.InvokeVoidAsync("zenohr.initLucide");
+            }
+            catch (JSDisconnectedException)
+            {
+                // Circuit disconnected — safe to ignore during prerender/disconnect.
+            }
         }
     }
 }

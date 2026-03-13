@@ -2,7 +2,6 @@
 // Manages breach registration, status transitions, overdue detection, and regulator notifications.
 
 using System.Globalization;
-using System.Threading;
 using ZenoHR.Domain.Errors;
 using ZenoHR.Module.Compliance.Models;
 
@@ -15,8 +14,6 @@ namespace ZenoHR.Module.Compliance.Services;
 [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1822:Mark members as static", Justification = "Instance methods for DI compatibility")]
 public sealed class BreachNotificationService
 {
-    private static int _counter;
-
     /// <summary>Register a new personal information security breach.</summary>
     public Result<BreachRecord> RegisterBreach(
         string tenantId,
@@ -51,8 +48,7 @@ public sealed class BreachNotificationService
         if (estimatedAffectedSubjects < 0)
             return Result<BreachRecord>.Failure(ZenoHrErrorCode.ValueOutOfRange, "EstimatedAffectedSubjects cannot be negative.");
 
-        var seq = Interlocked.Increment(ref _counter);
-        var breachId = string.Format(CultureInfo.InvariantCulture, "BRE-{0}-{1:D4}", discoveredAt.Year, seq);
+        var breachId = string.Format(CultureInfo.InvariantCulture, "BRE-{0}-{1}", discoveredAt.Year, Guid.NewGuid().ToString("N", CultureInfo.InvariantCulture)[..8]);
 
         var record = new BreachRecord
         {

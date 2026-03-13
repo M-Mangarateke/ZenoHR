@@ -61,7 +61,7 @@ jobs:
 
       - name: Check coverage thresholds
         # REQ-OPS-005: Enforce 90% line coverage and 85% branch coverage.
-        # Currently warnings-only until baseline is established; will switch to hard fail.
+        # Hard fail — these thresholds are mandatory for production readiness.
         run: |
           SUMMARY=$(cat ./coverage/report/Summary.txt)
           echo "$SUMMARY"
@@ -73,17 +73,26 @@ jobs:
           echo "Line coverage: ${LINE_COV}%"
           echo "Branch coverage: ${BRANCH_COV}%"
 
-          # Thresholds (warnings only for now — will enforce after baseline established)
+          FAILED=0
+
+          # REQ-OPS-005: 90% line coverage threshold — hard fail
           if (( $(echo "$LINE_COV < 90" | bc -l) )); then
-            echo "::warning::Line coverage ${LINE_COV}% is below 90% target (REQ-OPS-005)"
+            echo "::error::Line coverage ${LINE_COV}% is below 90% threshold (REQ-OPS-005). Build FAILED."
+            FAILED=1
           else
             echo "Line coverage gate PASSED (${LINE_COV}% >= 90%)"
           fi
 
+          # REQ-OPS-005: 85% branch coverage threshold — hard fail
           if (( $(echo "$BRANCH_COV < 85" | bc -l) )); then
-            echo "::warning::Branch coverage ${BRANCH_COV}% is below 85% target (REQ-OPS-005)"
+            echo "::error::Branch coverage ${BRANCH_COV}% is below 85% threshold (REQ-OPS-005). Build FAILED."
+            FAILED=1
           else
             echo "Branch coverage gate PASSED (${BRANCH_COV}% >= 85%)"
+          fi
+
+          if [ "$FAILED" -eq 1 ]; then
+            exit 1
           fi
 
       - name: Upload coverage report

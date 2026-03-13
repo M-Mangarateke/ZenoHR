@@ -29,7 +29,7 @@ public static class StatutoryEndpoints
     {
         var group = app.MapGroup("/api/settings/statutory")
             .RequireAuthorization(p => p.RequireRole("Director", "HRManager"))
-            .RequireRateLimiting("api")
+            .RequireRateLimiting("general-api")
             .WithTags("Settings");
 
         // GET /api/settings/statutory — list all seeded rule sets

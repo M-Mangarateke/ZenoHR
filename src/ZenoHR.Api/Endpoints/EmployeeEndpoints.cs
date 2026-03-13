@@ -24,7 +24,7 @@ public static class EmployeeEndpoints
     {
         var group = app.MapGroup("/api/employees")
             .RequireAuthorization()
-            .RequireRateLimiting("api")   // REQ-SEC-003: closes VUL-007
+            .RequireRateLimiting("general-api")   // REQ-SEC-003: closes VUL-007
             .WithTags("Employees");
 
         // GET /api/employees — list all (Director/HRManager) or own dept (Manager)
@@ -53,9 +53,10 @@ public static class EmployeeEndpoints
             .Produces(404);
 
         // PUT /api/employees/{id}/terminate — terminate employment (Director/HRManager only)
+        // REQ-SEC-004: MFA required — termination is a privileged, irreversible operation (closes VUL-003).
         group.MapPut("/{id}/terminate", TerminateEmployeeAsync)
             .WithName("TerminateEmployee")
-            .RequireAuthorization(policy => policy.RequireRole("Director", "HRManager"))
+            .RequireAuthorization(ZenoHrPolicies.RequiresMfa)
             .Produces(200)
             .Produces<ProblemDetails>(400)
             .Produces(404);
@@ -174,7 +175,11 @@ public static class EmployeeEndpoints
         if (saveResult.IsFailure)
             return Results.Problem(saveResult.Error!.Message);
 
-        return Results.Created($"/api/employees/{result.Value!.EmployeeId}", ToDetailDto(result.Value));
+        // VUL-009: Return role-filtered DTO — only Director/HRManager can call this endpoint,
+        // but use the mapper consistently to avoid leaking unmasked PII in responses.
+        var systemRole = user.FindFirstValue(ZenoHrClaimNames.SystemRoleJwt) ?? "";
+        var roleDto = EmployeeDtoMapper.ToRoleDto(result.Value!, systemRole);
+        return Results.Created($"/api/employees/{result.Value!.EmployeeId}", roleDto);
     }
 
     private static async Task<IResult> UpdateProfileAsync(
@@ -214,7 +219,10 @@ public static class EmployeeEndpoints
         var saveResult = await repo.SaveAsync(emp, ct);
         if (saveResult.IsFailure) return Results.Problem(saveResult.Error!.Message);
 
-        return Results.Ok(ToDetailDto(emp));
+        // VUL-009: Return role-filtered DTO — prevents leaking salary/tax/banking
+        // fields to Employee or Manager roles when they update their own profile.
+        var roleDto = EmployeeDtoMapper.ToRoleDto(emp, systemRole);
+        return Results.Ok(roleDto);
     }
 
     private static async Task<IResult> TerminateEmployeeAsync(

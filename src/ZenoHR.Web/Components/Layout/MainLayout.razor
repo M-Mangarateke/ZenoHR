@@ -25,7 +25,19 @@
         </header>
 
         <main class="zenohr-content" role="main">
-            @Body
+            @* REQ-SEC-003: ErrorBoundary prevents unhandled exceptions from crashing the Blazor circuit. *@
+            <ErrorBoundary @ref="_errorBoundary">
+                <ChildContent>
+                    @Body
+                </ChildContent>
+                <ErrorContent Context="ex">
+                    <div class="zenohr-error-panel" role="alert">
+                        <h2>Something went wrong</h2>
+                        <p>An unexpected error occurred. Please try again or contact support if the problem persists.</p>
+                        <button class="btn btn-primary" @onclick="ResetError">Try Again</button>
+                    </div>
+                </ErrorContent>
+            </ErrorBoundary>
         </main>
     </div>
 
@@ -41,3 +53,12 @@
     <a href="." class="reload">Reload</a>
     <span class="dismiss">&#x2715;</span>
 </div>
+
+@code {
+    private ErrorBoundary? _errorBoundary;
+
+    private void ResetError()
+    {
+        _errorBoundary?.Recover();
+    }
+}

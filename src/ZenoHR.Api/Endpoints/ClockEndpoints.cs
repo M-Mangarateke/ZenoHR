@@ -20,7 +20,7 @@ public static class ClockEndpoints
     {
         var group = app.MapGroup("/api/clock")
             .RequireAuthorization()
-            .RequireRateLimiting("api")   // REQ-SEC-003: closes VUL-007
+            .RequireRateLimiting("general-api")   // REQ-SEC-003: closes VUL-007
             .WithTags("TimeAttendance");
 
         // POST /api/clock/in — employee self-service clock-in

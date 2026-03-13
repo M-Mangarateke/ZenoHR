@@ -26,6 +26,7 @@ public static class ComplianceEndpoints
     {
         var group = app.MapGroup("/api/compliance")
             .RequireAuthorization(p => p.RequireRole("Director", "HRManager"))
+            .RequireRateLimiting("general-api")   // REQ-SEC-003: closes VUL-007
             .WithTags("Compliance");
 
         // GET /api/compliance/submissions?period={period} — list submissions for tenant

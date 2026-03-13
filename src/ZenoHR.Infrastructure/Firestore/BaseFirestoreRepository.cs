@@ -24,6 +24,9 @@ public abstract partial class BaseFirestoreRepository<T> where T : class
     protected FirestoreDb Db { get; }
     private readonly ILogger _logger;
 
+    /// <summary>Logger instance for use in derived repositories.</summary>
+    protected ILogger Logger => _logger;
+
     protected BaseFirestoreRepository(FirestoreDb db, ILogger logger)
     {
         ArgumentNullException.ThrowIfNull(db);

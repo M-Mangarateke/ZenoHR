@@ -168,8 +168,15 @@ public sealed class AnomalyDetectionService
     }
 
     /// <summary>
+    /// South Africa Standard Time offset (UTC+2). Used to convert timestamps to SAST
+    /// before comparing against business hours.
+    /// </summary>
+    private static readonly TimeSpan SastOffset = TimeSpan.FromHours(2);
+
+    /// <summary>
     /// Detects privileged actions performed outside business hours.
     /// PRD-05 §7: off-hours privileged access = SEV-3.
+    /// All timestamps are converted to SAST (UTC+2) before comparison.
     /// </summary>
     // CTL-POPIA-008
     public static Result<SecurityIncident> DetectOffHoursAccess(
@@ -182,7 +189,11 @@ public sealed class AnomalyDetectionService
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
         ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
 
-        var timeOfDay = timestamp.TimeOfDay;
+        // Convert to SAST (South Africa Standard Time, UTC+2) before comparing
+        // against business hours. Without this conversion, a UTC timestamp would
+        // be compared against SAST business hours, giving incorrect results.
+        var sastTimestamp = timestamp.ToOffset(SastOffset);
+        var timeOfDay = sastTimestamp.TimeOfDay;
 
         if (timeOfDay >= businessStart && timeOfDay < businessEnd)
         {
@@ -206,9 +217,9 @@ public sealed class AnomalyDetectionService
             IncidentType = SecurityIncidentType.OffHoursAccess,
             Description = string.Format(
                 CultureInfo.InvariantCulture,
-                "Privileged action '{0}' performed at {1} outside business hours ({2}-{3}).",
+                "Privileged action '{0}' performed at {1} SAST outside business hours ({2}-{3}).",
                 action,
-                timestamp.ToString("yyyy-MM-dd HH:mm:ss zzz", CultureInfo.InvariantCulture),
+                sastTimestamp.ToString("yyyy-MM-dd HH:mm:ss zzz", CultureInfo.InvariantCulture),
                 businessStart,
                 businessEnd),
             Status = IncidentStatus.Detected,
