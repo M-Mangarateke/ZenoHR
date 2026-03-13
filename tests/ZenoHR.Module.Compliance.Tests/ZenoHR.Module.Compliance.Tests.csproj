@@ -28,6 +28,7 @@
     <ProjectReference Include="..\..\src\ZenoHR.Module.Compliance\ZenoHR.Module.Compliance.csproj" />
     <ProjectReference Include="..\..\src\ZenoHR.Domain\ZenoHR.Domain.csproj" />
     <ProjectReference Include="..\..\src\ZenoHR.Infrastructure\ZenoHR.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\ZenoHR.Module.Audit\ZenoHR.Module.Audit.csproj" />
   </ItemGroup>
 
 </Project>

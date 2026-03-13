@@ -56,6 +56,9 @@ builder.Services.AddZenoHrRateLimiting(); // VUL-007
 // Session activity tracker for idle timeout enforcement (VUL-013, REQ-SEC-004)
 builder.Services.AddSingleton<SessionActivityTracker>();
 
+// Department scope filter for Manager queries (VUL-008, REQ-SEC-002)
+builder.Services.AddSingleton<DepartmentScopeFilter>();
+
 // Background services — nightly analytics, EMP201 reminders, ETI expiry alerts (REQ-OPS-003)
 builder.Services.AddZenoHrBackgroundServices();
 
@@ -79,6 +82,7 @@ app.UseAuthentication();         // 7th: validate Firebase JWT (TASK-024)
 app.UseAuthorization();          // 8th: enforce policies (TASK-025)
 app.UseRateLimiter();            // 9th: rate limiting (REQ-SEC-003)
 app.UseSessionTimeout();         // 10th: idle session timeout enforcement (VUL-013, REQ-SEC-004)
+app.UseDepartmentScopeEnforcement(); // 11th: Manager department scoping (VUL-008, REQ-SEC-002)
 
 // Health check endpoints — anonymous, no auth, no rate limit required
 // REQ-OPS-007: Liveness + readiness probes for Azure Container Apps (TASK-148/TASK-151).
