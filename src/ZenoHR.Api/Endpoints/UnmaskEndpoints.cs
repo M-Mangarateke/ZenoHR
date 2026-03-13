@@ -5,6 +5,7 @@
 using System.Security.Claims;
 using ZenoHR.Api.Auth;
 using ZenoHR.Api.DTOs;
+using ZenoHR.Infrastructure.Audit;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Module.Audit.Domain;
 using ZenoHR.Module.Compliance.Services;
@@ -44,6 +45,7 @@ public static class UnmaskEndpoints
         ClaimsPrincipal user,
         EmployeeRepository repo,
         UnmaskAuditService auditService,
+        AuditEventWriter auditWriter,
         CancellationToken ct)
     {
         // ── Validate request ──────────────────────────────────────────────────
@@ -103,28 +105,30 @@ public static class UnmaskEndpoints
             justification: request.Justification,
             occurredAt: now);
 
-        // Create the immutable, hash-chained AuditEvent from the audit record.
-        // In production, previousEventHash is retrieved from the latest audit event.
-        var auditEvent = AuditEvent.Create(
-            tenantId: auditRecord.TenantId,
-            actorId: auditRecord.ActorId,
-            actorRole: auditRecord.ActorRole,
-            action: AuditAction.Read,
-            resourceType: AuditResourceType.Employee,
-            resourceId: auditRecord.EmployeeId,
-            metadata: auditRecord.Metadata,
-            occurredAt: auditRecord.OccurredAt,
-            previousEventHash: null);
+        // Persist the audit event via AuditEventWriter — atomically maintains the SHA-256 hash chain.
+        // AuditEventWriter reads the chain head inside a Firestore transaction, so previousEventHash
+        // is always correct (not null except for genesis). This closes the Sev-1 hash chain gap.
+        var auditResult = await auditWriter.WriteAsync(new WriteAuditEventRequest
+        {
+            TenantId     = auditRecord.TenantId,
+            ActorId      = auditRecord.ActorId,
+            ActorRole    = auditRecord.ActorRole,
+            Action       = AuditAction.Read,
+            ResourceType = AuditResourceType.Employee,
+            ResourceId   = auditRecord.EmployeeId,
+            Metadata     = auditRecord.Metadata,
+            OccurredAt   = auditRecord.OccurredAt,
+        }, ct);
 
-        // NOTE: In the full implementation, auditEvent is persisted via AuditEventRepository.
-        // Persistence is handled by the infrastructure layer (not this endpoint's concern).
+        // AuditEventWriter returns Result<AuditEvent> — extract the event ID for the response.
+        var auditEventId = auditResult.IsSuccess ? auditResult.Value.EventId : "audit-write-failed";
 
         return Results.Ok(new UnmaskResponse(
             EmployeeId: employeeId,
             FieldName: request.FieldName,
             Value: rawValue,
             PurposeCode: request.PurposeCode,
-            AuditEventId: auditEvent.EventId));
+            AuditEventId: auditEventId));
     }
 }
 

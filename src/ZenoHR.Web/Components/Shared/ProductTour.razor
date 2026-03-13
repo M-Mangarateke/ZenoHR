@@ -106,18 +106,8 @@
         try
         {
             if (_dotNetRef is null) return;
-            await JS.InvokeVoidAsync("eval", @"
-                (function(ref) {
-                    document.addEventListener('tour:completed', function onTourComplete() {
-                        document.removeEventListener('tour:completed', onTourComplete);
-                        ref.invokeMethodAsync('OnTourEvent', 'completed');
-                    });
-                    document.addEventListener('tour:skipped', function onTourSkip() {
-                        document.removeEventListener('tour:skipped', onTourSkip);
-                        ref.invokeMethodAsync('OnTourEvent', 'skipped');
-                    });
-                })(arguments[0]);
-            ", _dotNetRef);
+            // REQ-OPS-001: Use exported JS function instead of eval() for CSP compliance.
+            await JS.InvokeVoidAsync("ZenoHRTour.registerDotNetCallback", _dotNetRef);
         }
         catch (JSDisconnectedException) { }
         catch (InvalidOperationException) { }

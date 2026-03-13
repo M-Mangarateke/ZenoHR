@@ -2,7 +2,8 @@
 // leave_balances: mutable (upsert). accrual_ledger subcollection: append-only (write-once).
 // SaveWithLedgerEntriesAsync writes balance + pending ledger entries atomically.
 
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
@@ -55,11 +56,11 @@ public sealed class LeaveBalanceRepository : BaseFirestoreRepository<LeaveBalanc
         ["employee_id"] = b.EmployeeId,
         ["leave_type"] = ToLeaveTypeString(b.LeaveType),
         ["cycle_id"] = b.CycleId,
-        // hours stored as double (Firestore number type)
-        ["accrued_hours"] = (double)b.AccruedHours,
-        ["consumed_hours"] = (double)b.ConsumedHours,
-        ["adjustment_hours"] = (double)b.AdjustmentHours,
-        ["available_hours"] = (double)b.AvailableHours,
+        // hours stored as string for decimal precision (monetary-precision convention)
+        ["accrued_hours"] = b.AccruedHours.ToString(CultureInfo.InvariantCulture),
+        ["consumed_hours"] = b.ConsumedHours.ToString(CultureInfo.InvariantCulture),
+        ["adjustment_hours"] = b.AdjustmentHours.ToString(CultureInfo.InvariantCulture),
+        ["available_hours"] = b.AvailableHours.ToString(CultureInfo.InvariantCulture),
         ["policy_version"] = b.PolicyVersion,
         ["last_accrual_date"] = Timestamp.FromDateTime(
             b.LastAccrualDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)),
@@ -198,7 +199,7 @@ public sealed class LeaveBalanceRepository : BaseFirestoreRepository<LeaveBalanc
         ["tenant_id"] = entry.TenantId,
         ["employee_id"] = entry.EmployeeId,
         ["entry_type"] = entry.EntryType.ToString().ToLowerInvariant(),
-        ["hours"] = (double)entry.Hours,
+        ["hours"] = entry.Hours.ToString(CultureInfo.InvariantCulture),
         ["effective_date"] = Timestamp.FromDateTime(
             entry.EffectiveDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)),
         ["reason_code"] = entry.ReasonCode,
@@ -208,9 +209,10 @@ public sealed class LeaveBalanceRepository : BaseFirestoreRepository<LeaveBalanc
         ["created_at"] = Timestamp.FromDateTimeOffset(entry.CreatedAt),
     };
 
-    // Firestore stores number types as double — convert back to decimal safely
+    // Prefer string (precision-safe); fall back to double/long for legacy data
     private static decimal ToDecimal(DocumentSnapshot snapshot, string field)
     {
+        if (snapshot.TryGetValue<string>(field, out var s) && decimal.TryParse(s, CultureInfo.InvariantCulture, out var parsed)) return parsed;
         if (snapshot.TryGetValue<double>(field, out var d)) return (decimal)d;
         if (snapshot.TryGetValue<long>(field, out var l)) return l;
         return 0m;

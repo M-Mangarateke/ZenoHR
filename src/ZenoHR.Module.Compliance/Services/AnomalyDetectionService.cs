@@ -47,9 +47,11 @@ public sealed class AnomalyDetectionService
     public static Result<SecurityIncident> DetectBruteForce(
         IReadOnlyList<AuditEntry> recentEvents,
         TimeSpan window,
-        int threshold)
+        int threshold,
+        string tenantId)
     {
         ArgumentNullException.ThrowIfNull(recentEvents);
+        ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
 
         if (recentEvents.Count == 0)
         {
@@ -83,7 +85,7 @@ public sealed class AnomalyDetectionService
         var incident = new SecurityIncident
         {
             IncidentId = GenerateIncidentId(),
-            TenantId = string.Empty, // Caller must set tenant context
+            TenantId = tenantId,
             DetectedAt = DateTimeOffset.UtcNow,
             Severity = BreachSeverity.Medium, // SEV-2 per PRD-05 §7
             IncidentType = SecurityIncidentType.BruteForceAttempt,
@@ -108,9 +110,11 @@ public sealed class AnomalyDetectionService
     // CTL-POPIA-008
     public static Result<SecurityIncident> DetectBulkExport(
         IReadOnlyList<AuditEntry> recentEvents,
-        int threshold)
+        int threshold,
+        string tenantId)
     {
         ArgumentNullException.ThrowIfNull(recentEvents);
+        ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
 
         if (recentEvents.Count == 0)
         {
@@ -146,7 +150,7 @@ public sealed class AnomalyDetectionService
         var incident = new SecurityIncident
         {
             IncidentId = GenerateIncidentId(),
-            TenantId = string.Empty,
+            TenantId = tenantId,
             DetectedAt = DateTimeOffset.UtcNow,
             Severity = BreachSeverity.Medium, // SEV-2 per PRD-05 §7
             IncidentType = SecurityIncidentType.BulkDataExport,
@@ -172,9 +176,11 @@ public sealed class AnomalyDetectionService
         string action,
         DateTimeOffset timestamp,
         TimeSpan businessStart,
-        TimeSpan businessEnd)
+        TimeSpan businessEnd,
+        string tenantId)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
+        ArgumentException.ThrowIfNullOrWhiteSpace(tenantId);
 
         var timeOfDay = timestamp.TimeOfDay;
 
@@ -194,7 +200,7 @@ public sealed class AnomalyDetectionService
         var incident = new SecurityIncident
         {
             IncidentId = GenerateIncidentId(),
-            TenantId = string.Empty,
+            TenantId = tenantId,
             DetectedAt = DateTimeOffset.UtcNow,
             Severity = BreachSeverity.Low, // SEV-3 per PRD-05 §7
             IncidentType = SecurityIncidentType.OffHoursAccess,

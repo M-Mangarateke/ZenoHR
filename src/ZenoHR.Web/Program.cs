@@ -119,6 +119,28 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// ── Security response headers (VUL-001) ─────────────────────────────────────
+// REQ-SEC-003: CSP, X-Frame-Options, nosniff, Referrer-Policy for Blazor Server.
+// Mirrors the API project's SecurityHeadersExtensions but tuned for Blazor Server
+// (allows 'unsafe-inline' for scripts/styles, CDN fonts, and Lucide icons).
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["X-Frame-Options"] = "DENY";
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    headers["X-XSS-Protection"] = "0";
+    headers["Content-Security-Policy"] =
+        "default-src 'self'; " +
+        "script-src 'self' https://unpkg.com https://cdn.jsdelivr.net 'unsafe-inline'; " +
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+        "font-src 'self' https://fonts.gstatic.com; " +
+        "img-src 'self' data:; " +
+        "connect-src 'self'";
+    await next();
+});
+
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();

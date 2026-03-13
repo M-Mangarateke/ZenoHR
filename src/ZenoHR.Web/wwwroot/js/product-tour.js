@@ -392,6 +392,20 @@ window.ZenoHRTour = (function () {
         localStorage.removeItem(key);
     }
 
+    // REQ-OPS-001: Register .NET callback for tour completion/skip events.
+    // Called from Blazor instead of eval() to comply with CSP policy.
+    function registerDotNetCallback(dotNetRef) {
+        if (!dotNetRef) return;
+        document.addEventListener('tour:completed', function onTourComplete() {
+            document.removeEventListener('tour:completed', onTourComplete);
+            dotNetRef.invokeMethodAsync('OnTourEvent', 'completed');
+        });
+        document.addEventListener('tour:skipped', function onTourSkip() {
+            document.removeEventListener('tour:skipped', onTourSkip);
+            dotNetRef.invokeMethodAsync('OnTourEvent', 'skipped');
+        });
+    }
+
     return {
         start: start,
         next: next,
@@ -403,6 +417,7 @@ window.ZenoHRTour = (function () {
         getChecklistState: getChecklistState,
         saveChecklistState: saveChecklistState,
         dismissChecklist: dismissChecklist,
+        registerDotNetCallback: registerDotNetCallback,
         isActive: function () { return isActive; }
     };
 })();

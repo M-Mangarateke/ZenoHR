@@ -3,7 +3,8 @@
 // Write-once after parent PayrollRun is Finalized (enforced by CreateDocumentAsync).
 // Document ID = employee_id (one result per employee per run).
 
-using Microsoft.Extensions.Logging;
+using System.Globalization;
+using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
@@ -201,8 +202,8 @@ public sealed class PayrollResultRepository
             ["deduction_total_zar"] = r.DeductionTotal.ToFirestoreString(),
             ["addition_total_zar"] = r.AdditionTotal.ToFirestoreString(),
             ["net_pay_zar"] = r.NetPay.ToFirestoreString(),
-            ["hours_ordinary"] = (double)r.HoursOrdinary,
-            ["hours_overtime"] = (double)r.HoursOvertime,
+            ["hours_ordinary"] = r.HoursOrdinary.ToString(CultureInfo.InvariantCulture),
+            ["hours_overtime"] = r.HoursOvertime.ToString(CultureInfo.InvariantCulture),
             ["tax_table_version"] = r.TaxTableVersion,
             ["compliance_flags"] = r.ComplianceFlags.ToList(),
             ["calculation_timestamp"] = Timestamp.FromDateTimeOffset(r.CalculationTimestamp),
@@ -221,6 +222,8 @@ public sealed class PayrollResultRepository
 
     private static decimal ReadDecimal(DocumentSnapshot snapshot, string field)
     {
+        // Prefer string (precision-safe); fall back to double/long for legacy data
+        if (snapshot.TryGetValue<string>(field, out var s) && decimal.TryParse(s, CultureInfo.InvariantCulture, out var parsed)) return parsed;
         if (snapshot.TryGetValue<double>(field, out var d)) return (decimal)d;
         if (snapshot.TryGetValue<long>(field, out var l)) return l;
         return 0m;

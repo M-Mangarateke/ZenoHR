@@ -75,8 +75,8 @@ service cloud.firestore {
                     && writeHasTenantId(request.resource.data.tenant_id);
       allow update: if isHR(resource.data.tenant_id)
                     && writeHasTenantId(resource.data.tenant_id)
-                    && !resource.data.keys().hasAny(['archived_at'])
-                       || resource.data.archived_at == null;
+                    && (!resource.data.keys().hasAny(['archived_at'])
+                       || resource.data.archived_at == null);
       allow delete: if false; // REQ-OPS-001: No deletion — archive only
 
       // Employment contracts subcollection

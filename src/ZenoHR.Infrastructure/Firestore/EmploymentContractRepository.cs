@@ -2,7 +2,8 @@
 // Collection: employment_contracts (root, not subcollection — cross-employee queries needed).
 // base_salary_zar stored as string for decimal precision (MoneyZAR rule).
 
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
@@ -29,7 +30,7 @@ public sealed class EmploymentContractRepository : BaseFirestoreRepository<Emplo
         // base_salary_zar stored as string for decimal precision
         var salaryStr = snapshot.GetValue<string>("base_salary_zar");
         var baseSalary = new MoneyZAR(decimal.Parse(salaryStr,
-            System.Globalization.CultureInfo.InvariantCulture));
+            CultureInfo.InvariantCulture));
 
         var salaryBasis = Enum.TryParse<SalaryBasis>(
             snapshot.GetValue<string>("salary_basis"), out var sb) ? sb : SalaryBasis.Unknown;
@@ -46,7 +47,7 @@ public sealed class EmploymentContractRepository : BaseFirestoreRepository<Emplo
             endDate: endDate,
             salaryBasis: salaryBasis,
             baseSalary: baseSalary,
-            ordinaryHoursPerWeek: (decimal)snapshot.GetValue<double>("ordinary_hours_per_week"),
+            ordinaryHoursPerWeek: ReadDecimal(snapshot, "ordinary_hours_per_week"),
             ordinaryHoursPolicyVersion: snapshot.GetValue<string>("ordinary_hours_policy_version"),
             occupationalLevel: snapshot.GetValue<string>("occupational_level"),
             isActive: snapshot.GetValue<bool>("is_active"),
@@ -69,9 +70,9 @@ public sealed class EmploymentContractRepository : BaseFirestoreRepository<Emplo
         // salary_basis stored as PascalCase string (matches enum name)
         ["salary_basis"] = c.SalaryBasis.ToString(),
         // base_salary_zar stored as string for decimal precision — never float/double
-        ["base_salary_zar"] = c.BaseSalary.Amount.ToString("G", System.Globalization.CultureInfo.InvariantCulture),
-        // ordinary_hours_per_week stored as double (Firestore number type)
-        ["ordinary_hours_per_week"] = (double)c.OrdinaryHoursPerWeek,
+        ["base_salary_zar"] = c.BaseSalary.Amount.ToString("G", CultureInfo.InvariantCulture),
+        // ordinary_hours_per_week stored as string for decimal precision
+        ["ordinary_hours_per_week"] = c.OrdinaryHoursPerWeek.ToString(CultureInfo.InvariantCulture),
         ["ordinary_hours_policy_version"] = c.OrdinaryHoursPolicyVersion,
         ["occupational_level"] = c.OccupationalLevel,
         ["is_active"] = c.IsActive,
@@ -141,4 +142,15 @@ public sealed class EmploymentContractRepository : BaseFirestoreRepository<Emplo
     /// <summary>Upserts a contract. Overwrites if exists (for salary updates and deactivation).</summary>
     public Task<Result> SaveAsync(EmploymentContract contract, CancellationToken ct = default)
         => SetDocumentAsync(contract.ContractId, contract, ct);
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    // Prefer string (precision-safe); fall back to double/long for legacy data
+    private static decimal ReadDecimal(DocumentSnapshot snapshot, string field)
+    {
+        if (snapshot.TryGetValue<string>(field, out var s) && decimal.TryParse(s, CultureInfo.InvariantCulture, out var parsed)) return parsed;
+        if (snapshot.TryGetValue<double>(field, out var d)) return (decimal)d;
+        if (snapshot.TryGetValue<long>(field, out var l)) return l;
+        return 0m;
+    }
 }

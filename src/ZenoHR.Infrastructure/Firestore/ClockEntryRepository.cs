@@ -2,7 +2,8 @@
 // Collection: clock_entries (root).
 // clock_in_at is immutable — corrections create new entries (source: system_correction).
 
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
@@ -34,7 +35,10 @@ public sealed class ClockEntryRepository : BaseFirestoreRepository<ClockEntry>
             clockOutAt = coTs.ToDateTimeOffset();
 
         decimal? calculatedHours = null;
-        if (snapshot.TryGetValue<double>("calculated_hours", out var ch))
+        if (snapshot.TryGetValue<string>("calculated_hours", out var chStr)
+            && decimal.TryParse(chStr, CultureInfo.InvariantCulture, out var chParsed))
+            calculatedHours = chParsed;
+        else if (snapshot.TryGetValue<double>("calculated_hours", out var ch))
             calculatedHours = (decimal)ch;
 
         string? flagNote = null;
@@ -70,7 +74,7 @@ public sealed class ClockEntryRepository : BaseFirestoreRepository<ClockEntry>
         ["clock_out_at"] = entry.ClockOutAt.HasValue
             ? Timestamp.FromDateTimeOffset(entry.ClockOutAt.Value)
             : (object?)null,
-        ["calculated_hours"] = entry.CalculatedHours.HasValue ? (double)entry.CalculatedHours.Value : (object?)null,
+        ["calculated_hours"] = entry.CalculatedHours.HasValue ? entry.CalculatedHours.Value.ToString(CultureInfo.InvariantCulture) : (object?)null,
         ["date"] = Timestamp.FromDateTime(entry.Date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)),
         ["source"] = ToSourceString(entry.Source),
         ["status"] = ToStatusString(entry.Status),

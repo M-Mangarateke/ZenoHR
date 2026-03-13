@@ -2,7 +2,8 @@
 // Collection: leave_requests (root — queried cross-employee by managers).
 // State machine enforcement: Submitted → ManagerReview → Approved | Rejected | Cancelled.
 
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
+using System.Globalization;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
@@ -39,10 +40,12 @@ public sealed class LeaveRequestRepository : BaseFirestoreRepository<LeaveReques
         string? rejectionReason = null;
         snapshot.TryGetValue("rejection_reason", out rejectionReason);
 
-        double? balanceSnapshot = null;
-        if (snapshot.TryGetValue<double>("balance_snapshot_at_request", out var bsRaw))
-            balanceSnapshot = bsRaw;
-        decimal? balanceSnapshotDecimal = balanceSnapshot.HasValue ? (decimal)balanceSnapshot.Value : null;
+        decimal? balanceSnapshotDecimal = null;
+        if (snapshot.TryGetValue<string>("balance_snapshot_at_request", out var bsStr)
+            && decimal.TryParse(bsStr, CultureInfo.InvariantCulture, out var bsParsed))
+            balanceSnapshotDecimal = bsParsed;
+        else if (snapshot.TryGetValue<double>("balance_snapshot_at_request", out var bsRaw))
+            balanceSnapshotDecimal = (decimal)bsRaw;
 
         return LeaveRequest.Reconstitute(
             leaveRequestId: snapshot.Id,
@@ -73,7 +76,7 @@ public sealed class LeaveRequestRepository : BaseFirestoreRepository<LeaveReques
         ["leave_type"] = ToLeaveTypeString(r.LeaveType),
         ["start_date"] = Timestamp.FromDateTime(r.StartDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)),
         ["end_date"] = Timestamp.FromDateTime(r.EndDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)),
-        ["total_hours"] = (double)r.TotalHours,
+        ["total_hours"] = r.TotalHours.ToString(CultureInfo.InvariantCulture),
         ["reason_code"] = r.ReasonCode,
         ["status"] = ToStatusString(r.Status),
         ["approver_id"] = r.ApproverId,
@@ -82,7 +85,7 @@ public sealed class LeaveRequestRepository : BaseFirestoreRepository<LeaveReques
             : (object?)null,
         ["rejection_reason"] = r.RejectionReason,
         ["balance_snapshot_at_request"] = r.BalanceSnapshotAtRequest.HasValue
-            ? (double)r.BalanceSnapshotAtRequest.Value
+            ? r.BalanceSnapshotAtRequest.Value.ToString(CultureInfo.InvariantCulture)
             : (object?)null,
         ["created_at"] = Timestamp.FromDateTimeOffset(r.CreatedAt),
         ["updated_at"] = Timestamp.FromDateTimeOffset(r.UpdatedAt),
@@ -116,15 +119,18 @@ public sealed class LeaveRequestRepository : BaseFirestoreRepository<LeaveReques
     /// </summary>
     private static readonly string[] PendingStatuses = ["submitted", "manager_review"];
 
-    public Task<IReadOnlyList<LeaveRequest>> ListPendingForEmployeesAsync(
+    public async Task<IReadOnlyList<LeaveRequest>> ListPendingForEmployeesAsync(
         string tenantId, IReadOnlyList<string> employeeIds, CancellationToken ct = default)
     {
-        // Firestore WhereIn supports up to 30 values per query
+        // Firestore does NOT support multiple WhereIn filters on different fields.
+        // Use WhereIn for employee_id (variable-length list) and filter status in memory.
         var query = TenantQuery(tenantId)
             .WhereIn("employee_id", employeeIds)
-            .WhereIn("status", PendingStatuses)
             .OrderBy("start_date");
-        return ExecuteQueryAsync(query, ct);
+        var results = await ExecuteQueryAsync(query, ct);
+        return results
+            .Where(r => PendingStatuses.Contains(ToStatusString(r.Status)))
+            .ToList();
     }
 
     /// <summary>
@@ -154,6 +160,8 @@ public sealed class LeaveRequestRepository : BaseFirestoreRepository<LeaveReques
 
     private static decimal ToDecimal(DocumentSnapshot snapshot, string field)
     {
+        // Prefer string (precision-safe); fall back to double/long for legacy data
+        if (snapshot.TryGetValue<string>(field, out var s) && decimal.TryParse(s, CultureInfo.InvariantCulture, out var parsed)) return parsed;
         if (snapshot.TryGetValue<double>(field, out var d)) return (decimal)d;
         if (snapshot.TryGetValue<long>(field, out var l)) return l;
         return 0m;

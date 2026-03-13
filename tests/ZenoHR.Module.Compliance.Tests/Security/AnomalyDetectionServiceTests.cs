@@ -21,7 +21,7 @@ public sealed class AnomalyDetectionServiceTests
         var now = DateTimeOffset.UtcNow;
         var events = CreateFailedAuthEvents("user-001", now, count: 5, intervalSeconds: 60);
 
-        var result = AnomalyDetectionService.DetectBruteForce(events, DefaultWindow, threshold: 5);
+        var result = AnomalyDetectionService.DetectBruteForce(events, DefaultWindow, threshold: 5, tenantId: "tenant-1");
 
         result.IsSuccess.Should().BeTrue();
         result.Value.IncidentType.Should().Be(SecurityIncidentType.BruteForceAttempt);
@@ -36,7 +36,7 @@ public sealed class AnomalyDetectionServiceTests
         var now = DateTimeOffset.UtcNow;
         var events = CreateFailedAuthEvents("user-001", now, count: 4, intervalSeconds: 60);
 
-        var result = AnomalyDetectionService.DetectBruteForce(events, DefaultWindow, threshold: 5);
+        var result = AnomalyDetectionService.DetectBruteForce(events, DefaultWindow, threshold: 5, tenantId: "tenant-1");
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be(ZenoHrErrorCode.NoAnomalyDetected);
@@ -49,7 +49,7 @@ public sealed class AnomalyDetectionServiceTests
         // 5 failures spread over 20 minutes — only last few within 10-min window
         var events = CreateFailedAuthEvents("user-001", now, count: 5, intervalSeconds: 300);
 
-        var result = AnomalyDetectionService.DetectBruteForce(events, DefaultWindow, threshold: 5);
+        var result = AnomalyDetectionService.DetectBruteForce(events, DefaultWindow, threshold: 5, tenantId: "tenant-1");
 
         result.IsFailure.Should().BeTrue();
     }
@@ -57,7 +57,7 @@ public sealed class AnomalyDetectionServiceTests
     [Fact]
     public void DetectBruteForce_EmptyEvents_ReturnsNoIncident()
     {
-        var result = AnomalyDetectionService.DetectBruteForce([], DefaultWindow, threshold: 5);
+        var result = AnomalyDetectionService.DetectBruteForce([], DefaultWindow, threshold: 5, tenantId: "tenant-1");
 
         result.IsFailure.Should().BeTrue();
     }
@@ -68,7 +68,7 @@ public sealed class AnomalyDetectionServiceTests
         var now = DateTimeOffset.UtcNow;
         var events = CreateFailedAuthEvents("user-002", now, count: 6, intervalSeconds: 30);
 
-        var result = AnomalyDetectionService.DetectBruteForce(events, DefaultWindow, threshold: 5);
+        var result = AnomalyDetectionService.DetectBruteForce(events, DefaultWindow, threshold: 5, tenantId: "tenant-1");
 
         result.IsSuccess.Should().BeTrue();
         result.Value.Description.Should().Contain("6");
@@ -89,7 +89,7 @@ public sealed class AnomalyDetectionServiceTests
                 IsSuccess: i % 2 == 0)); // 5 failures, 5 successes
         }
 
-        var result = AnomalyDetectionService.DetectBruteForce(events, DefaultWindow, threshold: 5);
+        var result = AnomalyDetectionService.DetectBruteForce(events, DefaultWindow, threshold: 5, tenantId: "tenant-1");
 
         result.IsSuccess.Should().BeTrue();
     }
@@ -100,7 +100,7 @@ public sealed class AnomalyDetectionServiceTests
         var now = DateTimeOffset.UtcNow;
         var events = CreateFailedAuthEvents("user-001", now, count: 5, intervalSeconds: 60);
 
-        var result = AnomalyDetectionService.DetectBruteForce(events, DefaultWindow, threshold: 5);
+        var result = AnomalyDetectionService.DetectBruteForce(events, DefaultWindow, threshold: 5, tenantId: "tenant-1");
 
         result.IsSuccess.Should().BeTrue();
         result.Value.IncidentId.Should().StartWith("INC-");
@@ -114,7 +114,7 @@ public sealed class AnomalyDetectionServiceTests
         var now = DateTimeOffset.UtcNow;
         var events = CreateExportEvents("user-001", now, count: 51, intervalSeconds: 5);
 
-        var result = AnomalyDetectionService.DetectBulkExport(events, threshold: 50);
+        var result = AnomalyDetectionService.DetectBulkExport(events, threshold: 50, tenantId: "tenant-1");
 
         result.IsSuccess.Should().BeTrue();
         result.Value.IncidentType.Should().Be(SecurityIncidentType.BulkDataExport);
@@ -128,7 +128,7 @@ public sealed class AnomalyDetectionServiceTests
         var now = DateTimeOffset.UtcNow;
         var events = CreateExportEvents("user-001", now, count: 50, intervalSeconds: 5);
 
-        var result = AnomalyDetectionService.DetectBulkExport(events, threshold: 50);
+        var result = AnomalyDetectionService.DetectBulkExport(events, threshold: 50, tenantId: "tenant-1");
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be(ZenoHrErrorCode.NoAnomalyDetected);
@@ -137,7 +137,7 @@ public sealed class AnomalyDetectionServiceTests
     [Fact]
     public void DetectBulkExport_EmptyEvents_ReturnsNoIncident()
     {
-        var result = AnomalyDetectionService.DetectBulkExport([], threshold: 50);
+        var result = AnomalyDetectionService.DetectBulkExport([], threshold: 50, tenantId: "tenant-1");
 
         result.IsFailure.Should().BeTrue();
     }
@@ -149,7 +149,7 @@ public sealed class AnomalyDetectionServiceTests
         // 60 events but spread over 10 minutes — only ~30 in last 5 min window
         var events = CreateExportEvents("user-001", now, count: 60, intervalSeconds: 10);
 
-        var result = AnomalyDetectionService.DetectBulkExport(events, threshold: 50);
+        var result = AnomalyDetectionService.DetectBulkExport(events, threshold: 50, tenantId: "tenant-1");
 
         result.IsFailure.Should().BeTrue();
     }
@@ -161,7 +161,7 @@ public sealed class AnomalyDetectionServiceTests
     {
         var timestamp = new DateTimeOffset(2026, 3, 12, 2, 0, 0, TimeSpan.FromHours(2)); // 2AM SAST
 
-        var result = AnomalyDetectionService.DetectOffHoursAccess("payroll.finalize", timestamp, BusinessStart, BusinessEnd);
+        var result = AnomalyDetectionService.DetectOffHoursAccess("payroll.finalize", timestamp, BusinessStart, BusinessEnd, tenantId: "tenant-1");
 
         result.IsSuccess.Should().BeTrue();
         result.Value.IncidentType.Should().Be(SecurityIncidentType.OffHoursAccess);
@@ -174,7 +174,7 @@ public sealed class AnomalyDetectionServiceTests
     {
         var timestamp = new DateTimeOffset(2026, 3, 12, 10, 0, 0, TimeSpan.FromHours(2)); // 10AM SAST
 
-        var result = AnomalyDetectionService.DetectOffHoursAccess("payroll.finalize", timestamp, BusinessStart, BusinessEnd);
+        var result = AnomalyDetectionService.DetectOffHoursAccess("payroll.finalize", timestamp, BusinessStart, BusinessEnd, tenantId: "tenant-1");
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be(ZenoHrErrorCode.NoAnomalyDetected);
@@ -185,7 +185,7 @@ public sealed class AnomalyDetectionServiceTests
     {
         var timestamp = new DateTimeOffset(2026, 3, 12, 7, 0, 0, TimeSpan.FromHours(2));
 
-        var result = AnomalyDetectionService.DetectOffHoursAccess("payroll.finalize", timestamp, BusinessStart, BusinessEnd);
+        var result = AnomalyDetectionService.DetectOffHoursAccess("payroll.finalize", timestamp, BusinessStart, BusinessEnd, tenantId: "tenant-1");
 
         result.IsFailure.Should().BeTrue();
     }
@@ -195,7 +195,7 @@ public sealed class AnomalyDetectionServiceTests
     {
         var timestamp = new DateTimeOffset(2026, 3, 12, 18, 0, 0, TimeSpan.FromHours(2)); // 6PM = boundary
 
-        var result = AnomalyDetectionService.DetectOffHoursAccess("payroll.finalize", timestamp, BusinessStart, BusinessEnd);
+        var result = AnomalyDetectionService.DetectOffHoursAccess("payroll.finalize", timestamp, BusinessStart, BusinessEnd, tenantId: "tenant-1");
 
         result.IsSuccess.Should().BeTrue();
     }
@@ -205,7 +205,7 @@ public sealed class AnomalyDetectionServiceTests
     {
         var timestamp = new DateTimeOffset(2026, 3, 12, 23, 59, 0, TimeSpan.FromHours(2));
 
-        var result = AnomalyDetectionService.DetectOffHoursAccess("sars.approve", timestamp, BusinessStart, BusinessEnd);
+        var result = AnomalyDetectionService.DetectOffHoursAccess("sars.approve", timestamp, BusinessStart, BusinessEnd, tenantId: "tenant-1");
 
         result.IsSuccess.Should().BeTrue();
         result.Value.Description.Should().Contain("sars.approve");

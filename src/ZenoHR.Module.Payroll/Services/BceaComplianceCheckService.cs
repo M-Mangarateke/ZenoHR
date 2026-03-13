@@ -1,6 +1,7 @@
 // VUL-024, VUL-025: BCEA pre-payroll compliance checks.
 // CTL-BCEA-001: Ordinary hours limits (45/week max).
 // CTL-BCEA-003: Leave entitlement minimums (15 days/year, pro-rated 1.25 days/month).
+// Critical Rule #1: All statutory values injected via BceaComplianceOptions — never hardcoded.
 
 using ZenoHR.Domain.Errors;
 using ZenoHR.Module.Payroll.Models;
@@ -10,21 +11,21 @@ namespace ZenoHR.Module.Payroll.Services;
 /// <summary>
 /// Validates BCEA working-time and leave compliance before payroll finalization.
 /// Overtime violations block payroll; leave balance warnings do not.
+/// Statutory limits are injected via <see cref="BceaComplianceOptions"/> (sourced from StatutoryRuleSet).
 /// </summary>
 public sealed class BceaComplianceCheckService
 {
-    // CTL-BCEA-001: BCEA Section 9 — ordinary hours
-    private const decimal MaxOrdinaryHoursPerWeek = 45m;
+    private readonly BceaComplianceOptions _options;
 
-    // CTL-BCEA-001: BCEA Section 10 — overtime (with written agreement)
-    private const decimal MaxOvertimeHoursPerWeek = 10m;
-
-    // CTL-BCEA-001: Total max = ordinary + overtime
-    private const decimal MaxTotalHoursWithAgreement = MaxOrdinaryHoursPerWeek + MaxOvertimeHoursPerWeek; // 55
-
-    // CTL-BCEA-003: BCEA Section 20 — annual leave entitlement
-    private const decimal AnnualLeaveEntitlementDays = 15m;
-    private const decimal MonthlyLeaveAccrualRate = AnnualLeaveEntitlementDays / 12m; // 1.25
+    /// <summary>
+    /// Creates a new instance with the specified BCEA compliance options.
+    /// </summary>
+    /// <param name="options">BCEA statutory limits. Must not be null.</param>
+    public BceaComplianceCheckService(BceaComplianceOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        _options = options;
+    }
 
     /// <summary>
     /// Checks overtime compliance against BCEA working-time limits.
@@ -32,7 +33,7 @@ public sealed class BceaComplianceCheckService
     /// <param name="weeklyHours">Total hours worked in the week (ordinary + overtime).</param>
     /// <param name="isOvertimeAgreed">Whether a written overtime agreement exists.</param>
     /// <returns>Result containing compliance result, or failure on invalid input.</returns>
-    public static Result<BceaComplianceResult> CheckOvertimeCompliance(decimal weeklyHours, bool isOvertimeAgreed)
+    public Result<BceaComplianceResult> CheckOvertimeCompliance(decimal weeklyHours, bool isOvertimeAgreed)
     {
         // VUL-024: Validate input
         if (weeklyHours < 0)
@@ -46,23 +47,22 @@ public sealed class BceaComplianceCheckService
 
         if (!isOvertimeAgreed)
         {
-            // Without overtime agreement, maximum is ordinary hours only (45)
-            if (weeklyHours > MaxOrdinaryHoursPerWeek)
+            // Without overtime agreement, maximum is ordinary hours only
+            if (weeklyHours > _options.MaxOrdinaryHoursPerWeek)
             {
-                // Determine if it's an overtime issue or ordinary hours issue
                 violationsList.Add(
-                    $"No overtime agreement in place. Employee worked {weeklyHours}h but maximum without agreement is {MaxOrdinaryHoursPerWeek}h/week. " +
+                    $"No overtime agreement in place. Employee worked {weeklyHours}h but maximum without agreement is {_options.MaxOrdinaryHoursPerWeek}h/week. " +
                     "A written overtime agreement is required under BCEA Section 10.");
             }
         }
         else
         {
-            // With overtime agreement, ordinary limit still applies + overtime capped at 10h
-            if (weeklyHours > MaxTotalHoursWithAgreement)
+            // With overtime agreement, ordinary limit still applies + overtime capped
+            if (weeklyHours > _options.MaxTotalHoursWithAgreement)
             {
                 violationsList.Add(
-                    $"Total weekly hours ({weeklyHours}h) exceed BCEA maximum of {MaxTotalHoursWithAgreement}h/week " +
-                    $"(ordinary {MaxOrdinaryHoursPerWeek}h + overtime {MaxOvertimeHoursPerWeek}h).");
+                    $"Total weekly hours ({weeklyHours}h) exceed BCEA maximum of {_options.MaxTotalHoursWithAgreement}h/week " +
+                    $"(ordinary {_options.MaxOrdinaryHoursPerWeek}h + overtime {_options.MaxOvertimeHoursPerWeek}h).");
             }
         }
 
@@ -76,7 +76,7 @@ public sealed class BceaComplianceCheckService
     /// <param name="annualLeaveBalance">Current annual leave balance in working days.</param>
     /// <param name="employmentMonths">Number of complete months of employment.</param>
     /// <returns>Result containing compliance result with warnings if balance is low.</returns>
-    public static Result<BceaComplianceResult> CheckLeaveCompliance(decimal annualLeaveBalance, int employmentMonths)
+    public Result<BceaComplianceResult> CheckLeaveCompliance(decimal annualLeaveBalance, int employmentMonths)
     {
         // VUL-025: Validate input
         if (employmentMonths < 0)
@@ -87,15 +87,15 @@ public sealed class BceaComplianceCheckService
 
         var warnings = new List<string>();
 
-        // CTL-BCEA-003: Pro-rated minimum = months × 1.25 days/month
-        var proRatedMinimum = employmentMonths * MonthlyLeaveAccrualRate;
+        // CTL-BCEA-003: Pro-rated minimum = months x monthly accrual rate
+        var proRatedMinimum = employmentMonths * _options.MonthlyLeaveAccrualRate;
 
         if (annualLeaveBalance < proRatedMinimum)
         {
             warnings.Add(
                 $"Annual leave balance ({annualLeaveBalance} days) is below the BCEA pro-rated minimum " +
                 $"of {proRatedMinimum} days for {employmentMonths} month(s) of employment " +
-                $"(rate: {MonthlyLeaveAccrualRate} days/month).");
+                $"(rate: {_options.MonthlyLeaveAccrualRate} days/month).");
         }
 
         return Result<BceaComplianceResult>.Success(
@@ -106,7 +106,7 @@ public sealed class BceaComplianceCheckService
     /// Runs all BCEA pre-payroll compliance checks.
     /// Payroll finalization is blocked if any violations exist (warnings are non-blocking).
     /// </summary>
-    public static Result<BceaComplianceResult> ValidatePrePayroll(
+    public Result<BceaComplianceResult> ValidatePrePayroll(
         decimal weeklyHours,
         bool isOvertimeAgreed,
         decimal annualLeaveBalance,
