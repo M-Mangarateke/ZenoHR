@@ -8,7 +8,6 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using ZenoHR.Api.Auth;
 using ZenoHR.Domain.Common;
-using ZenoHR.Domain.Errors;
 using ZenoHR.Infrastructure.Audit;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Module.Audit.Domain;

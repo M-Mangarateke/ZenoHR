@@ -4,7 +4,6 @@
 // All BCEA leave entitlements verified against statutory rules. CTL-BCEA-003, CTL-BCEA-004.
 
 using FluentAssertions;
-using ZenoHR.Domain.Common;
 using ZenoHR.Integration.Tests.Infrastructure;
 using ZenoHR.Module.Leave.Aggregates;
 

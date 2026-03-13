@@ -1,0 +1,16 @@
+{
+  "name": "ZenoHR",
+  "short_name": "ZenoHR",
+  "description": "HR, Payroll & Compliance Platform — Zenowethu (Pty) Ltd",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#1d4777",
+  "background_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

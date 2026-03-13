@@ -12,7 +12,6 @@ using ZenoHR.Infrastructure.Services;
 using ZenoHR.Integration.Tests.Infrastructure;
 using ZenoHR.Module.Employee.Aggregates;
 using EmployeeAggregate = ZenoHR.Module.Employee.Aggregates.Employee;
-using ZenoHR.Module.Payroll.Aggregates;
 using ZenoHR.Module.Payroll.Calculation;
 using ZenoHR.Module.Payroll.Entities;
 

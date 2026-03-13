@@ -60,3 +60,15 @@ coverage-report/
 # Local check scripts
 *.chk.ps1
 update_compliance.js
+
+# IDE files
+**/.idea/
+
+# Environment files (may contain secrets)
+**/.env
+**/.env.*
+!.env.example
+
+# Markdown files (not needed at runtime)
+**/*.md
+!Dockerfile

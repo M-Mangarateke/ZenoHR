@@ -5,7 +5,6 @@
 
 using Google.Api.Gax;
 using Google.Cloud.Firestore;
-using System.Net.Http;
 
 namespace ZenoHR.Integration.Tests.Infrastructure;
 

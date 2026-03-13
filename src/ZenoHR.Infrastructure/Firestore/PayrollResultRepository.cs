@@ -4,7 +4,6 @@
 // Document ID = employee_id (one result per employee per run).
 
 using System.Globalization;
-using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;

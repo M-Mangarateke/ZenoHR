@@ -3,11 +3,9 @@
 
 using System.Diagnostics.Metrics;
 using FluentAssertions;
-using Google.Cloud.Firestore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using NSubstitute;
 using ZenoHR.Api.Observability;
 using ZenoHR.Api.Observability.HealthChecks;
 

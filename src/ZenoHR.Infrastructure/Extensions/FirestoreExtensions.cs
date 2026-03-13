@@ -5,7 +5,6 @@ using Google.Cloud.Firestore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ZenoHR.Infrastructure.Audit;
-using ZenoHR.Infrastructure.Auth;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Infrastructure.Seeding;
 using ZenoHR.Infrastructure.Services.Filing;

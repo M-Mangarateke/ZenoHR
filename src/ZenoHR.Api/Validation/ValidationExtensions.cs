@@ -2,7 +2,6 @@
 // Registers all validators from this assembly and provides a validation filter for endpoint groups.
 
 using FluentValidation;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace ZenoHR.Api.Validation;
 

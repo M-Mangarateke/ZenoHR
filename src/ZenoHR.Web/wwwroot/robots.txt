@@ -1,0 +1,3 @@
+# ZenoHR is an internal business application — disallow all crawling.
+User-agent: *
+Disallow: /

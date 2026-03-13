@@ -9,7 +9,6 @@ using ZenoHR.Api.Auth;
 using ZenoHR.Api.DTOs;
 using ZenoHR.Api.Pagination;
 using ZenoHR.Api.Validation;
-using ZenoHR.Domain.Common;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Module.Employee.Aggregates;
 

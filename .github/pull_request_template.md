@@ -1,6 +1,10 @@
 ## Summary
 <!-- Brief description of changes — what problem does this PR solve? -->
 
+## Changes
+<!-- Bulleted list of what was changed, added, or removed -->
+-
+
 ## Type of Change
 - [ ] Bug fix
 - [ ] New feature

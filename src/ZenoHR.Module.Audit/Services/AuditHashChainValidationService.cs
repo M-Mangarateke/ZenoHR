@@ -3,7 +3,6 @@
 // CTL-POPIA-012: Hash chain integrity proves PII access logs have not been modified.
 // A broken chain is a Sev-1 defect and must trigger an incident response.
 
-using ZenoHR.Domain.Errors;
 using ZenoHR.Module.Audit.Domain;
 
 namespace ZenoHR.Module.Audit.Services;

@@ -4,7 +4,6 @@
 // Tests decimal precision on calculated_hours (stored as string) after Batch 1 fix.
 
 using FluentAssertions;
-using Google.Cloud.Firestore;
 using Microsoft.Extensions.Logging.Abstractions;
 using ZenoHR.Infrastructure.Firestore;
 using ZenoHR.Integration.Tests.Infrastructure;

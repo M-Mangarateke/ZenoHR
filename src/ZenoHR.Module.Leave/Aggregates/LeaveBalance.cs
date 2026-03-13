@@ -3,7 +3,6 @@
 // One balance per employee per leave type per cycle.
 // Accruals, consumptions, and adjustments post to the append-only accrual_ledger subcollection.
 using ZenoHR.Domain.Errors;
-using ZenoHR.Module.Leave.Events;
 
 namespace ZenoHR.Module.Leave.Aggregates;
 

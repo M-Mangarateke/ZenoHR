@@ -5,7 +5,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 using ZenoHR.Domain.Auth;
 using ZenoHR.Domain.Common;
 using ZenoHR.Infrastructure.Auth;

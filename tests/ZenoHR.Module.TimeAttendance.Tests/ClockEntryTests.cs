@@ -2,7 +2,6 @@
 // REQ-OPS-003, CTL-BCEA-001: Employee self-service time recording.
 using FluentAssertions;
 using ZenoHR.Domain.Errors;
-using ZenoHR.Module.TimeAttendance;
 
 namespace ZenoHR.Module.TimeAttendance.Tests;
 

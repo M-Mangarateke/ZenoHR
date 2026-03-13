@@ -2,7 +2,6 @@
 // Firestore schema: docs/schemas/firestore-collections.md §5.1.
 // Employment lifecycle: Active → Suspended → Active | Active → Terminated.
 // Terminated employees are NEVER deleted — POPIA data retention enforced.
-using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
 using ZenoHR.Module.Employee.Events;
 

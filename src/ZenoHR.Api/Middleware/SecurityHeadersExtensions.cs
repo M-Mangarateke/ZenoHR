@@ -3,8 +3,6 @@
 // Closes VUL-002 (Sev-1): no CORS policy.
 // Closes VUL-023 (Sev-2): no HSTS despite HTTPS redirect.
 
-using NetEscapades.AspNetCore.SecurityHeaders;
-
 namespace ZenoHR.Api.Middleware;
 
 /// <summary>

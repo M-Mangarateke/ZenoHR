@@ -1,0 +1,7 @@
+# Security contact information for ZenoHR — RFC 9116
+# https://www.rfc-editor.org/rfc/rfc9116
+
+Contact: mailto:security@zenowethu.co.za
+Expires: 2027-03-13T23:59:59.000Z
+Preferred-Languages: en
+Policy: https://zenowethu.co.za/security-policy

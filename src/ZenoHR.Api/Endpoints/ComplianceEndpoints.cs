@@ -3,7 +3,6 @@
 // Director/HRManager roles only (REQ-SEC-002).
 
 using System.Security.Claims;
-using System.Globalization;
 using ZenoHR.Api.Auth;
 using ZenoHR.Api.Pagination;
 using ZenoHR.Domain.Errors;

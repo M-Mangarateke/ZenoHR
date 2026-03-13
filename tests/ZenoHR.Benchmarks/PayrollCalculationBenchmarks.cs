@@ -4,7 +4,6 @@
 // Firestore I/O is excluded from this benchmark (measured separately in load tests).
 
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
 using ZenoHR.Module.Payroll.Calculation;

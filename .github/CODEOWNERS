@@ -17,5 +17,17 @@ docs/seed-data/                          @zenowethu/payroll-sme
 # Deployment configuration: changes here affect production availability and data residency.
 # REQ-OPS-002: DevOps team must review all CI/CD and infrastructure changes.
 Dockerfile                               @zenowethu/devops
+.dockerignore                            @zenowethu/devops
 azure/                                   @zenowethu/devops
 .github/workflows/                       @zenowethu/devops
+
+# Source code: default reviewers for all production code.
+src/                                     @zenowethu/engineering
+tests/                                   @zenowethu/engineering
+
+# Infrastructure configuration
+infra/                                   @zenowethu/devops
+
+# Documentation: PRD and design changes require product review.
+docs/prd/                               @zenowethu/product
+docs/design/                            @zenowethu/product

@@ -3,7 +3,6 @@
 // Monetary fields stored as strings — docs/schemas/monetary-precision.md.
 // Tenant isolation: every read and query filters by tenant_id — REQ-SEC-005.
 
-using System.Globalization;
 using Google.Cloud.Firestore;
 using Microsoft.Extensions.Logging;
 using ZenoHR.Domain.Common;

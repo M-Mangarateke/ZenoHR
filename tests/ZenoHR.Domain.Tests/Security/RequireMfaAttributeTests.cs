@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.AspNetCore.Routing;
-using NSubstitute;
 using ZenoHR.Api.Auth;
 
 namespace ZenoHR.Domain.Tests.Security;

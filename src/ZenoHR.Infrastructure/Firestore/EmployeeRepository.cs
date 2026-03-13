@@ -4,7 +4,6 @@
 
 using Microsoft.Extensions.Logging;
 using Google.Cloud.Firestore;
-using ZenoHR.Domain.Common;
 using ZenoHR.Domain.Errors;
 using ZenoHR.Module.Employee.Aggregates;
 

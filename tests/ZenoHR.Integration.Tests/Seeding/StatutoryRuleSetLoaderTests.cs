@@ -5,8 +5,6 @@
 // CTL-SARS-001: PAYE, UIF/SDL, ETI rules must exist in Firestore before any payroll run.
 
 using FluentAssertions;
-using Google.Cloud.Firestore;
-using ZenoHR.Domain.Common;
 using ZenoHR.Infrastructure.Seeding;
 using ZenoHR.Integration.Tests.Infrastructure;
 

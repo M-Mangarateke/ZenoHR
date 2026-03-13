@@ -5,7 +5,6 @@
 
 using System.Security.Claims;
 using System.Text.Json;
-using Microsoft.AspNetCore.Http;
 
 namespace ZenoHR.Api.Auth;
 

@@ -1,6 +1,5 @@
 // REQ-SEC-001, CTL-SEC-004: Rate limiting to prevent DoS and brute-force attacks.
 // VUL-007 remediation: fixed window on all API; sliding window on auth endpoints.
-using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
 
 namespace ZenoHR.Api.Security;
