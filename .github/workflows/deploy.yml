@@ -30,7 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      security-events: write  # Required for CodeQL SARIF upload
+      packages: write          # Required for GHCR push
+      security-events: write   # Required for CodeQL SARIF upload
     outputs:
       image_digest: ${{ steps.push.outputs.digest }}
       image_tags: ${{ steps.meta.outputs.tags }}
