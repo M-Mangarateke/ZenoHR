@@ -27,7 +27,7 @@ public sealed class StatutoryRuleSetLoaderTests : IntegrationTestBase
         _loader = new StatutoryRuleSetLoader(fixture.Db);
     }
 
-    // TC-OPS-004: All 7 seed files are seeded successfully
+    // TC-OPS-004: All 14 seed files are seeded successfully (TY2026 historical + TY2027 active + perpetual + holidays)
     [Fact]
     public async Task LoadAllAsync_AllSeedFiles_WritesAllDocuments()
     {
@@ -36,7 +36,7 @@ public sealed class StatutoryRuleSetLoaderTests : IntegrationTestBase
 
         // Assert
         result.IsSuccess.Should().BeTrue(because: $"seed loading failed: {(result.IsSuccess ? "" : result.Error.Message)}");
-        result.Value.Should().Be(7, because: "there are 7 statutory seed files");
+        result.Value.Should().Be(14, because: "there are 14 statutory seed files (TY2026 + TY2027 + perpetual + holidays)");
     }
 
     // TC-OPS-004: Document IDs are deterministic and follow the expected format
@@ -47,14 +47,29 @@ public sealed class StatutoryRuleSetLoaderTests : IntegrationTestBase
         var ids = StatutoryRuleSetLoader.GetExpectedDocumentIds();
 
         // Assert
-        ids.Should().HaveCount(7);
+        ids.Should().HaveCount(14);
+
+        // TY2026 — historical
         ids.Should().Contain("SARS_PAYE_2026");
         ids.Should().Contain("SARS_UIF_SDL_2026");
+
+        // TY2027 — active from 1 March 2026
+        ids.Should().Contain("SARS_PAYE_2027");
+        ids.Should().Contain("SARS_UIF_SDL_2027");
+        ids.Should().Contain("SARS_MSFTC_2027");
+        ids.Should().Contain("SARS_TRAVEL_2027");
+        ids.Should().Contain("NMW_2027");
+        ids.Should().Contain("BCEA_EARNINGS_THRESHOLD_2027");
+
+        // Perpetual — no tax-year expiry
         ids.Should().Contain("SARS_ETI_2026");
         ids.Should().Contain("BCEA_LEAVE_2026");
         ids.Should().Contain("BCEA_WORKING_TIME_2026");
         ids.Should().Contain("BCEA_NOTICE_SEVERANCE_2026");
+
+        // Public holidays — calendar year files
         ids.Should().Contain("SA_PUBLIC_HOLIDAYS_2026");
+        ids.Should().Contain("SA_PUBLIC_HOLIDAYS_2027");
     }
 
     // CTL-SARS-001: PAYE rule set is readable after seeding

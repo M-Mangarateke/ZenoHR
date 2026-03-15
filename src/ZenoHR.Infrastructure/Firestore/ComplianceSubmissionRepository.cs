@@ -165,7 +165,9 @@ public sealed class ComplianceSubmissionRepository : BaseFirestoreRepository<Com
         }
 
         int employeeCount = 0;
-        if (snapshot.TryGetValue<long>("employee_count", out var empCount))
+        if (snapshot.ContainsField("employee_count")
+            && snapshot.GetValue<object>("employee_count") != null
+            && snapshot.TryGetValue<long>("employee_count", out var empCount))
             employeeCount = (int)empCount;
 
         return ComplianceSubmission.Reconstitute(

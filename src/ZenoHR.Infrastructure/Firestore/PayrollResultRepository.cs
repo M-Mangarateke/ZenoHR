@@ -152,7 +152,7 @@ public sealed class PayrollResultRepository
             medicalEmployee: ReadMoney(snapshot, "medical_employee_zar"),
             medicalEmployer: ReadMoney(snapshot, "medical_employer_zar"),
             etiAmount: ReadMoney(snapshot, "eti_amount_zar"),
-            etiEligible: snapshot.TryGetValue<bool>("eti_eligible", out var eti) && eti,
+            etiEligible: snapshot.ContainsField("eti_eligible") && snapshot.GetValue<object>("eti_eligible") != null && snapshot.TryGetValue<bool>("eti_eligible", out var eti) && eti,
             otherDeductions: ReadLineItems(snapshot, "other_deductions"),
             otherAdditions: ReadLineItems(snapshot, "other_additions"),
             deductionTotal: ReadMoney(snapshot, "deduction_total_zar"),
@@ -221,8 +221,10 @@ public sealed class PayrollResultRepository
 
     private static decimal ReadDecimal(DocumentSnapshot snapshot, string field)
     {
-        // Prefer string (precision-safe); fall back to double/long for legacy data
+        // Prefer string (precision-safe); fall back to double/long for legacy data.
+        // Guard: TryGetValue<double/long> throws ArgumentException when field is null in Firestore.
         if (snapshot.TryGetValue<string>(field, out var s) && decimal.TryParse(s, CultureInfo.InvariantCulture, out var parsed)) return parsed;
+        if (!snapshot.ContainsField(field) || snapshot.GetValue<object>(field) == null) return 0m;
         if (snapshot.TryGetValue<double>(field, out var d)) return (decimal)d;
         if (snapshot.TryGetValue<long>(field, out var l)) return l;
         return 0m;

@@ -90,7 +90,9 @@ public sealed class PayrollRunRepository : BaseFirestoreRepository<PayrollRun>
         var dataStatus = ParseDataStatus(snapshot.GetValue<string>("data_status"));
         var runType = ParseRunType(snapshot.GetValue<string>("run_type"));
 
-        var taxYearValue = snapshot.TryGetValue<long>("tax_year", out var tyLong)
+        var taxYearValue = snapshot.ContainsField("tax_year")
+            && snapshot.GetValue<object>("tax_year") != null
+            && snapshot.TryGetValue<long>("tax_year", out var tyLong)
             ? (int)tyLong
             : 2026;
 

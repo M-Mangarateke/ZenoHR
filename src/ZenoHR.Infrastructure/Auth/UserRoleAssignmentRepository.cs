@@ -96,8 +96,8 @@ public sealed class UserRoleAssignmentRepository
                 DepartmentId = snap.TryGetValue<string>("department_id", out var deptId)
                     ? (string.IsNullOrEmpty(deptId) ? null : deptId)
                     : null,
-                IsPrimary = snap.TryGetValue<bool>("is_primary", out var isPrimary) && isPrimary,
-                IsActive = snap.TryGetValue<bool>("is_active", out var isActive) && isActive,
+                IsPrimary = snap.ContainsField("is_primary") && snap.GetValue<object>("is_primary") != null && snap.TryGetValue<bool>("is_primary", out var isPrimary) && isPrimary,
+                IsActive = snap.ContainsField("is_active") && snap.GetValue<object>("is_active") != null && snap.TryGetValue<bool>("is_active", out var isActive) && isActive,
                 EffectiveFrom = ParseDateOnly(snap, "effective_from"),
                 EffectiveTo = ParseDateOnlyNullable(snap, "effective_to"),
             };
@@ -114,8 +114,9 @@ public sealed class UserRoleAssignmentRepository
         if (!snap.TryGetValue<string>(field, out var str) || str is null)
             return DateOnly.MinValue;
         if (DateOnly.TryParseExact(str, "yyyy-MM-dd", out var d)) return d;
-        // Fall back: try Timestamp
-        if (snap.TryGetValue<Timestamp>(field, out var ts))
+        // Fall back: try Timestamp (guard: TryGetValue<Timestamp> throws on null)
+        if (snap.ContainsField(field) && snap.GetValue<object>(field) != null
+            && snap.TryGetValue<Timestamp>(field, out var ts))
             return DateOnly.FromDateTime(ts.ToDateTime());
         return DateOnly.MinValue;
     }
@@ -125,7 +126,8 @@ public sealed class UserRoleAssignmentRepository
         if (!snap.TryGetValue<string>(field, out var str) || str is null)
             return null;
         if (DateOnly.TryParseExact(str, "yyyy-MM-dd", out var d)) return d;
-        if (snap.TryGetValue<Timestamp>(field, out var ts))
+        if (snap.ContainsField(field) && snap.GetValue<object>(field) != null
+            && snap.TryGetValue<Timestamp>(field, out var ts))
             return DateOnly.FromDateTime(ts.ToDateTime());
         return null;
     }

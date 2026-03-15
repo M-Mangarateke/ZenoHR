@@ -37,7 +37,9 @@ public sealed class ClockEntryRepository : BaseFirestoreRepository<ClockEntry>
         if (snapshot.TryGetValue<string>("calculated_hours", out var chStr)
             && decimal.TryParse(chStr, CultureInfo.InvariantCulture, out var chParsed))
             calculatedHours = chParsed;
-        else if (snapshot.TryGetValue<double>("calculated_hours", out var ch))
+        else if (snapshot.ContainsField("calculated_hours")
+            && snapshot.GetValue<object>("calculated_hours") != null
+            && snapshot.TryGetValue<double>("calculated_hours", out var ch))
             calculatedHours = (decimal)ch;
 
         string? flagNote = null;

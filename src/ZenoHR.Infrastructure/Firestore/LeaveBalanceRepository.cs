@@ -230,7 +230,10 @@ public sealed partial class LeaveBalanceRepository : BaseFirestoreRepository<Lea
     // Prefer string (precision-safe); fall back to double/long for legacy data
     private static decimal ToDecimal(DocumentSnapshot snapshot, string field)
     {
+        // Prefer string (precision-safe); fall back to double/long for legacy data.
+        // Guard: TryGetValue<double/long> throws ArgumentException when field is null in Firestore.
         if (snapshot.TryGetValue<string>(field, out var s) && decimal.TryParse(s, CultureInfo.InvariantCulture, out var parsed)) return parsed;
+        if (!snapshot.ContainsField(field) || snapshot.GetValue<object>(field) == null) return 0m;
         if (snapshot.TryGetValue<double>(field, out var d)) return (decimal)d;
         if (snapshot.TryGetValue<long>(field, out var l)) return l;
         return 0m;
