@@ -40,7 +40,7 @@ jobs:
     name: Build & Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup .NET (exact version from global.json)
         uses: actions/setup-dotnet@v4
@@ -89,7 +89,7 @@ jobs:
     outputs:
       image_tag: ${{ steps.resolve-tag.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Resolve image tag
         id: resolve-tag
@@ -174,7 +174,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # OIDC-based Azure login — no stored credentials (REQ-SEC-001)
       - name: Log in to Azure (OIDC)
