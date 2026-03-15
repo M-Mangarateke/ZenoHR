@@ -124,29 +124,31 @@ public sealed class BreachNotificationService
             POPIA SECTION 22 — BREACH NOTIFICATION
             ========================================
             Breach Reference: {0}
-            Discovery Date: {1:yyyy-MM-dd HH:mm:ss} UTC
+            Breach Title: {1}
+            Discovery Date: {2:yyyy-MM-dd HH:mm:ss} UTC
 
             DESCRIPTION OF BREACH
-            {2}
-
-            CATEGORIES OF PERSONAL INFORMATION AFFECTED
             {3}
 
-            ESTIMATED NUMBER OF AFFECTED DATA SUBJECTS
+            CATEGORIES OF PERSONAL INFORMATION AFFECTED
             {4}
 
-            ROOT CAUSE
+            ESTIMATED NUMBER OF AFFECTED DATA SUBJECTS
             {5}
 
-            CONTAINMENT AND REMEDIATION STEPS
+            ROOT CAUSE
             {6}
 
+            CONTAINMENT AND REMEDIATION STEPS
+            {7}
+
             RESPONSIBLE PARTY
-            {7} — Data Protection Officer
+            {8} — Data Protection Officer
 
             This notification is made in compliance with POPIA Act §22.
             """,
             breach.BreachId,
+            breach.Title,
             breach.DiscoveredAt,
             breach.Description,
             string.Join(", ", breach.AffectedDataCategories),

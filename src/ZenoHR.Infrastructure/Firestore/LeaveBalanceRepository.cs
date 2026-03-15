@@ -210,22 +210,30 @@ public sealed partial class LeaveBalanceRepository : BaseFirestoreRepository<Lea
             createdAt: snapshot.GetValue<Timestamp>("created_at").ToDateTimeOffset());
     }
 
-    private static Dictionary<string, object?> BuildLedgerEntryDocument(AccrualLedgerEntry entry) => new()
+    private static Dictionary<string, object?> BuildLedgerEntryDocument(AccrualLedgerEntry entry)
     {
-        ["ledger_entry_id"] = entry.LedgerEntryId,
-        ["balance_id"] = entry.BalanceId,
-        ["tenant_id"] = entry.TenantId,
-        ["employee_id"] = entry.EmployeeId,
-        ["entry_type"] = entry.EntryType.ToString().ToLowerInvariant(),
-        ["hours"] = entry.Hours.ToString(CultureInfo.InvariantCulture),
-        ["effective_date"] = Timestamp.FromDateTime(
-            entry.EffectiveDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)),
-        ["reason_code"] = entry.ReasonCode,
-        ["leave_request_id"] = entry.LeaveRequestId,
-        ["policy_version"] = entry.PolicyVersion,
-        ["posted_by"] = entry.PostedBy,
-        ["created_at"] = Timestamp.FromDateTimeOffset(entry.CreatedAt),
-    };
+        var doc = new Dictionary<string, object?>
+        {
+            ["ledger_entry_id"] = entry.LedgerEntryId,
+            ["balance_id"] = entry.BalanceId,
+            ["tenant_id"] = entry.TenantId,
+            ["employee_id"] = entry.EmployeeId,
+            ["entry_type"] = entry.EntryType.ToString().ToLowerInvariant(),
+            ["hours"] = entry.Hours.ToString(CultureInfo.InvariantCulture),
+            ["effective_date"] = Timestamp.FromDateTime(
+                entry.EffectiveDate.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)),
+            ["reason_code"] = entry.ReasonCode,
+            ["policy_version"] = entry.PolicyVersion,
+            ["posted_by"] = entry.PostedBy,
+            ["created_at"] = Timestamp.FromDateTimeOffset(entry.CreatedAt),
+        };
+
+        // Only include leave_request_id when present — Firestore rejects null values in transaction writes
+        if (entry.LeaveRequestId is not null)
+            doc["leave_request_id"] = entry.LeaveRequestId;
+
+        return doc;
+    }
 
     // Prefer string (precision-safe); fall back to double/long for legacy data
     private static decimal ToDecimal(DocumentSnapshot snapshot, string field)

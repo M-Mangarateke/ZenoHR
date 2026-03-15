@@ -32,10 +32,11 @@ public sealed class Emp201Generator : IEmp201Generator
         var sb = new StringBuilder();
 
         // ── Header record ─────────────────────────────────────────────────────
-        sb.AppendLine("RECORD_TYPE;EMPLOYER_PAYE_REF;TAX_PERIOD;TOTAL_PAYE;TOTAL_UIF_EMP;TOTAL_UIF_EMPR;TOTAL_SDL;EMPLOYEE_COUNT;GROSS_TOTAL;DUE_DATE;GENERATED_AT");
+        sb.AppendLine("RECORD_TYPE;EMPLOYER_PAYE_REF;EMPLOYER_NAME;TAX_PERIOD;TOTAL_PAYE;TOTAL_UIF_EMP;TOTAL_UIF_EMPR;TOTAL_SDL;EMPLOYEE_COUNT;GROSS_TOTAL;DUE_DATE;GENERATED_AT");
         sb.AppendLine(string.Join(";",
             "H",
             data.EmployerPAYEReference,
+            data.EmployerTradingName,
             data.TaxPeriod,
             data.TotalPayeDeducted.ToString("F2", Invariant),
             data.TotalUifEmployee.ToString("F2", Invariant),
