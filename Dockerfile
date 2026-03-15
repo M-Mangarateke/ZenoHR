@@ -6,9 +6,7 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Copy solution and project files first (layer caching for NuGet restore)
-COPY ZenoHR.sln ./
-COPY ZenoHR.slnx ./
+# Copy build configuration files (layer caching for NuGet restore)
 COPY global.json ./
 COPY Directory.Build.props ./
 COPY Directory.Build.targets ./
@@ -39,10 +37,14 @@ COPY src/ZenoHR.Module.Compliance/packages.lock.json src/ZenoHR.Module.Complianc
 COPY src/ZenoHR.Module.Audit/packages.lock.json src/ZenoHR.Module.Audit/
 COPY src/ZenoHR.Module.Risk/packages.lock.json src/ZenoHR.Module.Risk/
 
-RUN dotnet restore ZenoHR.sln --locked-mode
+# Restore only the API project (not tests) — test projects are not copied into the Docker image.
+RUN dotnet restore src/ZenoHR.Api/ZenoHR.Api.csproj --locked-mode
 
 # Copy all source (after restore for better layer caching)
 COPY src/ src/
+
+# Copy seed data needed at runtime (StatutoryRuleSetSeeder reads these at startup)
+COPY docs/seed-data/ docs/seed-data/
 
 # Publish ZenoHR.Api (includes ZenoHR.Web as a project reference)
 RUN dotnet publish src/ZenoHR.Api/ZenoHR.Api.csproj \
