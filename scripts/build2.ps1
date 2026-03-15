@@ -1,5 +1,6 @@
-# .NET 10 SDK installed to user profile via dotnet-install.ps1
-$dotnet = "C:\Users\manga\.dotnet\dotnet.exe"
+# Use system-installed .NET SDK (winget), fall back to user profile
+$dotnet = "C:\Program Files\dotnet\dotnet.exe"
+if (-not (Test-Path $dotnet)) { $dotnet = "C:\Users\manga\.dotnet\dotnet.exe" }
 if (-not (Test-Path $dotnet)) { $dotnet = "$env:LOCALAPPDATA\Microsoft\dotnet\dotnet.exe" }
 Set-Location "C:\Users\manga\ZenoHR"
 $out = & $dotnet build ZenoHR.slnx --no-incremental 2>&1

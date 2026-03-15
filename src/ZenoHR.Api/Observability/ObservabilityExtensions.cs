@@ -68,10 +68,20 @@ public static class ObservabilityExtensions
 
         // UseAzureMonitor() reads APPLICATIONINSIGHTS_CONNECTION_STRING from env vars.
         // Falls back to AzureMonitor:ConnectionString in configuration (appsettings / Key Vault).
-        // If neither is set, the exporter is disabled silently — safe for development.
-        builder.Services.AddOpenTelemetry()
-            .UseAzureMonitor()
-            .WithTracing(tracing =>
+        // Only enabled when a valid connection string is present — safe for local development.
+        var aiConnectionString =
+            builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]
+            ?? builder.Configuration["AzureMonitor:ConnectionString"];
+        var hasAzureMonitor = !string.IsNullOrWhiteSpace(aiConnectionString);
+
+        var otel = builder.Services.AddOpenTelemetry();
+
+        if (hasAzureMonitor)
+        {
+            otel.UseAzureMonitor();
+        }
+
+        otel.WithTracing(tracing =>
                 // Register ZenoHR's custom ActivitySource so custom spans are exported.
                 // Payroll calculations, audit writes, RBAC resolution will emit spans here.
                 // VUL-022: LogRedactionProcessor strips PII fields before export to Azure Monitor.
