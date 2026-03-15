@@ -14,7 +14,7 @@ jobs:
     name: Traceability Check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Check C# files for traceability references
         run: |
@@ -46,7 +46,7 @@ jobs:
     name: Documentation Staleness Gate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 2  # Need previous commit to detect changes
 
@@ -125,7 +125,7 @@ jobs:
     # Only run on PRs (not direct pushes to main)
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -179,7 +179,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [traceability-check]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Generate traceability index
         run: |
@@ -242,7 +242,7 @@ jobs:
     name: Security Doc Freshness
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Check vulnerability register freshness
         run: |

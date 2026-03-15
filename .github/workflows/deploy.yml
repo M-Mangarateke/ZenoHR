@@ -35,7 +35,7 @@ jobs:
       image_digest: ${{ steps.push.outputs.digest }}
       image_tags: ${{ steps.meta.outputs.tags }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -128,7 +128,7 @@ jobs:
       contents: read
       id-token: write  # Required for OIDC login to Azure (no stored credentials)
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       # OIDC-based Azure login — preferred over AZURE_CREDENTIALS service principal JSON.
       # Requires federated credential configured in Azure AD app registration.
