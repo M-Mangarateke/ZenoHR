@@ -333,9 +333,12 @@ public sealed class AccessReviewServiceTests
     [Fact]
     public void GenerateReview_LoginExactly90DaysAgo_IsNotStale()
     {
+        // Use -89 days to ensure we are within the 90-day window even after
+        // the small elapsed time between constructing the date and evaluating
+        // the threshold inside the service (which also calls DateTimeOffset.UtcNow).
         var assignments = new List<RoleAssignmentEntry>
         {
-            CreateAssignment(lastLoginAt: DateTimeOffset.UtcNow.AddDays(-90)),
+            CreateAssignment(lastLoginAt: DateTimeOffset.UtcNow.AddDays(-89).AddHours(-23)),
         };
 
         var result = _service.GenerateReview("tenant-1", "2026-03", assignments);

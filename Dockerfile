@@ -26,7 +26,20 @@ COPY src/ZenoHR.Module.Compliance/ZenoHR.Module.Compliance.csproj src/ZenoHR.Mod
 COPY src/ZenoHR.Module.Audit/ZenoHR.Module.Audit.csproj src/ZenoHR.Module.Audit/
 COPY src/ZenoHR.Module.Risk/ZenoHR.Module.Risk.csproj src/ZenoHR.Module.Risk/
 
-RUN dotnet restore ZenoHR.sln
+# Copy packages.lock.json files for locked-mode restore (REQ-SEC-010)
+COPY src/ZenoHR.Api/packages.lock.json src/ZenoHR.Api/
+COPY src/ZenoHR.Web/packages.lock.json src/ZenoHR.Web/
+COPY src/ZenoHR.Domain/packages.lock.json src/ZenoHR.Domain/
+COPY src/ZenoHR.Infrastructure/packages.lock.json src/ZenoHR.Infrastructure/
+COPY src/ZenoHR.Module.Employee/packages.lock.json src/ZenoHR.Module.Employee/
+COPY src/ZenoHR.Module.TimeAttendance/packages.lock.json src/ZenoHR.Module.TimeAttendance/
+COPY src/ZenoHR.Module.Leave/packages.lock.json src/ZenoHR.Module.Leave/
+COPY src/ZenoHR.Module.Payroll/packages.lock.json src/ZenoHR.Module.Payroll/
+COPY src/ZenoHR.Module.Compliance/packages.lock.json src/ZenoHR.Module.Compliance/
+COPY src/ZenoHR.Module.Audit/packages.lock.json src/ZenoHR.Module.Audit/
+COPY src/ZenoHR.Module.Risk/packages.lock.json src/ZenoHR.Module.Risk/
+
+RUN dotnet restore ZenoHR.sln --locked-mode
 
 # Copy all source (after restore for better layer caching)
 COPY src/ src/
@@ -42,8 +55,9 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 # Security: run as non-root user (principle of least privilege — REQ-SEC-001)
-RUN addgroup --system --gid 1001 zenohr && \
-    adduser --system --uid 1001 --ingroup zenohr --no-create-home zenohr
+# The aspnet base image includes the 'app' user (uid 1654). Use groupadd/useradd (coreutils).
+RUN groupadd --system --gid 1001 zenohr && \
+    useradd --system --uid 1001 --gid zenohr --no-create-home zenohr
 
 # Copy published output from build stage
 COPY --from=build /app/publish .

@@ -9,7 +9,7 @@ namespace ZenoHR.Module.Compliance.Tests.Security;
 public sealed class BreakGlassServiceTests
 {
     private readonly BreakGlassService _service = new();
-    private static readonly DateTimeOffset Now = new(2026, 3, 12, 10, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset Now = DateTimeOffset.UtcNow;
 
     private static BreakGlassRequest CreateTestRequest(
         BreakGlassStatus status = BreakGlassStatus.Requested,

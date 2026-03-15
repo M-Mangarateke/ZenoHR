@@ -71,8 +71,8 @@ public sealed class Emp501GeneratorTests
         {
             new() { EmployeeId = "emp-1", EmployeeName = "Sarah Nkosi", IdNumber = "8801015800082",
                     TaxRef = "9876543210",
-                    AnnualGross = 1_100_000m, AnnualPaye = 220_000m,
-                    AnnualUifEmployee = 11_000m, AnnualUifEmployer = 11_000m, AnnualSdl = 11_000m,
+                    AnnualGross = 1_300_000m, AnnualPaye = 260_000m,
+                    AnnualUifEmployee = 13_000m, AnnualUifEmployer = 13_000m, AnnualSdl = 13_000m,
                     AnnualEti = 0m, AnnualMedicalCredit = 0m,
                     Irp5Code = "IRP5", CertificateNumber = "IRP5-2026-001" },
         },
@@ -82,7 +82,7 @@ public sealed class Emp501GeneratorTests
     private static Emp501Data CreatePayeMismatchData()
     {
         var valid = CreateValidData();
-        // Employee PAYE sum = 220,000 but monthly total = 220,000 → tamper monthly to 187,420
+        // Employee PAYE sum = 260,000 but monthly total = 260,000 → tamper monthly to reduce Feb PAYE
         var tamperedMonths = valid.MonthlySubmissions
             .Select(m => m with { TotalPaye = m.TotalPaye - (m.Period == "2026-02" ? 32_580m : 0m) })
             .ToList();
@@ -163,9 +163,9 @@ public sealed class Emp501GeneratorTests
         var tLine = lines.FirstOrDefault(l => l.StartsWith("T;"));
         tLine.Should().NotBeNull("CSV must contain a T (totals) record");
 
-        // T record contains: gross=1100000.00, paye=220000.00, employee count=1
-        tLine.Should().Contain("1100000.00");
-        tLine.Should().Contain("220000.00");
+        // T record contains: gross=1300000.00, paye=260000.00, employee count=1
+        tLine.Should().Contain("1300000.00");
+        tLine.Should().Contain("260000.00");
         tLine.Should().Contain(";1");   // employee count
     }
 
