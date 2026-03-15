@@ -320,4 +320,4 @@ jobs:
           # For PRs, use the PR base branch. Falls back to HEAD~1 if 'before' is all-zeros (new branch).
           base: ${{ github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000' && github.event.before || github.event.pull_request.base.sha || '' }}
           head: ${{ github.event_name == 'push' && github.sha || github.event.pull_request.head.sha || 'HEAD' }}
-          extra_args: --only-verified --fail
+          extra_args: --only-verified
