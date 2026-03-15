@@ -83,8 +83,8 @@ public sealed class BankAccountRepository
     private static BankAccount FromSnapshot(DocumentSnapshot s)
     {
         DateOnly? effectiveTo = null;
-        if (s.TryGetValue<Timestamp>("effective_to", out var etTs))
-            effectiveTo = DateOnly.FromDateTime(etTs.ToDateTime());
+        if (s.ContainsField("effective_to") && s.GetValue<object>("effective_to") != null)
+            effectiveTo = DateOnly.FromDateTime(s.GetValue<Timestamp>("effective_to").ToDateTime());
 
         return BankAccount.Reconstitute(
             bankAccountId: s.Id,

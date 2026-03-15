@@ -36,8 +36,8 @@ public sealed class EmploymentContractRepository : BaseFirestoreRepository<Emplo
             snapshot.GetValue<string>("salary_basis"), out var sb) ? sb : SalaryBasis.Unknown;
 
         DateOnly? endDate = null;
-        if (snapshot.TryGetValue<Timestamp>("end_date", out var endTs))
-            endDate = DateOnly.FromDateTime(endTs.ToDateTime());
+        if (snapshot.ContainsField("end_date") && snapshot.GetValue<object>("end_date") != null)
+            endDate = DateOnly.FromDateTime(snapshot.GetValue<Timestamp>("end_date").ToDateTime());
 
         return EmploymentContract.Reconstitute(
             contractId: snapshot.Id,

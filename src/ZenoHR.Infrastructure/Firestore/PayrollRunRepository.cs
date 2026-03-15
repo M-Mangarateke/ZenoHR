@@ -110,16 +110,16 @@ public sealed class PayrollRunRepository : BaseFirestoreRepository<PayrollRun>
         snapshot.TryGetValue("finalized_by", out finalizedBy);
 
         DateTimeOffset? calculatedAt = null;
-        if (snapshot.TryGetValue<Timestamp>("calculated_at", out var calTs))
-            calculatedAt = calTs.ToDateTimeOffset();
+        if (snapshot.ContainsField("calculated_at") && snapshot.GetValue<object>("calculated_at") != null)
+            calculatedAt = snapshot.GetValue<Timestamp>("calculated_at").ToDateTimeOffset();
 
         DateTimeOffset? finalizedAt = null;
-        if (snapshot.TryGetValue<Timestamp>("finalized_at", out var finTs))
-            finalizedAt = finTs.ToDateTimeOffset();
+        if (snapshot.ContainsField("finalized_at") && snapshot.GetValue<object>("finalized_at") != null)
+            finalizedAt = snapshot.GetValue<Timestamp>("finalized_at").ToDateTimeOffset();
 
         DateTimeOffset? filedAt = null;
-        if (snapshot.TryGetValue<Timestamp>("filed_at", out var fileTs))
-            filedAt = fileTs.ToDateTimeOffset();
+        if (snapshot.ContainsField("filed_at") && snapshot.GetValue<object>("filed_at") != null)
+            filedAt = snapshot.GetValue<Timestamp>("filed_at").ToDateTimeOffset();
 
         return PayrollRun.Reconstitute(
             id: snapshot.Id,

@@ -144,12 +144,12 @@ public sealed class ComplianceSubmissionRepository : BaseFirestoreRepository<Com
         snapshot.TryGetValue("filing_reference", out filingReference);
 
         DateTimeOffset? submittedAt = null;
-        if (snapshot.TryGetValue<Timestamp>("submitted_at", out var subTs))
-            submittedAt = subTs.ToDateTimeOffset();
+        if (snapshot.ContainsField("submitted_at") && snapshot.GetValue<object>("submitted_at") != null)
+            submittedAt = snapshot.GetValue<Timestamp>("submitted_at").ToDateTimeOffset();
 
         DateTimeOffset? acceptedAt = null;
-        if (snapshot.TryGetValue<Timestamp>("accepted_at", out var accTs))
-            acceptedAt = accTs.ToDateTimeOffset();
+        if (snapshot.ContainsField("accepted_at") && snapshot.GetValue<object>("accepted_at") != null)
+            acceptedAt = snapshot.GetValue<Timestamp>("accepted_at").ToDateTimeOffset();
 
         IReadOnlyList<string> complianceFlags = [];
         if (snapshot.TryGetValue<List<object>>("compliance_flags", out var flagObjects))

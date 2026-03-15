@@ -33,8 +33,8 @@ public sealed class LeaveRequestRepository : BaseFirestoreRepository<LeaveReques
         snapshot.TryGetValue("approver_id", out approverId);
 
         DateTimeOffset? approvedAt = null;
-        if (snapshot.TryGetValue<Timestamp>("approved_at", out var approvedAtTs))
-            approvedAt = approvedAtTs.ToDateTimeOffset();
+        if (snapshot.ContainsField("approved_at") && snapshot.GetValue<object>("approved_at") != null)
+            approvedAt = snapshot.GetValue<Timestamp>("approved_at").ToDateTimeOffset();
 
         string? rejectionReason = null;
         snapshot.TryGetValue("rejection_reason", out rejectionReason);

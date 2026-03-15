@@ -30,8 +30,8 @@ public sealed class ClockEntryRepository : BaseFirestoreRepository<ClockEntry>
         var status = ParseStatus(snapshot.GetValue<string>("status"));
 
         DateTimeOffset? clockOutAt = null;
-        if (snapshot.TryGetValue<Timestamp>("clock_out_at", out var coTs))
-            clockOutAt = coTs.ToDateTimeOffset();
+        if (snapshot.ContainsField("clock_out_at") && snapshot.GetValue<object>("clock_out_at") != null)
+            clockOutAt = snapshot.GetValue<Timestamp>("clock_out_at").ToDateTimeOffset();
 
         decimal? calculatedHours = null;
         if (snapshot.TryGetValue<string>("calculated_hours", out var chStr)

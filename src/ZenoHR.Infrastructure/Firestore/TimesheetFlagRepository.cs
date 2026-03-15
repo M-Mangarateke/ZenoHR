@@ -34,8 +34,8 @@ public sealed class TimesheetFlagRepository : BaseFirestoreRepository<TimesheetF
         snapshot.TryGetValue("resolved_by", out resolvedBy);
 
         DateTimeOffset? resolvedAt = null;
-        if (snapshot.TryGetValue<Timestamp>("resolved_at", out var rat))
-            resolvedAt = rat.ToDateTimeOffset();
+        if (snapshot.ContainsField("resolved_at") && snapshot.GetValue<object>("resolved_at") != null)
+            resolvedAt = snapshot.GetValue<Timestamp>("resolved_at").ToDateTimeOffset();
 
         return TimesheetFlag.Reconstitute(
             flagId: snapshot.Id,

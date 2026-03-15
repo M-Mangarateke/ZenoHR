@@ -56,8 +56,8 @@ public sealed class EmployeeRepository : BaseFirestoreRepository<Employee>
         snapshot.TryGetValue("archive_reason", out archiveReason);
 
         DateTimeOffset? archivedAt = null;
-        if (snapshot.TryGetValue<Timestamp>("archived_at", out var archivedAtTs))
-            archivedAt = archivedAtTs.ToDateTimeOffset();
+        if (snapshot.ContainsField("archived_at") && snapshot.GetValue<object>("archived_at") != null)
+            archivedAt = snapshot.GetValue<Timestamp>("archived_at").ToDateTimeOffset();
 
         return Employee.Reconstitute(
             employeeId: snapshot.Id,
