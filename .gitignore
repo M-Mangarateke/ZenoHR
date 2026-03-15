@@ -28,7 +28,7 @@ TestResults/
 *.nuget.props
 *.nuget.targets
 project.lock.json
-packages.lock.json
+# packages.lock.json — tracked for CI --locked-mode (REQ-SEC-010)
 
 # ── IDE / Editor ──────────────────────────────────────────────────────────────
 .vs/

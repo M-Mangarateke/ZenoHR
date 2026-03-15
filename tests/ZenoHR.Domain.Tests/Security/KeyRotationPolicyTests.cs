@@ -1,4 +1,4 @@
-// VUL-010: Tests for key rotation policy configuration.
+// TC-SEC-008, VUL-010: Tests for key rotation policy configuration.
 
 using FluentAssertions;
 using ZenoHR.Infrastructure.Security;

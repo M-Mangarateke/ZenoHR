@@ -1,4 +1,4 @@
-// VUL-010: Key rotation configuration and policy.
+// REQ-SEC-008, VUL-010: Key rotation configuration and policy.
 // Defines rotation intervals and warning periods for cryptographic key management.
 // Keys (encryption, signing) must be rotated every 180 days per security policy.
 
