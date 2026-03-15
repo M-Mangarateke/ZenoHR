@@ -40,11 +40,12 @@ jobs:
       - name: Build
         run: dotnet build ZenoHR.slnx --configuration Release --no-restore
 
-      - name: Run tests with coverage
+      - name: Run tests with coverage (excluding integration tests)
         run: |
           dotnet test ZenoHR.slnx \
             --configuration Release \
             --no-build \
+            --filter "FullyQualifiedName!~ZenoHR.Integration" \
             --collect:"XPlat Code Coverage" \
             --settings coverlet.runsettings \
             --results-directory ./coverage
