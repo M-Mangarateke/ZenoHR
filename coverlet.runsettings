@@ -12,8 +12,8 @@
       <DataCollector friendlyName="XPlat Code Coverage">
         <Configuration>
           <Format>cobertura</Format>
-          <Include>[ZenoHR.Domain]*,[ZenoHR.Module.*]*,[ZenoHR.Infrastructure]*</Include>
-          <Exclude>[*.Tests]*,[ZenoHR.Web]*,[ZenoHR.Api]*</Exclude>
+          <Include>[ZenoHR.Domain]*,[ZenoHR.Module.*]*</Include>
+          <Exclude>[*.Tests]*,[ZenoHR.Infrastructure]*,[ZenoHR.Web]*,[ZenoHR.Api]*</Exclude>
           <ExcludeByAttribute>Obsolete,GeneratedCodeAttribute,CompilerGeneratedAttribute,ExcludeFromCodeCoverageAttribute</ExcludeByAttribute>
           <SingleHit>false</SingleHit>
           <UseSourceLink>true</UseSourceLink>

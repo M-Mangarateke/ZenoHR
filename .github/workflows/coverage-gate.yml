@@ -54,11 +54,15 @@ jobs:
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
 
       - name: Generate coverage report
+        # Filter to Domain + Module assemblies only (same as ci.yml).
+        # Infrastructure, Api, and Web are excluded from coverage gates.
         run: |
           reportgenerator \
             -reports:./coverage/**/coverage.cobertura.xml \
             -targetdir:./coverage/report \
-            -reporttypes:"Html;Badges;TextSummary"
+            -reporttypes:"Html;Badges;TextSummary" \
+            -assemblyfilters:"+ZenoHR.Domain;+ZenoHR.Module.*" \
+            -classfilters:"-*AssemblyMarker"
 
       - name: Check coverage thresholds
         # REQ-OPS-005: Coverage gate — ratchet thresholds up as coverage improves.
