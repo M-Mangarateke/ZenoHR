@@ -41,15 +41,7 @@
           <!-- Allow clickable source links in the HTML report -->
           <UseSourceLink>true</UseSourceLink>
 
-          <!--
-            Line coverage gate: CI fails if total line coverage across all included assemblies
-            falls below 90%. ThresholdStat=total means it is computed as:
-              covered_lines / coverable_lines across ALL included assemblies combined.
-            Branch coverage is NOT enforced here — see the ReportGenerator step in ci.yml.
-          -->
-          <Threshold>90</Threshold>
-          <ThresholdType>line</ThresholdType>
-          <ThresholdStat>total</ThresholdStat>
+          <!-- Coverage thresholds enforced in ci.yml ReportGenerator step, not here. -->
         </Configuration>
       </DataCollector>
     </DataCollectors>
