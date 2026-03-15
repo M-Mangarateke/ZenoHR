@@ -126,18 +126,15 @@ public sealed partial class LeaveBalanceRepository : BaseFirestoreRepository<Lea
         {
             await Db.RunTransactionAsync(async transaction =>
             {
-                // 1. Upsert the balance document within the transaction
-                transaction.Set(balanceRef, balanceDoc);
-
-                // 2. Append pending ledger entries (write-once) within the same transaction
+                // Firestore transactions require ALL reads before ANY writes.
+                // 1. Read phase — check write-once invariant for all pending ledger entries
+                var ledgerRefs = new List<(DocumentReference Ref, Dictionary<string, object> Doc)>();
                 foreach (var entry in pendingEntries)
                 {
-                    var entryDoc = BuildLedgerEntryDocument(entry);
                     var ledgerRef = balanceRef
                         .Collection("accrual_ledger")
                         .Document(entry.LedgerEntryId);
 
-                    // Read to check existence within transaction (Create is not available on Transaction)
                     var existingSnap = await transaction.GetSnapshotAsync(ledgerRef, ct);
                     if (existingSnap.Exists)
                     {
@@ -145,6 +142,14 @@ public sealed partial class LeaveBalanceRepository : BaseFirestoreRepository<Lea
                             $"Ledger entry '{entry.LedgerEntryId}' already exists — append-only invariant violated.");
                     }
 
+                    ledgerRefs.Add((ledgerRef, BuildLedgerEntryDocument(entry)));
+                }
+
+                // 2. Write phase — upsert balance + append all ledger entries
+                transaction.Set(balanceRef, balanceDoc);
+
+                foreach (var (ledgerRef, entryDoc) in ledgerRefs)
+                {
                     transaction.Set(ledgerRef, entryDoc);
                 }
             }, cancellationToken: ct);
@@ -210,9 +215,9 @@ public sealed partial class LeaveBalanceRepository : BaseFirestoreRepository<Lea
             createdAt: snapshot.GetValue<Timestamp>("created_at").ToDateTimeOffset());
     }
 
-    private static Dictionary<string, object?> BuildLedgerEntryDocument(AccrualLedgerEntry entry)
+    private static Dictionary<string, object> BuildLedgerEntryDocument(AccrualLedgerEntry entry)
     {
-        var doc = new Dictionary<string, object?>
+        var doc = new Dictionary<string, object>
         {
             ["ledger_entry_id"] = entry.LedgerEntryId,
             ["balance_id"] = entry.BalanceId,
